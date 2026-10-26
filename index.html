@@ -47,7 +47,7 @@ if(head){const a=byName("Chifre esquerdo"),b=byName("Chifre direito");if(a)head.
 if(body&&neck){body.attach(neck);neck.attach(head);}
 if(body&&tail)body.attach(tail);
 for(const leg of parts.filter(p=>(p.userData.name||"").startsWith("Perna "))){const foot=parts.find(p=>p.userData.type==="foot"&&Math.abs(p.position.x-leg.position.x)<.001&&Math.abs(p.position.z-(leg.position.z+.08))<.001);if(body)body.attach(leg);if(foot)leg.attach(foot);}
-select(null);say("Quadrúpede criado com as peças vinculadas.");}
+cacheRigPose();select(null);say("Quadrúpede criado com as peças vinculadas.");}
 function clear(){parts.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
