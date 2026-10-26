@@ -1,0 +1,11 @@
+{
+  "name": "Berofel 3D Create",
+  "short_name": "Berofel 3D",
+  "description": "Editor modular de criaturas 3D",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101827",
+  "theme_color": "#101827",
+  "icons": []
+}
