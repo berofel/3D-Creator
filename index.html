@@ -102,12 +102,26 @@ function quadruped(){
  }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
- const patas=[["dianteira esquerda",-.27,.74,.78],["dianteira direita",.27,.74,.78],["traseira esquerda",-.28,-.98,.8],["traseira direita",.28,-.98,.8]],gait=[];
- for(const [n,x,z,uh] of patas){
-  const rear=n.startsWith("traseira"),up=joint("leg",[x,1.5,z],[rear?.34:.3,uh,rear?.38:.32],BODY,"Perna superior "+n,true);body.attach(up);
-  const lt=1.5-uh+.04,low=joint("lowerleg",[x,lt,z],[.2,lt-.18,.22],LOWER,"Canela "+n,true);up.attach(low);
-  const hoof=joint("foot",[x,.22,z+.02],[.25,.22,.3],HOOF,"Casco "+n,true);low.attach(hoof);
-  gait.push({hip:up,knee:low,cannon:low,phase:rear?Math.PI:0,hind:rear});
+ const patas=[["dianteira esquerda",-.34,.48,false],["dianteira direita",.34,.48,false],["traseira esquerda",-.36,-.99,true],["traseira direita",.36,-.99,true]],gait=[];
+ const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);if(parent)parent.add(g);else scene.add(g);return g;};
+ const segment=(parent,type,length,width,depth,color,name)=>{
+  const m=trap(type,[0,0,0],[width,length,depth],color,name);
+  m.geometry.translate(0,-length/2,0);parent.add(m);return m;
+ };
+ for(const [n,x,z,rear] of patas){
+  // Quatro graus de liberdade por membro: anca/ombro, joelho, jarrete e boleto.
+  const hipY=rear?1.86:1.83, upperLen=rear?.57:.62, midLen=rear?.48:.48, cannonLen=rear?.38:.42, footLen=.16;
+  const hip=makePivot(null,[x,hipY,z],"Pivô anca/ombro "+n);
+  segment(hip,"femur",upperLen,rear?.34:.29,rear?.36:.30,BODY,(rear?"Fêmur":"Braço dianteiro")+" "+n);
+  const knee=makePivot(hip,[0,-upperLen,0],"Pivô joelho "+n);
+  segment(knee,"knee-segment",midLen,rear?.23:.20,.22,LOWER,(rear?"Perna inferior":"Antebraço")+" "+n);
+  const hock=makePivot(knee,[0,-midLen,0],"Pivô jarrete/carpal "+n);
+  segment(hock,"cannon",cannonLen,.16,.17,LOWER,"Canela "+n);
+  const fetlock=makePivot(hock,[0,-cannonLen,0],"Pivô boleto "+n);
+  segment(fetlock,"fetlock",.16,.14,.16,BODY,"Boleto "+n);
+  const hoof=trap("foot",[x,hipY-upperLen-midLen-cannonLen-.08,z+.035],[.25,.16,.3],HOOF,"Casco "+n);
+  hoof.position.set(0,-.08,.035);fetlock.add(hoof);
+  gait.push({hip,knee,hock,fetlock,hoof,phase:rear?Math.PI:0,hind:rear,upperLen,midLen,cannonLen});
  }
  window.__berofelHorseRig={body,bodyBaseY:body.position.y,chest:body,rump,neck,head,tail,tailMid:tail,tailTip:tip,gait};
  cacheRigPose();select(null);setSkinMode("bones");say("Cavalo voxel recriado com tronco, pescoço, cabeça e patas articuladas.");
