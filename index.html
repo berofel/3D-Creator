@@ -151,7 +151,6 @@ function humanoidPreset(isOgre=false){
  make("belt",[0,1.12,.02],[.82,.13,.50],"#b18a4b","Cinto");cacheRigPose();buildSkin(isOgre?"ogre":"human");select(null);fit();$("name").value=isOgre?"Ogro":"Humano";say(isOgre?"Modelo de ogro carregado.":"Modelo humano carregado.");
 }
 
-$("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
 
 $("exportglb").onclick=async()=>{try{const group=new THREE.Group();parts.filter(p=>!parts.includes(p.parent)).forEach(p=>group.add(p.clone(true)));skinMeshes.forEach(m=>{if(m.visible)group.add(m.clone(true))});const exporter=new GLTFExporter();exporter.parse(group,result=>download(new Blob([result],{type:"model/gltf-binary"}),($("name").value||"criatura")+".glb"),err=>{console.error(err);say("Falha ao exportar GLB.")},{binary:true});}catch(e){console.error(e);say("Falha ao exportar GLB.")}};
 function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(viewport);resize();
