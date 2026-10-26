@@ -39,37 +39,47 @@ let parts=[],selected=null,counter=0;const ray=new THREE.Raycaster(),pointer=new
 function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
 function add(type){let p=[0,1,0],s=[1,1,1],c="#65a8a1";if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1"}if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8"}if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d"}if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b"}if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1"}if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b"}return make(type,p,s,c)}
 function quadruped(){clear();
-// Cavalo low-poly composto por blocos, com silhueta e articulações reutilizáveis.
-const coat="#a96535",coatLight="#c7834b",coatDark="#49352c",mane="#33251f",hoof="#292b30",eye="#171514";
-make("body",[0,1.48,0],[1.05,.88,2.05],coat,"Tronco");
-make("body",[0,1.63,.48],[.92,.78,1.05],coatLight,"Lombo");
-const neck=make("neck",[0,1.94,.91],[.58,1.12,.68],coat,"Pescoço");
-neck.rotation.x=-.24;
-const head=make("head",[0,2.48,1.42],[.52,.72,.72],coatLight,"Cabeça");
-head.rotation.x=-.22;
-const muzzle=make("muzzle",[0,2.25,1.83],[.46,.32,.48],"#d9b18a","Focinho");
+// Cavalo low-poly segmentado: dois volumes corporais, pescoço articulado e pernas com juntas.
+const coat="#a96535",coatLight="#c7834b",coatDark="#49352c",mane="#33251f",hoofColor="#292b30",eyeColor="#171514";
+const torso=make("body",[0,1.48,-.28],[1.0,.82,1.35],coat,"Tronco dianteiro");
+const rump=make("rump",[0,1.47,-.91],[1.02,.88,.92],coatLight,"Tronco traseiro / garupa");
+const shoulder=make("shoulder",[0,1.46,.43],[.82,.83,.68],coat,"Ombros");
+const neck=make("neck",[0,1.91,.77],[.52,1.04,.58],coatLight,"Pescoço");
+neck.rotation.x=-.25;
+const head=make("head",[0,2.45,1.20],[.48,.66,.62],coat,"Cabeça");
+head.rotation.x=-.18;
+const muzzle=make("muzzle",[0,2.22,1.59],[.43,.29,.42],"#d9b18a","Focinho");
 head.attach(muzzle);
-const earL=make("ear",[-.19,2.91,1.31],[.14,.38,.16],coatDark,"Orelha esquerda");
-const earR=make("ear",[.19,2.91,1.31],[.14,.38,.16],coatDark,"Orelha direita");
+const earL=make("ear",[-.17,2.86,1.12],[.12,.34,.14],coatDark,"Orelha esquerda");
+const earR=make("ear",[.17,2.86,1.12],[.12,.34,.14],coatDark,"Orelha direita");
 head.attach(earL);head.attach(earR);
-make("eye",[-.267,2.55,1.59],[.045,.075,.045],eye,"Olho esquerdo");
-make("eye",[.267,2.55,1.59],[.045,.075,.045],eye,"Olho direito");
-// Crina em blocos sobre a nuca, reconhecível no estilo voxel/low-poly.
-for(let i=0;i<5;i++)make("mane",[0,2.53-i*.16,1.05+i*.16],[.62,.18,.22],mane,"Crina "+(i+1));
-make("tail",[0,1.72,-1.02],[.25,.25,.88],mane,"Cauda");
-const legs=[[-.34,.58,"dianteira esquerda"],[.34,.58,"dianteira direita"],[-.34,-.68,"traseira esquerda"],[.34,-.68,"traseira direita"]];
-for(let i=0;i<legs.length;i++){
- const [x,z,side]=legs[i],hipY=i<2?1.23:1.17;
- const leg=make("leg",[x,hipY,z],[.22,.78,.24],coatDark,"Perna "+side);
- // O pivô é o quadril: a geometria desce a partir da origem para animar sem girar pelo meio.
- leg.geometry.translate(0,-.5,0);
- const lower=make("lowerleg",[x,hipY-.48,z+.025],[.16,.42,.18],coat,"Canela "+side);
- lower.geometry.translate(0,-.5,0);
- leg.attach(lower);
- const hoof=make("foot",[x,.12,z+.10],[.25,.18,.31],hoof,"Casco "+side);
- leg.attach(hoof);
+make("eye",[-.247,2.52,1.35],[.035,.065,.035],eyeColor,"Olho esquerdo");
+make("eye",[.247,2.52,1.35],[.035,.065,.035],eyeColor,"Olho direito");
+for(let i=0;i<6;i++){
+ const manePiece=make("mane",[0,2.55-i*.14,.78+i*.13],[.57,.16,.19],mane,"Crina "+(i+1));
+ if(i===0)neck.attach(manePiece);
 }
-cacheRigPose();select(null);say("Cavalo base criado: blocos low-poly e quatro pernas articuladas.");}
+const tail=make("tail",[0,1.68,-1.43],[.23,.23,.82],mane,"Cauda");
+tail.rotation.x=-.22;
+// Cada perna tem uma coxa/perna superior, uma articulação inferior e casco.
+// A geometria é deslocada para baixo para girar a partir da junta, não do centro.
+const legs=[
+ {x:-.34,z:.48,side:"dianteira esquerda",phase:0},
+ {x:.34,z:.48,side:"dianteira direita",phase:Math.PI},
+ {x:-.36,z:-.99,side:"traseira esquerda",phase:Math.PI},
+ {x:.36,z:-.99,side:"traseira direita",phase:0}
+];
+for(const item of legs){
+ const {x,z,side}=item;
+ const upper=make("leg",[x,1.18,z],[.23,.72,.25],coatDark,"Perna superior "+side);
+ upper.geometry.translate(0,-.5,0);
+ const lower=make("lowerleg",[x,.78,z+.035],[.16,.52,.18],coatLight,"Canela "+side);
+ lower.geometry.translate(0,-.5,0);
+ upper.attach(lower);
+ const hoofMesh=make("foot",[x,.17,z+.10],[.25,.18,.31],hoofColor,"Casco "+side);
+ lower.attach(hoofMesh);
+}
+cacheRigPose();select(null);say("Cavalo segmentado criado com tronco duplo e pernas articuladas.");}
 function clear(){parts.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
@@ -100,7 +110,7 @@ quadruped();
 function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;
 for(const p of parts){const b=rigBase.get(p);if(!b)continue;const n=(p.userData.name||"").toLowerCase(),type=(p.userData.type||"").toLowerCase();p.rotation.copy(b.rotation);
 if(animMode==="idle"){if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.sin(t*2)*.035;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.055;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(t*2.2)*.28;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.025;}
-else {const phase=t*4.2; if(type==="leg"||n.includes("perna")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x+Math.sin(phase+offset)*.34;}if(type==="foot"||n.includes("pata")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x-Math.sin(phase+offset)*.12;}if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.abs(Math.sin(phase))*.045;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.045;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(phase*.5)*.25;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.025;}
+else {const phase=t*4.2;const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;if(type==="leg"||n.includes("perna superior"))p.rotation.x=b.rotation.x+Math.sin(phase+offset)*.34;if(type==="lowerleg"||n.includes("canela"))p.rotation.x=b.rotation.x+Math.max(0,Math.sin(phase+offset+Math.PI*.25))*.42;if(type==="foot"||n.includes("casco"))p.rotation.x=b.rotation.x-Math.sin(phase+offset)*.12;if(type==="body"||n.includes("tronco")||n.includes("ombros")||n.includes("garupa"))p.position.y=b.position.y+Math.abs(Math.sin(phase))*.035;if(type==="head"||n==="cabeça")p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.045;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(phase*.5)*.25;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.025;}
 }}
 
 function loop(){requestAnimationFrame(loop);const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);orbit.update();renderer.render(scene,camera)}loop();
