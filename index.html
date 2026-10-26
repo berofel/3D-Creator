@@ -16,7 +16,7 @@
 <nav class="mobilebar"><button data-add="body">＋ Tronco</button><button data-add="head">＋ Cabeça</button><button data-add="leg">＋ Perna</button><button data-add="tail">＋ Cauda</button><button data-add="horn">＋ Chifre</button><button id="fit">Centralizar</button></nav>
 <div class="layout"><main id="viewport" aria-label="Visualização 3D"></main><aside class="side">
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
-<div class="section"><h2>ADICIONAR PEÇA</h2><div class="grid"><button data-add="body">＋ Tronco</button><button data-add="head">＋ Cabeça</button><button data-add="leg">＋ Perna</button><button data-add="tail">＋ Cauda</button><button data-add="horn">＋ Chifre</button><button data-add="foot">＋ Pata</button></div><button id="preset" class="wide">Criar quadrúpede completo</button></div>
+<div class="section"><h2>ADICIONAR PEÇA</h2><div class="grid"><button data-add="body">＋ Tronco</button><button data-add="head">＋ Cabeça</button><button data-add="leg">＋ Perna</button><button data-add="tail">＋ Cauda</button><button data-add="horn">＋ Chifre</button><button data-add="foot">＋ Pata</button></div><button id="preset" class="wide">Criar cavalo base</button></div>
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
 <div class="section"><h2>MANIPULAÇÃO 3D</h2><p class="hint">Selecione uma peça e escolha como quer manipulá-la. Arraste as setas coloridas no modelo; durante o arrasto, a câmera fica travada.</p><div class="grid"><button id="toolMove" class="active-tool">↔ Mover</button><button id="toolRotate">⟳ Girar</button><button id="toolScale">↗ Escalar</button><button id="viewFront">Vista frontal XY</button></div><button id="view3d" class="wide">Voltar à câmera 3D</button><p class="hint">Na vista frontal, o eixo X move para os lados e Y para cima/baixo. O eixo Z fica oculto para facilitar ajustes em 2D.</p></div><div class="section"><h2>TRANSFORMAR PEÇA</h2><label>Posição X / Y / Z</label><div class="grid"><input id="px" type="number" step=".1" value="0"><input id="py" type="number" step=".1" value="0"><input id="pz" type="number" step=".1" value="0"></div><label>Escala X / Y / Z</label><div class="grid"><input id="sx" type="number" step=".1" min=".1" value="1"><input id="sy" type="number" step=".1" min=".1" value="1"><input id="sz" type="number" step=".1" min=".1" value="1"></div><label>Cor</label><input id="color" type="color" value="#65a8a1"><button id="apply" class="wide primary">Aplicar alterações</button></div>
 <div class="section"><h2>RIG E ANIMAÇÃO</h2><p class="hint">Movimento procedural para tronco, cabeça, quatro pernas e cauda. Selecione uma peça e use os controles para testar o rig.</p><div class="grid"><button id="animIdle">▶ Respiração</button><button id="animWalk">▶ Caminhar</button><button id="animStop">■ Parar</button><button id="rigReset">↺ Pose base</button></div><label for="animSpeed">Velocidade da animação</label><input id="animSpeed" type="range" min="0.3" max="2.5" step="0.1" value="1"><div class="status" id="animStatus">Rig pronto — escolha uma animação.</div></div><div class="section"><h2>ARQUIVOS</h2><button id="open" class="wide">Abrir JSON</button><input id="file" type="file" accept=".json,application/json" hidden><button id="exportglb" class="wide">Exportar cena como GLB</button><p class="hint">JSON salva as peças e suas transformações. GLB gera um modelo 3D para baixar e importar em outros programas.</p></div><div id="status" class="status">Carregando motor 3D…</div><p class="hint">Protótipo inicial. Requer internet para carregar Three.js. Testado ainda não em todos os dispositivos.</p>
@@ -39,26 +39,37 @@ let parts=[],selected=null,counter=0;const ray=new THREE.Raycaster(),pointer=new
 function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
 function add(type){let p=[0,1,0],s=[1,1,1],c="#65a8a1";if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1"}if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8"}if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d"}if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b"}if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1"}if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b"}return make(type,p,s,c)}
 function quadruped(){clear();
-const body=make("body",[0,1.5,0],[1.7,.9,2.5],"#65a8a1","Tronco");
-const neck=make("neck",[0,1.9,1.15],[.65,.65,.65],"#65a8a1","Pescoço");
-const head=make("head",[0,2.2,1.75],[.85,.75,.8],"#8bc8b8","Cabeça");
-const muzzle=make("muzzle",[0,1.98,2.3],[.5,.35,.45],"#d5b17b","Focinho");
-if(head&&muzzle)head.attach(muzzle);
-const hornL=make("horn",[-.28,2.65,1.65],[.6,.6,.6],"#d5b17b","Chifre esquerdo");
-const hornR=make("horn",[.28,2.65,1.65],[.6,.6,.6],"#d5b17b","Chifre direito");
-if(head){head.attach(hornL);head.attach(hornR);neck.attach(head);}
-const legs=[[-.58,.8,"dianteira esquerda"],[.58,.8,"dianteira direita"],[-.58,-.8,"traseira esquerda"],[.58,-.8,"traseira direita"]];
-for(const [x,z,side] of legs){
- const leg=make("leg",[x,1.12,z],[.28,.8,.3],"#4e827d","Perna "+side);
- // A origem da perna fica no quadril, para a rotação não fazê-la girar pelo meio.
+// Cavalo low-poly composto por blocos, com silhueta e articulações reutilizáveis.
+const coat="#a96535",coatLight="#c7834b",coatDark="#49352c",mane="#33251f",hoof="#292b30",eye="#171514";
+make("body",[0,1.48,0],[1.05,.88,2.05],coat,"Tronco");
+make("body",[0,1.63,.48],[.92,.78,1.05],coatLight,"Lombo");
+const neck=make("neck",[0,1.94,.91],[.58,1.12,.68],coat,"Pescoço");
+neck.rotation.x=-.24;
+const head=make("head",[0,2.48,1.42],[.52,.72,.72],coatLight,"Cabeça");
+head.rotation.x=-.22;
+const muzzle=make("muzzle",[0,2.25,1.83],[.46,.32,.48],"#d9b18a","Focinho");
+head.attach(muzzle);
+const earL=make("ear",[-.19,2.91,1.31],[.14,.38,.16],coatDark,"Orelha esquerda");
+const earR=make("ear",[.19,2.91,1.31],[.14,.38,.16],coatDark,"Orelha direita");
+head.attach(earL);head.attach(earR);
+make("eye",[-.267,2.55,1.59],[.045,.075,.045],eye,"Olho esquerdo");
+make("eye",[.267,2.55,1.59],[.045,.075,.045],eye,"Olho direito");
+// Crina em blocos sobre a nuca, reconhecível no estilo voxel/low-poly.
+for(let i=0;i<5;i++)make("mane",[0,2.53-i*.16,1.05+i*.16],[.62,.18,.22],mane,"Crina "+(i+1));
+make("tail",[0,1.72,-1.02],[.25,.25,.88],mane,"Cauda");
+const legs=[[-.34,.58,"dianteira esquerda"],[.34,.58,"dianteira direita"],[-.34,-.68,"traseira esquerda"],[.34,-.68,"traseira direita"]];
+for(let i=0;i<legs.length;i++){
+ const [x,z,side]=legs[i],hipY=i<2?1.23:1.17;
+ const leg=make("leg",[x,hipY,z],[.22,.78,.24],coatDark,"Perna "+side);
+ // O pivô é o quadril: a geometria desce a partir da origem para animar sem girar pelo meio.
  leg.geometry.translate(0,-.5,0);
- const foot=make("foot",[x,.18,z+.08],[.42,.18,.5],"#d5b17b","Pata "+side);
- leg.attach(foot);
+ const lower=make("leg",[x,hipY-.48,z+.025],[.16,.42,.18],coat,"Canela "+side);
+ lower.geometry.translate(0,-.5,0);
+ leg.attach(lower);
+ const hoof=make("foot",[x,.12,z+.10],[.25,.18,.31],hoof,"Casco "+side);
+ leg.attach(hoof);
 }
-const tail=make("tail",[0,1.55,-1.75],[.28,.28,1.1],"#65a8a1","Cauda");
-// A cabeça acompanha o pescoço; pernas e cauda ficam fora do tronco escalado
-// para evitar deformações causadas por escala não uniforme no Three.js.
-cacheRigPose();select(null);say("Quadrúpede criado com articulações corrigidas.");}
+cacheRigPose();select(null);say("Cavalo base criado: blocos low-poly e quatro pernas articuladas.");}
 function clear(){parts.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
@@ -89,7 +100,7 @@ quadruped();
 function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;
 for(const p of parts){const b=rigBase.get(p);if(!b)continue;const n=(p.userData.name||"").toLowerCase(),type=(p.userData.type||"").toLowerCase();p.rotation.copy(b.rotation);
 if(animMode==="idle"){if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.sin(t*2)*.035;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.055;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(t*2.2)*.28;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.025;}
-else {const phase=t*4.2; if(type==="leg"||n.includes("perna")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x+Math.sin(phase+offset)*.42;}if(type==="foot"||n.includes("pata")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x-Math.sin(phase+offset)*.12;}if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.abs(Math.sin(phase))*.045;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.045;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(phase*.5)*.25;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.025;}
+else {const phase=t*4.2; if(type==="leg"||n.includes("perna")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x+Math.sin(phase+offset)*.34;}if(type==="foot"||n.includes("pata")){const front=n.includes("dianteira"),left=n.includes("esquerda");const offset=(front===left)?0:Math.PI;p.rotation.x=b.rotation.x-Math.sin(phase+offset)*.12;}if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.abs(Math.sin(phase))*.045;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.045;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(phase*.5)*.25;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(phase+Math.PI)*.025;}
 }}
 
 function loop(){requestAnimationFrame(loop);const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);orbit.update();renderer.render(scene,camera)}loop();
