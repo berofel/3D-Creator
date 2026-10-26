@@ -10,6 +10,14 @@
 @media(max-width:760px){header{padding:9px 11px}.brand{font-size:15px}.topbuttons button{padding:8px 9px;font-size:12px}.layout{display:flex;flex-direction:column}#viewport{height:53dvh;min-height:300px;order:0}.side{order:1;border:0;border-top:1px solid var(--line);padding:12px}.part-list{max-height:125px}.mobilebar{display:flex;gap:6px;overflow:auto;padding:8px;background:#0b1220}.mobilebar button{white-space:nowrap}.section{margin-bottom:10px;padding-bottom:10px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script>
+(function(){
+ function show(msg){const el=document.getElementById("status");if(el){el.textContent=msg;el.style.background="#7f1d1d";el.style.color="#fff";el.style.padding="10px";el.style.borderRadius="8px"}}
+ window.addEventListener("error",e=>{if(e.message)show("Erro JavaScript: "+e.message.slice(0,220))});
+ window.addEventListener("unhandledrejection",e=>{const r=e.reason;show("Falha ao carregar módulo 3D: "+String(r&&r.message||r||"erro desconhecido").slice(0,220))});
+ setTimeout(()=>{if(!document.querySelector("#viewport canvas"))show("O motor 3D não criou o canvas. Verifique WebGL ou o carregamento do Three.js; recarregue a página após alguns segundos.")},3500);
+})();
+</script>
 </head>
 <body>
 <header><div class="brand">◆ Berofel 3D Create<small>Editor modular de criaturas • protótipo web</small></div><div class="topbuttons"><button id="new">Nova</button> <button id="save" class="primary">Exportar JSON</button></div></header>
