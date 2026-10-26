@@ -85,7 +85,7 @@ function quadruped(){
  make("belly",[0,1.3,-.15],[.9,.32,1.7],BELLY,"Faixa inferior do tronco");
  make("body",[0,1.82,.68],[.84,1,.7],BODY,"Peito e ombros");
  make("chest",[0,1.45,.92],[.82,.5,.42],BELLY,"Peito");
- make("rump",[0,1.72,-.98],[.88,.92,.68],BODY,"Garupa");
+ const rump=make("rump",[0,1.72,-.98],[.88,.92,.68],BODY,"Garupa");
  const nA=.62,nL=1.05,nBase=[0,2,.85];
  const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço",false,nA);body.attach(neck);
  for(let i=0;i<5;i++)part(neck,"mane",rel(nBase,nA,[0,nL/2,0]),nA,[0,-.44+i*.22,-.4],[.16,.3,.13],MANE,"Crina "+(i+1));
@@ -192,7 +192,7 @@ else {const phase=t*4.2;const front=n.includes("dianteira"),left=n.includes("esq
 let renderFault=false;
 function reportRenderFault(err){if(renderFault)return;renderFault=true;console.error("Berofel 3D Create: render protegido",err);animMode="stop";const status=$("status");if(status){status.textContent="A visualização encontrou um erro e foi pausada para evitar tela preta. Recarregue a página; se persistir, use Restaurar visualização.";status.style.background="#7f1d1d";status.style.color="#fff";status.style.padding="10px";status.style.borderRadius="8px"}}
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
-window.addEventListener("error",e=>{if(e.message&&/WebGL|THREE|render/i.test(e.message))reportRenderFault(e.error||e.message)});
+window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
 </script></body></html>
