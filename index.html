@@ -137,23 +137,23 @@ function gnuPreset(){
  const hump=part("body",[0,2.57,.43],[.94,.72,1.08],HUMP,"Corcova",.7,.82);
  const chest=part("body",[0,2.08,.72],[1.08,1.02,.82],BARREL,"Peito e ombros",.76,.8);
  const rump=part("rump",[0,2.02,-1.02],[1.06,.84,.86],RUMP,"Garupa",.78,.82);
- const neck=part("neck",[0,2.55,1.12],[.68,.95,.72],NECK,.7,.8);neck.rotation.x=.48;body.attach(neck);
- const crina=part("mane",[0,2.83,1.03],[.23,.62,.92],MANE,.42,.58);crina.rotation.x=.48;neck.attach(crina);
- const head=part("head",[0,2.37,1.82],[.62,.72,.66],HEAD,.72,.78);head.rotation.x=-.2;neck.attach(head);
+ const neck=part("neck",[0,2.55,1.12],[.68,.95,.72],NECK,"Pescoço",.7,.8);neck.rotation.x=.48;body.attach(neck);
+ const crina=part("mane",[0,2.83,1.03],[.23,.62,.92],MANE,"Crina",.42,.58);crina.rotation.x=.48;neck.attach(crina);
+ const head=part("head",[0,2.37,1.82],[.62,.72,.66],HEAD,"Cabeça",.72,.78);head.rotation.x=-.2;neck.attach(head);
  const att=m=>head.attach(m);
- att(part("muzzle",[0,2.08,2.08],[.48,.32,.42],MUZZLE,.78,.82));
- att(part("beard",[0,1.82,1.68],[.25,.46,.32],MANE,.58,.68));
+ att(part("muzzle",[0,2.08,2.08],[.48,.32,.42],MUZZLE,"Focinho",.78,.82));
+ att(part("beard",[0,1.82,1.68],[.25,.46,.32],MANE,"Barba",.58,.68));
  for(const side of [-1,1]){
   const label=side<0?"esquerdo":"direito";
   att(make("eye",[side*.30,2.45,1.96],[.055,.075,.045],"#171311","Olho "+label));
   const ear=part("ear",[side*.43,2.61,1.59],[.28,.13,.22],"#72503e","Orelha "+label,.6,.7);ear.rotation.z=side*.25;att(ear);
   // Chifres em segmentos angulares, abrindo para os lados e subindo nas pontas.
   [[.57,2.67,.42,.08],[.91,2.77,.43,.42],[1.18,3.03,.38,.95],[1.30,3.31,.27,1.35]].forEach(([x,y,len,ang],i)=>{
-   const h=part("horn-seg",[side*x,y,1.59],[len,.15-i*.025,.15-i*.025],HORN,.62,.65,"Chifre "+label+" "+(i+1));h.rotation.z=side*ang;att(h);
+   const h=part("horn-seg",[side*x,y,1.59],[len,.15-i*.025,.15-i*.025],HORN,"Chifre "+label+" "+(i+1),.62,.65);h.rotation.z=side*ang;att(h);
   });
-  att(part("horn-band",[side*.50,2.66,1.59],[.17,.2,.2],BAND,.75,.8,"Base do chifre "+label));
+  att(part("horn-band",[side*.50,2.66,1.59],[.17,.2,.2],BAND,"Base do chifre "+label,.75,.8));
  }
- const tail=part("tail",[0,1.8,-1.58],[.18,.78,.18],DARK,.5,.6,"Cauda");tail.geometry.translate(0,-.5,0);body.attach(tail);
+ const tail=part("tail",[0,1.8,-1.58],[.18,.78,.18],DARK,"Cauda",.5,.6);tail.geometry.translate(0,-.5,0);body.attach(tail);
  const legs=[];
  const patas=[["dianteira esquerda",-.37,.78,false],["dianteira direita",.37,.78,false],["traseira esquerda",-.39,-1.02,true],["traseira direita",.39,-1.02,true]];
  for(const [n,x,z,rear] of patas){
