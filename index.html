@@ -10,6 +10,57 @@
 @media(max-width:760px){header{padding:9px 11px}.brand{font-size:15px}.topbuttons button{padding:8px 9px;font-size:12px}.layout{display:flex;flex-direction:column}#viewport{height:53dvh;min-height:300px;order:0}.side{order:1;border:0;border-top:1px solid var(--line);padding:12px}.part-list{max-height:125px}.mobilebar{display:flex;gap:6px;overflow:auto;padding:8px;background:#0b1220}.mobilebar button{white-space:nowrap}.section{margin-bottom:10px;padding-bottom:10px}}
 </style>
 
+<style>
+#preview-fallback{position:absolute;inset:0;width:100%;height:100%;display:block;background:linear-gradient(#dceaf2 0 78%,#e9f0f3 78%);z-index:0}
+#viewport canvas:not(#preview-fallback){position:relative;z-index:1}
+#viewport{isolation:isolate}
+</style>
+<script>
+(function(){
+ let active="horse",fallbackCanvas,ctx,showFallback=false;
+ const colors={horse:"#a96535",cow:"#e7e0d0",human:"#d6a27d",ogre:"#6f9650"};
+ function draw(){
+  const v=document.getElementById("viewport");if(!v)return;
+  if(!fallbackCanvas){fallbackCanvas=document.createElement("canvas");fallbackCanvas.id="preview-fallback";fallbackCanvas.setAttribute("aria-label","Pré-visualização de segurança");v.prepend(fallbackCanvas);ctx=fallbackCanvas.getContext("2d");}
+  const r=v.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);fallbackCanvas.width=Math.max(1,Math.floor(r.width*d));fallbackCanvas.height=Math.max(1,Math.floor(r.height*d));ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,r.width,r.height);
+  ctx.fillStyle="#dceaf2";ctx.fillRect(0,0,r.width,r.height);ctx.fillStyle="#e9f0f3";ctx.fillRect(0,r.height*.78,r.width,r.height*.22);
+  ctx.strokeStyle="#c1d0da";ctx.lineWidth=1;for(let x=0;x<r.width;x+=28){ctx.beginPath();ctx.moveTo(x,r.height*.78);ctx.lineTo(r.width/2+(x-r.width/2)*1.8,r.height);ctx.stroke()}for(let y=r.height*.79;y<r.height;y+=22){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(r.width,y);ctx.stroke()}
+  const sc=Math.min(r.width/360,r.height/300),ox=r.width/2,oy=r.height*.78;
+  ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);
+  function poly(points,fill,stroke="#533d30"){ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke()}
+  const coat=colors[active]||colors.horse;
+  if(active==="human"||active==="ogre"){
+   const skin=coat,cloth=active==="ogre"?"#42533a":"#344f78";
+   poly([[-42,-160],[38,-160],[48,-88],[30,-68],[-30,-68],[-48,-88]],cloth);
+   poly([[-29,-205],[28,-205],[36,-166],[-32,-166]],skin);
+   poly([[-27,-248],[27,-248],[32,-207],[-32,-207]],skin);
+   poly([[-35,-252],[-25,-268],[20,-268],[34,-251]],active==="ogre"?"#382c22":"#47362b");
+   poly([[-42,-157],[-66,-149],[-58,-93],[-42,-92]],skin);poly([[42,-157],[66,-149],[58,-93],[42,-92]],skin);
+   poly([[-30,-69],[-3,-69],[-7,-8],[-30,-8]],"#49352c");poly([[3,-69],[30,-69],[30,-8],[7,-8]],"#49352c");
+  } else {
+   poly([[-94,-145],[-62,-177],[38,-176],[81,-147],[70,-113],[-68,-113]],coat);
+   poly([[-62,-169],[-28,-182],[7,-173],[21,-146],[-39,-143]],active==="cow"?"#393337":"#c7834b");
+   poly([[36,-171],[52,-220],[73,-232],[91,-219],[78,-197],[67,-159]],coat);
+   poly([[65,-222],[68,-246],[78,-245],[82,-222]],"#49352c");
+   poly([[81,-215],[105,-208],[109,-193],[82,-193]],active==="cow"?"#f5f1e8":"#c7834b");
+   poly([[-78,-143],[-56,-143],[-60,-47],[-77,-47]],coat);poly([[-35,-143],[-15,-143],[-16,-47],[-33,-47]],coat);poly([[31,-143],[50,-143],[54,-47],[36,-47]],coat);poly([[60,-142],[77,-142],[86,-47],[68,-47]],coat);
+   for(const x of [-77,-33,-16,36,68]){poly([[x-3,-49],[x+9,-49],[x+10,-39],[x-5,-39]],"#292b30")}
+   poly([[-22,-182],[-8,-207],[13,-208],[31,-179]],active==="cow"?"#393337":"#33251f");
+   poly([[78,-219],[82,-224],[87,-220],[85,-213]],"#171514");
+  }
+  ctx.fillStyle="#1d2b3b";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.fillText("Pré-visualização de segurança · "+({horse:"Cavalo",cow:"Vaca",human:"Humano",ogre:"Ogro"}[active]),0,25);
+  ctx.restore();
+ }
+ window.addEventListener("resize",draw);
+ window.addEventListener("error",()=>{showFallback=true;draw()});
+ window.addEventListener("unhandledrejection",()=>{showFallback=true;draw()});
+ document.addEventListener("DOMContentLoaded",()=>{
+  draw();
+  ["horse","cow","human","ogre"].forEach(k=>{const b=[...document.querySelectorAll("button")].find(x=>x.textContent.trim().toLowerCase()===(k==="horse"?"cavalo":k==="cow"?"vaca":k==="human"?"humano":"ogro"));if(b)b.addEventListener("click",()=>{active=k;draw()})});
+  setTimeout(()=>{if(!window.__berofelBooted){showFallback=true;draw();const st=document.getElementById("status");if(st){st.textContent="Modo de segurança: motor 3D indisponível. Pré-visualização alternativa ativa.";st.style.color="#fff";st.style.background="#7f1d1d";st.style.padding="10px"}}},5000);
+ });
+})();
+</script>
 </head>
 <body>
 <header><div class="brand">◆ Berofel Creature Library<small>Modelos completos • pele facetada • animação</small></div></header>
