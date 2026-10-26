@@ -106,7 +106,7 @@ function quadruped(){
  const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);if(parent)parent.add(g);else scene.add(g);return g;};
  const segment=(parent,type,length,width,depth,color,name)=>{
   const m=trap(type,[0,0,0],[width,length,depth],color,name);
-  m.geometry.translate(0,-length/2,0);parent.add(m);return m;
+  m.geometry.translate(0,-.5,0);parent.add(m);return m;
  };
  for(const [n,x,z,rear] of patas){
   // Quatro graus de liberdade por membro: anca/ombro, joelho, jarrete e boleto.
