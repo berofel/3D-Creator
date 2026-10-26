@@ -109,7 +109,7 @@ function quadruped(){
   const hoof=joint("foot",[x,.22,z+.02],[.25,.22,.3],HOOF,"Casco "+n,true);low.attach(hoof);
   gait.push({hip:up,knee:low,cannon:low,phase:rear?Math.PI:0,hind:rear});
  }
- window.__berofelHorseRig={body,chest:body, rump,neck,head,tail,tailMid:tail,tailTip:tip,gait};
+ window.__berofelHorseRig={body,bodyBaseY:body.position.y,chest:body,rump,neck,head,tail,tailMid:tail,tailTip:tip,gait};
  cacheRigPose();select(null);setSkinMode("bones");say("Cavalo voxel recriado com tronco, pescoço, cabeça e patas articuladas.");
 }
 function gnuPreset(){
