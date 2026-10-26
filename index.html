@@ -42,17 +42,39 @@ function skinPiece(name,pos,scale,color,segments=10){const m=new THREE.Mesh(new 
 function setSkinMode(mode){skinMode=mode;const showSkin=mode==="skin";for(const m of skinMeshes)m.visible=showSkin;for(const p of parts)p.visible=!showSkin;if(showSkin)transform.detach();transformHelper.visible=!showSkin;$("skinStatus").textContent=showSkin?"Pele visível; esqueleto oculto.":"Esqueleto visível; pele ocultada.";say(showSkin?"Camada de pele ativada.":"Esqueleto articulado ativado.")}
 function buildSkin(kind){
  clearSkin();const horse=kind==="horse",ogre=kind==="ogre";
- const coat=horse?"#a96535":ogre?"#6f9650":"#d6a27d",light=horse?"#c7834b":coat, dark=horse?"#49352c":ogre?"#42533a":"#344f78";
+ const coat=horse?"#a96535":ogre?"#6f9650":"#d6a27d",light=horse?"#c7834b":ogre?"#82a85d":coat,dark=horse?"#49352c":ogre?"#42533a":"#344f78";
+ // Superfícies mais arredondadas: mais segmentos reduzem o aspecto facetado sem explodir a contagem.
  if(horse){
- skinPiece("Pele tronco",[0,1.49,-.34],[.51,.39,.94],coat,14);skinPiece("Pele garupa",[0,1.48,-.91],[.54,.43,.51],light,14);skinPiece("Pele peito",[0,1.48,.39],[.48,.44,.42],coat,12);
- skinPiece("Pele pescoço",[0,1.99,.77],[.29,.67,.31],light,12).rotation.x=-.24;skinPiece("Pele cabeça",[0,2.47,1.20],[.27,.37,.33],coat,12).rotation.x=-.16;skinPiece("Pele focinho",[0,2.23,1.49],[.25,.16,.28],"#d9b18a",10);
- skinPiece("Crina pele",[0,2.58,.87],[.30,.48,.13],"#33251f",8).rotation.x=-.22;skinPiece("Cauda pele",[0,1.49,-1.53],[.13,.37,.13],"#33251f",8).rotation.x=-.25;
- for(const side of [-1,1]){skinPiece("Pele ombro",[side*.31,1.22,.42],[.17,.39,.19],coat,10);skinPiece("Pele anca",[side*.34,1.16,-.91],[.18,.40,.22],light,10)}
- const legs=[[-.34,.48,"Dianteira E"],[.34,.48,"Dianteira D"],[-.36,-.99,"Traseira E"],[.36,-.99,"Traseira D"]];
- for(let i=0;i<legs.length;i++){const [x,z,n]=legs[i];const upper=skinPiece("Pele perna "+n,[x,.91,z],[.115,.39,.12],coat,9);upper.userData.phase=(i===0||i===3)?0:Math.PI;upper.userData.limb="upper";const lower=skinPiece("Pele canela "+n,[x,.43,z+.04],[.075,.27,.085],light,9);lower.userData.phase=upper.userData.phase;lower.userData.limb="lower";skinPiece("Casco "+n,[x,.17,z+.10],[.14,.095,.16],"#292b30",8)}
+  skinPiece("Pele tronco",[0,1.49,-.34],[.52,.40,.96],coat,20);skinPiece("Pele garupa",[0,1.48,-.91],[.55,.44,.53],light,20);skinPiece("Pele peito",[0,1.48,.39],[.49,.45,.43],coat,18);
+  skinPiece("Músculo peitoral",[0,1.40,.58],[.40,.31,.28],light,16);skinPiece("Pele pescoço",[0,1.99,.77],[.30,.68,.32],light,18).rotation.x=-.24;skinPiece("Músculo cervical",[0,1.94,.82],[.255,.53,.285],coat,16).rotation.x=-.22;
+  skinPiece("Pele cabeça",[0,2.47,1.20],[.28,.38,.34],coat,18).rotation.x=-.16;skinPiece("Músculo masseter",[0,2.34,1.22],[.275,.22,.30],light,14);skinPiece("Pele focinho",[0,2.23,1.49],[.255,.17,.29],"#d9b18a",16);
+  skinPiece("Crina pele",[0,2.58,.87],[.30,.48,.14],"#33251f",12).rotation.x=-.22;skinPiece("Cauda pele",[0,1.49,-1.53],[.135,.38,.14],"#33251f",12).rotation.x=-.25;
+  for(const side of [-1,1]){
+   skinPiece("Pele ombro",[side*.31,1.22,.42],[.18,.40,.20],coat,16);skinPiece("Deltoide equino",[side*.34,1.25,.49],[.145,.29,.17],light,14);
+   skinPiece("Músculo glúteo",[side*.31,1.22,-.94],[.20,.34,.25],light,16);skinPiece("Músculo coxa traseira",[side*.34,.94,-.91],[.145,.31,.18],coat,14);
+   skinPiece("Tendão posterior",[side*.36,.59,-.94],[.09,.24,.11],light,12);
+  }
+  const legs=[[-.34,.48,"Dianteira E"],[.34,.48,"Dianteira D"],[-.36,-.99,"Traseira E"],[.36,-.99,"Traseira D"]];
+  for(let i=0;i<legs.length;i++){
+   const [x,z,n]=legs[i],phase=(i===0||i===3)?0:Math.PI;
+   skinPiece("Pele perna "+n,[x,.91,z],[.12,.39,.125],coat,16).userData={skin:true,name:"Pele perna "+n,limb:"upper",phase};
+   skinPiece("Articulação joelho "+n,[x,.70,z+.025],[.125,.13,.13],light,14);
+   skinPiece("Pele canela "+n,[x,.43,z+.04],[.083,.28,.09],light,14).userData={skin:true,name:"Pele canela "+n,limb:"lower",phase};
+   skinPiece("Tendão metacarpo "+n,[x,.30,z+.055],[.065,.18,.075],coat,12);
+   skinPiece("Articulação boleto "+n,[x,.245,z+.07],[.105,.105,.11],light,12);
+   skinPiece("Casco "+n,[x,.15,z+.10],[.145,.105,.17],"#292b30",12);
+  }
  }else{
- skinPiece("Pele torso",[0,1.47,0],[.46,.52,.27],dark,14);skinPiece("Pele abdômen",[0,1.06,.01],[.37,.27,.25],dark,12);skinPiece("Pele cabeça",[0,2.32,0],[.29,.34,.27],coat,12);skinPiece("Pele cabelo",[0,2.61,-.03],[.31,.12,.28],ogre?"#382c22":"#47362b",10);
- for(const side of [-1,1]){const arm=skinPiece("Pele braço",[side*.65,1.47,0],[.14,.43,.17],coat,10);arm.userData.phase=side<0?0:Math.PI;arm.userData.limb="arm";skinPiece("Pele mão",[side*.69,1.00,.08],[.16,.14,.15],coat,8);const leg=skinPiece("Pele perna",[side*.25,.54,0],[.17,.42,.19],coat,10);leg.userData.phase=side<0?0:Math.PI;leg.userData.limb="humanLeg";skinPiece("Bota",[side*.25,.10,.10],[.22,.10,.30],"#49352c",8)}
+  skinPiece("Pele torso",[0,1.47,0],[.47,.53,.285],dark,20);skinPiece("Peitoral esquerdo",[-.205,1.69,.205],[.245,.23,.13],dark,18);skinPiece("Peitoral direito",[.205,1.69,.205],[.245,.23,.13],dark,18);
+  skinPiece("Trapézio",[0,1.91,-.015],[.34,.20,.24],coat,16);skinPiece("Pele abdômen",[0,1.13,.015],[.38,.29,.26],dark,18);
+  for(let i=0;i<3;i++)skinPiece("Músculo abdominal "+(i+1),[0,1.29-i*.105,.235],[.25-i*.025,.055,.045],coat,14);
+  skinPiece("Pele cabeça",[0,2.32,0],[.30,.35,.28],coat,20);skinPiece("Pele cabelo",[0,2.61,-.03],[.32,.13,.29],ogre?"#382c22":"#47362b",16);
+  for(const side of [-1,1]){
+   skinPiece("Deltoide",[side*.48,1.78,.015],[.205,.24,.21],coat,18);skinPiece("Bíceps",[side*.59,1.52,.075],[.145,.28,.16],light,16);skinPiece("Tríceps",[side*.60,1.51,-.10],[.135,.27,.14],coat,16);
+   skinPiece("Articulação cotovelo",[side*.64,1.29,.005],[.125,.13,.13],coat,14);skinPiece("Antebraço",[side*.66,1.13,.055],[.125,.24,.135],light,16);skinPiece("Pele mão",[side*.68,.94,.08],[.15,.14,.14],coat,14);
+   skinPiece("Glúteo",[side*.18,.91,-.10],[.19,.24,.17],dark,16);skinPiece("Quadríceps",[side*.235,.63,.095],[.16,.31,.16],coat,18);skinPiece("Posterior coxa",[side*.25,.63,-.105],[.13,.29,.13],dark,16);
+   skinPiece("Articulação joelho",[side*.25,.37,.025],[.145,.14,.15],light,14);skinPiece("Panturrilha",[side*.25,.22,-.035],[.14,.24,.145],coat,16);skinPiece("Canela",[side*.25,.20,.075],[.09,.22,.08],light,12);skinPiece("Bota",[side*.25,.085,.12],[.22,.105,.30],"#49352c",12);
+  }
  }
  for(const m of skinMeshes)skinBase.set(m,{position:m.position.clone(),rotation:m.rotation.clone()});setSkinMode("skin");
 }
