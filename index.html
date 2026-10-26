@@ -180,7 +180,7 @@ function gnuPreset(){
  window.__berofelHorseRig={body,bodyBaseY:body.position.y,chest,rump,neck,head,tail,tailMid:tail,tailTip:tail,gait:legs};
  cacheRigPose();select(null);setSkinMode("bones");say("Gnu facetado criado: tronco trapezoidal, peito elevado, chifres angulares e quatro patas articuladas.");
 }
-function clear(){const hr=window.__berofelHorseRig;if(hr&&Array.isArray(hr.gait)){for(const leg of hr.gait){const root=leg.hip;if(root&&root.parent)root.parent.remove(root)}}if(horseRoot){if(horseRoot.parent)horseRoot.parent.remove(horseRoot);horseRoot=null}clearSkin();for(const p of [...parts].reverse()){if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material?.dispose()}parts=[];horseJoints=[];window.__berofelHorseRig=null;selected=null;counter=0;renderParts()}
+function clear(){const humanRig=window.__berofelHumanoidRig;if(humanRig?.torso&&humanRig.torso.parent)humanRig.torso.parent.remove(humanRig.torso);window.__berofelHumanoidRig=null;const hr=window.__berofelHorseRig;if(hr&&Array.isArray(hr.gait)){for(const leg of hr.gait){const root=leg.hip;if(root&&root.parent)root.parent.remove(root)}}if(horseRoot){if(horseRoot.parent)horseRoot.parent.remove(horseRoot);horseRoot=null}clearSkin();for(const p of [...parts].reverse()){if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material?.dispose()}parts=[];horseJoints=[];window.__berofelHorseRig=null;selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
 function say(t){$("status").textContent=t}
@@ -206,7 +206,7 @@ function humanoidPreset(isOgre=false){
  const headPivot=pivot(neck,[0,.24,.015],"Rig cabeça");
  capsule(headPivot,"Cabeça",[0,.16,0],[.43,.52,.38],skin,"head");
  capsule(headPivot,"Cabelo",[0,.39,-.045],[.45,.18,.40],isOgre?"#382c22":"#47362b");
- capsule(headPivot,"Nariz",[0,.12,. thirty||0],[.14,.13,.14],skin);
+ capsule(headPivot,"Nariz",[0,.12,.30],[.14,.13,.14],skin);
  capsule(headPivot,"Olho esquerdo",[-.135,.22,.335],[.055,.055,.025],"#211b18");
  capsule(headPivot,"Olho direito",[.135,.22,.335],[.055,.055,.025],"#211b18");
  if(isOgre){capsule(headPivot,"Presa esquerda",[-.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Presa direita",[.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Testa pesada",[0,.40,.04],[.55,.28,.42],skin)}
