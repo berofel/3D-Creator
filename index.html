@@ -9,58 +9,7 @@
 :root{color-scheme:dark;--bg:#101827;--panel:#182438;--line:#31445c;--text:#eef5ff;--muted:#9bb0c8;--accent:#64d5bd}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,sans-serif}body.gizmo-active{overflow:hidden!important;overscroll-behavior:none!important;touch-action:none!important}body.gizmo-active .layout,body.gizmo-active #viewport,body.gizmo-active #viewport canvas{touch-action:none!important;overscroll-behavior:none!important}header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#0b1220;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3}.brand{font-weight:800;font-size:17px}.brand small{display:block;color:var(--muted);font-weight:500;font-size:11px}button,input,select{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#202f45;color:var(--text)}button{cursor:pointer}button.primary{background:var(--accent);color:#06231f;border:0;font-weight:800}button.active-tool{outline:2px solid var(--accent);background:#25423f;color:var(--text)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:calc(100dvh - 60px)}#viewport{position:relative;min-height:55vh;overflow:hidden;touch-action:none;overscroll-behavior:contain; -webkit-user-select:none;user-select:none}#viewport canvas{display:block;width:100%;height:100%}.side{padding:14px;background:var(--panel);border-left:1px solid var(--line);overflow:auto}.section{padding:0 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}h2{font-size:12px;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input,select{width:100%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wide{width:100%;margin-top:7px}.hint{color:var(--muted);font-size:12px;line-height:1.45}.status{padding:8px;color:var(--accent);font-size:12px;min-height:30px}.part-list{display:grid;gap:5px;max-height:160px;overflow:auto}.part{display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%}.part.active{border-color:var(--accent);background:#25423f}.mobilebar{display:none}
 @media(max-width:760px){header{padding:9px 11px}.brand{font-size:15px}.topbuttons button{padding:8px 9px;font-size:12px}.layout{display:flex;flex-direction:column}#viewport{height:53dvh;min-height:300px;order:0}.side{order:1;border:0;border-top:1px solid var(--line);padding:12px}.part-list{max-height:125px}.mobilebar{display:flex;gap:6px;overflow:auto;padding:8px;background:#0b1220}.mobilebar button{white-space:nowrap}.section{margin-bottom:10px;padding-bottom:10px}}
 </style>
-
-<style>
-#preview-fallback{position:absolute;inset:0;width:100%;height:100%;display:block;background:linear-gradient(#dceaf2 0 78%,#e9f0f3 78%);z-index:0}
-#viewport canvas:not(#preview-fallback){position:relative;z-index:1}
-#viewport{isolation:isolate}
-</style>
-<script>
-(function(){
- let active="horse",fallbackCanvas,ctx,showFallback=false;
- const colors={horse:"#a96535",cow:"#e7e0d0",human:"#d6a27d",ogre:"#6f9650"};
- function draw(){
-  const v=document.getElementById("viewport");if(!v)return;
-  if(!fallbackCanvas){fallbackCanvas=document.createElement("canvas");fallbackCanvas.id="preview-fallback";fallbackCanvas.setAttribute("aria-label","Pré-visualização de segurança");v.prepend(fallbackCanvas);ctx=fallbackCanvas.getContext("2d");}
-  const r=v.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);fallbackCanvas.width=Math.max(1,Math.floor(r.width*d));fallbackCanvas.height=Math.max(1,Math.floor(r.height*d));ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,r.width,r.height);
-  ctx.fillStyle="#dceaf2";ctx.fillRect(0,0,r.width,r.height);ctx.fillStyle="#e9f0f3";ctx.fillRect(0,r.height*.78,r.width,r.height*.22);
-  ctx.strokeStyle="#c1d0da";ctx.lineWidth=1;for(let x=0;x<r.width;x+=28){ctx.beginPath();ctx.moveTo(x,r.height*.78);ctx.lineTo(r.width/2+(x-r.width/2)*1.8,r.height);ctx.stroke()}for(let y=r.height*.79;y<r.height;y+=22){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(r.width,y);ctx.stroke()}
-  const sc=Math.min(r.width/360,r.height/300),ox=r.width/2,oy=r.height*.78;
-  ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);
-  function poly(points,fill,stroke="#533d30"){ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke()}
-  const coat=colors[active]||colors.horse;
-  if(active==="human"||active==="ogre"){
-   const skin=coat,cloth=active==="ogre"?"#42533a":"#344f78";
-   poly([[-42,-160],[38,-160],[48,-88],[30,-68],[-30,-68],[-48,-88]],cloth);
-   poly([[-29,-205],[28,-205],[36,-166],[-32,-166]],skin);
-   poly([[-27,-248],[27,-248],[32,-207],[-32,-207]],skin);
-   poly([[-35,-252],[-25,-268],[20,-268],[34,-251]],active==="ogre"?"#382c22":"#47362b");
-   poly([[-42,-157],[-66,-149],[-58,-93],[-42,-92]],skin);poly([[42,-157],[66,-149],[58,-93],[42,-92]],skin);
-   poly([[-30,-69],[-3,-69],[-7,-8],[-30,-8]],"#49352c");poly([[3,-69],[30,-69],[30,-8],[7,-8]],"#49352c");
-  } else {
-   poly([[-94,-145],[-62,-177],[38,-176],[81,-147],[70,-113],[-68,-113]],coat);
-   poly([[-62,-169],[-28,-182],[7,-173],[21,-146],[-39,-143]],active==="cow"?"#393337":"#c7834b");
-   poly([[36,-171],[52,-220],[73,-232],[91,-219],[78,-197],[67,-159]],coat);
-   poly([[65,-222],[68,-246],[78,-245],[82,-222]],"#49352c");
-   poly([[81,-215],[105,-208],[109,-193],[82,-193]],active==="cow"?"#f5f1e8":"#c7834b");
-   poly([[-78,-143],[-56,-143],[-60,-47],[-77,-47]],coat);poly([[-35,-143],[-15,-143],[-16,-47],[-33,-47]],coat);poly([[31,-143],[50,-143],[54,-47],[36,-47]],coat);poly([[60,-142],[77,-142],[86,-47],[68,-47]],coat);
-   for(const x of [-77,-33,-16,36,68]){poly([[x-3,-49],[x+9,-49],[x+10,-39],[x-5,-39]],"#292b30")}
-   poly([[-22,-182],[-8,-207],[13,-208],[31,-179]],active==="cow"?"#393337":"#33251f");
-   poly([[78,-219],[82,-224],[87,-220],[85,-213]],"#171514");
-  }
-  ctx.fillStyle="#1d2b3b";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.fillText("Pré-visualização de segurança · "+({horse:"Cavalo",cow:"Vaca",human:"Humano",ogre:"Ogro"}[active]),0,25);
-  ctx.restore();
- }
- window.addEventListener("resize",draw);
- window.addEventListener("error",()=>{showFallback=true;draw()});
- window.addEventListener("unhandledrejection",()=>{showFallback=true;draw()});
- document.addEventListener("DOMContentLoaded",()=>{
-  draw();
-  ["horse","cow","human","ogre"].forEach(k=>{const b=[...document.querySelectorAll("button")].find(x=>x.textContent.trim().toLowerCase()===(k==="horse"?"cavalo":k==="cow"?"vaca":k==="human"?"humano":"ogro"));if(b)b.addEventListener("click",()=>{active=k;draw()})});
-  setTimeout(()=>{if(!window.__berofelBooted){showFallback=true;draw();const st=document.getElementById("status");if(st){st.textContent="Modo de segurança: motor 3D indisponível. Pré-visualização alternativa ativa.";st.style.color="#fff";st.style.background="#7f1d1d";st.style.padding="10px"}}},5000);
- });
-})();
-</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
 <header><div class="brand">◆ Berofel Creature Library<small>Modelos completos • pele facetada • animação</small></div></header>
@@ -71,12 +20,11 @@
 <div id="status" class="status">Carregando motor 3D…</div>
 <p class="hint">Biblioteca de modelos prontos. Para solicitar mudanças, indique o nome da criatura e as alterações desejadas.</p>
 </aside></div>
-<script>window.__berofelBooted=false;setTimeout(function(){if(!window.__berofelBooted){var el=document.getElementById("status");if(el){el.textContent="O motor 3D não iniciou. O navegador pode estar bloqueando o carregamento dos módulos externos.";el.style.color="#fff";el.style.background="#7f1d1d";el.style.padding="10px";}}},4000);window.addEventListener("error",function(e){var el=document.getElementById("status");if(el){el.textContent="Falha ao iniciar a visualização 3D: "+(e.message||"erro de carregamento do motor").slice(0,180);el.style.color="#fff";el.style.background="#7f1d1d";el.style.padding="10px";}},true);window.addEventListener("unhandledrejection",function(e){var el=document.getElementById("status");if(el){var reason=e.reason;el.textContent="Falha ao carregar o motor 3D: "+String(reason&&reason.message||reason||"erro desconhecido").slice(0,180);el.style.color="#fff";el.style.background="#7f1d1d";el.style.padding="10px";}},true);</script>
 <script type="module">
-import * as THREE from "https://esm.sh/three@0.170.0";
-import {OrbitControls} from "https://esm.sh/three@0.170.0/examples/jsm/controls/OrbitControls.js";
-import {TransformControls} from "https://esm.sh/three@0.170.0/examples/jsm/controls/TransformControls.js";
-import {GLTFExporter} from "https://esm.sh/three@0.170.0/examples/jsm/exporters/GLTFExporter.js";
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+import {TransformControls} from "three/addons/controls/TransformControls.js";
+import {GLTFExporter} from "three/addons/exporters/GLTFExporter.js";
 const $=id=>document.getElementById(id), viewport=$("viewport"), scene=new THREE.Scene();
 scene.background=new THREE.Color("#dceaf2");scene.fog=new THREE.Fog("#dceaf2",18,42);
 const camera=new THREE.PerspectiveCamera(42,1,.1,1000);camera.position.set(7,5.5,9);
@@ -216,7 +164,7 @@ function rigLabel(){ $("animStatus").textContent=animMode==="stop"?"Animação p
 function setAnimation(mode){resetRigPose();animMode=mode;animClock=0;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
 $("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
 cacheRigPose();
-quadruped();window.__berofelBooted=true;
+quadruped();
 function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;
 for(const m of skinMeshes){const b=skinBase.get(m);if(!b)continue;m.position.copy(b.position);m.rotation.copy(b.rotation);const n=(m.userData.name||"").toLowerCase(),walking=animMode==="walk";if(m.userData.limb==="body")m.position.y=b.position.y+Math.sin(t*(walking?8:2))*(walking?.018:.008);if(n.includes("cauda")&&!m.parent.userData?.name?.includes("Cauda"))m.rotation.y=b.rotation.y+Math.sin(t*(walking?2.4:1.8))*(walking?.12:.05)}
 for(const p of parts){const b=rigBase.get(p);if(!b)continue;const n=(p.userData.name||"").toLowerCase(),type=(p.userData.type||"").toLowerCase();p.rotation.copy(b.rotation);
