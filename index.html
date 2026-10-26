@@ -63,7 +63,7 @@ for(let i=0;i<legs.length;i++){
  const leg=make("leg",[x,hipY,z],[.22,.78,.24],coatDark,"Perna "+side);
  // O pivô é o quadril: a geometria desce a partir da origem para animar sem girar pelo meio.
  leg.geometry.translate(0,-.5,0);
- const lower=make("leg",[x,hipY-.48,z+.025],[.16,.42,.18],coat,"Canela "+side);
+ const lower=make("lowerleg",[x,hipY-.48,z+.025],[.16,.42,.18],coat,"Canela "+side);
  lower.geometry.translate(0,-.5,0);
  leg.attach(lower);
  const hoof=make("foot",[x,.12,z+.10],[.25,.18,.31],hoof,"Casco "+side);
