@@ -142,7 +142,7 @@ function quadruped(){
  rig.tail=[tailBase,tailMid,tailTip];horseRig=rig;
  cacheRigPose();select(null);fit();say("Cavalo selvagem voxel criado — rig articulado e textura pixelada.");
 }
-function clear(){clearSkin();transform.detach();parts.forEach(p=>{if(p.parent)p.parent.remove(p);scene.remove(p);p.geometry.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
+function clear(){clearSkin();transform.detach();if(typeof horseRig!=="undefined"&&horseRig&&horseRig.root){scene.remove(horseRig.root);horseRig=null}parts.forEach(p=>{if(p.parent)p.parent.remove(p);scene.remove(p);p.geometry.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
 function say(t){$("status").textContent=t}
@@ -174,7 +174,7 @@ function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h
 let animMode="idle",animClock=0,animLast=0;
 const rigBase=new WeakMap();
 function cacheRigPose(){for(const p of parts)rigBase.set(p,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()})}
-function resetRigPose(){for(const p of parts){const b=rigBase.get(p);if(b){p.position.copy(b.position);p.rotation.copy(b.rotation);p.scale.copy(b.scale)}}}
+function resetRigPose(){for(const p of parts){const b=rigBase.get(p);if(b){p.position.copy(b.position);p.rotation.copy(b.rotation);p.scale.copy(b.scale)}}if(horseRig){horseRig.pelvis.position.y=1.45;horseRig.neck[0].rotation.x=-35*Math.PI/180;horseRig.neck[1].rotation.x=-.04;horseRig.head.rotation.x=-50*Math.PI/180;horseRig.tail[0].rotation.x=-.35;horseRig.tail[1].rotation.x=-20*Math.PI/180;horseRig.tail[2].rotation.x=-20*Math.PI/180;for(const leg of horseRig.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.x=leg.side.startsWith("rear")?25*Math.PI/180:0;leg.shin.rotation.set(0,0,0);leg.fet.rotation.set(0,0,0);leg.hoof.rotation.set(0,0,0)}}}
 function rigLabel(){ $("animStatus").textContent=animMode==="stop"?"Animação parada.":animMode==="walk"?"Rig ativo: caminhada.":"Rig ativo: respiração."}
 function setAnimation(mode){resetRigPose();animMode=mode;animClock=0;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
 $("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
