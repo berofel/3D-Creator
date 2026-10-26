@@ -65,79 +65,19 @@ function buildSkin(kind){
  scene.updateMatrixWorld(true);for(const m of skinMeshes){const n=m.userData.name.toLowerCase();let targetName=null;if(n==="pele tronco")targetName="Tronco dianteiro";else if(n==="pele garupa")targetName="Garupa";else if(n==="pele peito")targetName="Peito e ombros";else if(n==="pele pescoço")targetName="Pescoço";else if(n==="pele cabeça")targetName="Cabeça";else if(n==="pele focinho")targetName="Focinho";else if(n==="crina pele")targetName="Pescoço";else if(n==="cauda pele")targetName="Cauda";else if(n.startsWith("pele ombro"))targetName="Perna superior dianteira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele anca"))targetName="Perna superior traseira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele perna dianteira")||n.startsWith("pele perna traseira")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Perna superior "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("pele canela")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Canela "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("casco")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Casco "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}const target=parts.find(p=>p.userData.name===targetName);if(target)target.attach(m);m.userData.limb=n.includes("tronco")||n.includes("garupa")||n.includes("peito")?"body":n.includes("cabeça")||n.includes("pescoço")?"head":null;skinBase.set(m,{position:m.position.clone(),rotation:m.rotation.clone()})}setSkinMode("skin");
 }
 function add(type){let p=[0,1,0],s=[1,1,1],c="#65a8a1";if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1"}if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8"}if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d"}if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b"}if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1"}if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b"}return make(type,p,s,c)}
-function quadruped(){clear();clearSkin();
-// Cavalo low-poly segmentado: dois volumes corporais, pescoço articulado e pernas com juntas.
-const coat="#a96535",coatLight="#c7834b",coatDark="#49352c",mane="#33251f",hoofColor="#292b30",eyeColor="#171514";
-const torso=make("body",[0,1.48,-.22],[.94,.76,1.18],coat,"Tronco dianteiro");
-const rump=make("rump",[0,1.48,-.91],[1.00,.84,.91],coatLight,"Garupa");
-const shoulder=make("shoulder",[0,1.47,.43],[.86,.88,.66],coat,"Peito e ombros");
-const belly=make("belly",[0,1.19,-.28],[.76,.24,1.16],"#89502f","Faixa inferior do tronco");
-const neck=make("neck",[0,1.91,.76],[.54,1.02,.56],coatLight,"Pescoço");
-neck.rotation.x=-.25;
-const chestBand=make("band",[0,1.50,.55],[.90,.12,.18],"#d9b18a","Faixa do peito");
-chestBand.rotation.x=-.15;
-const head=make("head",[0,2.45,1.19],[.47,.63,.58],coat,"Cabeça");
-head.rotation.x=-.18;
-const cheekL=make("cheek",[-.22,2.37,1.19],[.12,.31,.32],coatLight,"Bochecha esquerda");
-const cheekR=make("cheek",[.22,2.37,1.19],[.12,.31,.32],coatLight,"Bochecha direita");
-const muzzle=make("muzzle",[0,2.20,1.57],[.41,.27,.40],"#d9b18a","Focinho");
-const noseL=make("nostril",[-.13,2.24,1.78],[.055,.045,.025],coatDark,"Narina esquerda");
-const noseR=make("nostril",[.13,2.24,1.78],[.055,.045,.025],coatDark,"Narina direita");
-head.attach(muzzle);head.attach(cheekL);head.attach(cheekR);head.attach(noseL);head.attach(noseR);
-const earL=make("ear",[-.16,2.86,1.11],[.13,.32,.14],coatDark,"Orelha esquerda");
-const earR=make("ear",[.16,2.86,1.11],[.13,.32,.14],coatDark,"Orelha direita");
-head.attach(earL);head.attach(earR);
-const eyeL=make("eye",[-.247,2.52,1.35],[.045,.075,.04],eyeColor,"Olho esquerdo");
-const eyeR=make("eye",[.247,2.52,1.35],[.045,.075,.04],eyeColor,"Olho direito");
-head.attach(eyeL);head.attach(eyeR);neck.attach(head);
-for(let i=0;i<7;i++){
- const manePiece=make("mane",[0,2.56-i*.14,.79+i*.13],[.57,.15,.18],mane,"Crina "+(i+1));
- neck.attach(manePiece);
-}
-// Crina lateral em placas inclinadas: silhueta mais orgânica sem aumentar muito a contagem de polígonos.
-for(let i=0;i<4;i++){
- const lock=make("mane-lock",[-.25,2.50-i*.17,.87+i*.15],[.12,.25,.22],mane,"Mecha lateral "+(i+1));
- lock.rotation.z=-.24;neck.attach(lock);
-}
-const tail=make("tail",[0,1.67,-1.45],[.22,.22,.78],mane,"Cauda");
-tail.rotation.x=-.22;
-const tailTip=make("tail-tip",[0,1.38,-1.78],[.25,.30,.26],coatDark,"Ponta da cauda");
-tail.attach(tailTip);
-// Faixas de pelo e pequenas placas chanfradas dão leitura de volumes sem virar um modelo pesado.
-for(const side of [-1,1]){
- const shoulderFacet=make("facet",[side*.39,1.63,.43],[.12,.43,.48],coatLight,"Placa do ombro");
- shoulderFacet.rotation.z=side*.18;
- const rumpFacet=make("facet",[side*.47,1.55,-.94],[.10,.48,.55],coat,"Placa da garupa");
- rumpFacet.rotation.z=-side*.12;
-}
-
-// Cada perna tem uma coxa/perna superior, uma articulação inferior e casco.
-// A geometria é deslocada para baixo para girar a partir da junta, não do centro.
-const legs=[
- {x:-.34,z:.48,side:"dianteira esquerda",phase:0},
- {x:.34,z:.48,side:"dianteira direita",phase:Math.PI},
- {x:-.36,z:-.99,side:"traseira esquerda",phase:Math.PI},
- {x:.36,z:-.99,side:"traseira direita",phase:0}
-];
-for(const item of legs){
- const {x,z,side}=item;
- const upper=make("leg",[x,1.19,z],[.24,.70,.26],coat,"Perna superior "+side);
- upper.geometry.translate(0,-.5,0);
- const knee=make("knee",[x,.84,z+.025],[.22,.20,.23],coatLight,"Junta "+side);
- upper.attach(knee);
- const lower=make("lowerleg",[x,.78,z+.035],[.16,.51,.18],coatLight,"Canela "+side);
- lower.geometry.translate(0,-.5,0);upper.attach(lower);
- const sock=make("sock",[x,.49,z+.04],[.175,.12,.19],"#e4d9c7","Marca branca "+side);
- lower.attach(sock);
- const fetlock=make("fetlock",[x,.29,z+.08],[.19,.16,.20],coatDark,"Boleto "+side);
- lower.attach(fetlock);
- const hoofMesh=make("foot",[x,.17,z+.10],[.27,.18,.31],hoofColor,"Casco "+side);
- lower.attach(hoofMesh);
- const hoofBand=make("hoof-band",[x,.24,z+.10],[.275,.045,.315],"#b6a28a","Borda do casco "+side);
- hoofMesh.attach(hoofBand);
-}
-cacheRigPose();buildSkin("horse");select(null);say("Esqueleto equino e camada de pele criados.");}
-function clear(){parts.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose()});parts=[];selected=null;counter=0;renderParts()}
+let horseRoot=null,horseJoints=[];
+function horseTexture(base){const cv=document.createElement("canvas");cv.width=cv.height=16;const x=cv.getContext("2d");x.fillStyle=base;x.fillRect(0,0,16,16);const rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));let s=base.split("").reduce((a,b)=>a+b.charCodeAt(0),37);for(let i=0;i<42;i++){s=(s*1664525+1013904223)>>>0;const px=s%16;s=(s*1664525+1013904223)>>>0;const py=s%16;s=(s*1664525+1013904223)>>>0;const d=s%43-21;x.fillStyle="rgb("+rgb.map(v=>Math.max(0,Math.min(255,v+d))).join(",")+")";x.fillRect(px,py,1,1)}const t=new THREE.CanvasTexture(cv);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.colorSpace=THREE.SRGBColorSpace;return t}
+function quadruped(){clear();clearSkin();horseJoints=[];horseRoot=new THREE.Group();horseRoot.name="Cavalo_Przevalski_Raiz";scene.add(horseRoot);const C={coat:"#b8774a",belly:"#d9ae82",mane:"#2e211b",leg:"#3a2b24",muzzle:"#e6d3b8",hoof:"#2a2a2e",black:"#151515"};const mats={};
+function box(name,size,color,parent,pos=[0,0,0],rot=[0,0,0]){const geo=new THREE.BoxGeometry(...size);const mat=new THREE.MeshStandardMaterial({map:mats[color]||(mats[color]=horseTexture(color)),roughness:1,flatShading:true});const m=new THREE.Mesh(geo,mat);m.name=name;m.userData={id:++counter,type:"horse-box",name,horse:true};m.castShadow=m.receiveShadow=true;m.position.set(...pos);m.rotation.set(...rot);parent.add(m);parts.push(m);return m}
+function pivot(name,parent,pos){const g=new THREE.Group();g.name=name;g.position.set(...pos);parent.add(g);horseJoints.push({name,group:g,kind:"",phase:0,amp:0,baseX:0,baseY:0,baseZ:0});return g}
+function segment(name,parent,pos,size,color,angle=0){const p=pivot(name,parent,pos);box(name+"_bloco",size,color,p,[0,-size[1]/2,0],[angle,0,0]);return p}
+const pelvis=pivot("pelve_y1_45",horseRoot,[0,1.45,0]);box("tronco_barril",[.9,.95,1.3],C.coat,pelvis,[0,0,-.05]);box("barriga",[.72,.25,1.02],C.belly,pelvis,[0,-.36,-.05]);
+const chest=pivot("peito_ombros",pelvis,[0,.04,.62]);box("peito_ombros_bloco",[.85,.95,.7],C.coat,chest,[0,-.02,0]);box("peito_claro",[.68,.28,.45],C.belly,chest,[0,-.39,.04]);const rump=pivot("garupa",pelvis,[0,.02,-.68]);box("garupa_bloco",[.95,.9,.85],C.coat,rump);
+const n1=segment("pescoco_base",chest,[0,.34,.28],[.5,.6,.5],C.coat,-35*Math.PI/180),n2=segment("pescoco_alto",n1,[0,.52,.04],[.42,.55,.42],C.coat,-.08),head=segment("cabeca_atlas",n2,[0,.49,.08],[.4,.55,.6],C.coat,-50*Math.PI/180);
+box("focinho",[.3,.25,.35],C.muzzle,head,[0,-.24,.36]);box("mandibula",[.28,.15,.4],C.belly,head,[0,-.36,.30]);for(const s of [-1,1]){box(s<0?"orelha_E":"orelha_D",[.1,.22,.1],C.coat,head,[s*.13,.12,-.03]);box(s<0?"olho_E":"olho_D",[.04,.07,.04],C.black,head,[s*.205,-.05,.16])}for(let i=0;i<6;i++)box("crina_"+(i+1),[.12,.2,.2],C.mane,n1,[0,.25-i*.105,.13+i*.095],[-.18,0,0]);box("crina_testa",[.12,.2,.2],C.mane,head,[0,.12,.02]);
+function leg(label,parent,x,z,hind,phase){const hip=pivot(label+"_coxa_pivo",parent,[x,-.12,z]);segment(label+"_coxa",hip,[0,0,0],hind?[.28,.6,.35]:[.24,.55,.26],C.coat);const knee=pivot(label+(hind?"_jarrete_pivo":"_antebraco_pivo"),hip,[0,-(hind?.56:.51),.015]);segment(label+(hind?"_perna_baixa":"_antebraco"),knee,[0,0,0],hind?[.20,.5,.22]:[.20,.45,.22],C.coat);const shin=pivot(label+"_canela_pivo",knee,[0,-(hind?.47:.42),.015]);segment(label+"_canela",shin,[0,0,0],hind?[.14,.45,.15]:[.15,.45,.16],C.leg);const fet=pivot(label+"_boleto_pivo",shin,[0,-.42,.02]);segment(label+"_boleto",fet,[0,0,0],[.17,.14,.18],C.leg);const hoof=pivot(label+"_casco_pivo",fet,[0,-.11,.035]);box(label+"_casco",[.24,.16,.28],C.hoof,hoof,[0,-.07,.025]);for(const [g,k,a] of [[hip,"hip",hind?.38:.4],[knee,"knee",hind?.7:.58],[shin,"shin",.12],[fet,"fetlock",.18],[hoof,"hoof",.1]]){const j=horseJoints.find(q=>q.group===g);Object.assign(j,{kind:k,phase,amp:a})}}
+leg("dianteira_E",chest,-.29,.08,false,Math.PI/2);leg("dianteira_D",chest,.29,.08,false,Math.PI*1.5);leg("traseira_E",rump,-.32,-.02,true,0);leg("traseira_D",rump,.32,-.02,true,Math.PI);
+const tb=segment("cauda_base",pelvis,[0,.15,-1.03],[.2,.4,.2],C.mane,.2),tm=segment("cauda_meio",tb,[0,-.34,-.02],[.16,.38,.17],C.mane,.25),tt=segment("cauda_ponta",tm,[0,-.33,-.02],[.14,.32,.15],C.mane,.25);for(const [g,i] of [[tb,0],[tm,1],[tt,2]])Object.assign(horseJoints.find(q=>q.group===g),{kind:"tail",phase:i*.2,amp:.26});Object.assign(horseJoints.find(q=>q.group===pelvis),{kind:"body",amp:.02});for(const [g,k,a] of [[n1,"neck",.07],[n2,"neck",.09],[head,"head",.07]])Object.assign(horseJoints.find(q=>q.group===g),{kind:k,amp:a});cacheRigPose();select(null);setSkinMode("bones");say("Cavalo voxel articulado criado — caixas e textura pixelada 16×16.")}function clear(){if(horseRoot){scene.remove(horseRoot);horseRoot=null}parts.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose()});parts=[];horseJoints=[];selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
 function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}}
 function say(t){$("status").textContent=t}
@@ -175,7 +115,7 @@ function setAnimation(mode){resetRigPose();animMode=mode;animClock=0;rigLabel();
 $("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
 cacheRigPose();
 quadruped();
-function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;
+function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;if(horseRoot){for(const j of horseJoints){const q=Math.sin(t*4.2+j.phase);j.group.rotation.set(j.baseX,j.baseY,j.baseZ);if(animMode==="walk"){if(j.kind==="hip")j.group.rotation.x=q*j.amp;if(j.kind==="knee")j.group.rotation.x=Math.max(0,Math.sin(t*4.2+j.phase+Math.PI*.35))*j.amp;if(j.kind==="shin")j.group.rotation.x=q*j.amp*.45;if(j.kind==="fetlock")j.group.rotation.x=-q*j.amp*.45;if(j.kind==="hoof")j.group.rotation.x=-q*j.amp*.25;if(j.kind==="body")horseRoot.position.y=Math.abs(Math.sin(t*8.4))*.02;if(j.kind==="neck"||j.kind==="head")j.group.rotation.x=Math.sin(t*4.2+Math.PI)*j.amp;if(j.kind==="tail")j.group.rotation.y=Math.sin(t*4.2-j.phase*2)*j.amp}else{if(j.kind==="body")horseRoot.position.y=Math.sin(t*2)*.008;if(j.kind==="neck"||j.kind==="head")j.group.rotation.x=Math.sin(t*1.3+j.phase)*.025;if(j.kind==="tail")j.group.rotation.y=Math.sin(t*1.8-j.phase*2)*.08}}}
 for(const m of skinMeshes){const b=skinBase.get(m);if(!b)continue;m.position.copy(b.position);m.rotation.copy(b.rotation);const n=(m.userData.name||"").toLowerCase(),walking=animMode==="walk";if(m.userData.limb==="body")m.position.y=b.position.y+Math.sin(t*(walking?8:2))*(walking?.018:.008);if(n.includes("cauda")&&!m.parent.userData?.name?.includes("Cauda"))m.rotation.y=b.rotation.y+Math.sin(t*(walking?2.4:1.8))*(walking?.12:.05)}
 for(const p of parts){const b=rigBase.get(p);if(!b)continue;const n=(p.userData.name||"").toLowerCase(),type=(p.userData.type||"").toLowerCase();p.rotation.copy(b.rotation);
 if(animMode==="idle"){if(type==="body"||n.includes("tronco"))p.position.y=b.position.y+Math.sin(t*2)*.035;if(type==="head"||n.includes("cabeça"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.055;if(type==="tail"||n.includes("cauda"))p.rotation.y=b.rotation.y+Math.sin(t*2.2)*.28;if(type==="neck"||n.includes("pescoço"))p.rotation.x=b.rotation.x+Math.sin(t*1.3)*.025;}
