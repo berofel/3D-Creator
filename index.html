@@ -169,16 +169,14 @@ function quadruped(){
  const forelock=part(head,"mane",hPos,hA,[0,.28,-.10],[.25,.22,.24],MANE,"Topete");
  // Linha de focinho e narinas em contraste para leitura da face em estilo voxel.
  frustumPart(head,"muzzle-shadow",hPos,hA,[0,-.09,.94],[.22,.055,.055],LOWER,"Sombra inferior do focinho",.95);
- // Marcas claras nas quatro patas e cascos mais definidos.
+ // Marcas claras discretas, sem cobrir os segmentos articulados nem os cascos.
  for(const leg of gait){
-  const sock=trap("sock",[0,0,0],[.18,.12,.18],"#d9c7a7","Marca clara "+leg.hip.name);
-  sock.position.set(0,-.045,.005);leg.fetlock.add(sock);
-  const hoofRim=trap("hoof-rim",[0,0,0],[.255,.045,.305],"#51443b","Borda do casco "+leg.hip.name);
-  hoofRim.position.set(0,-.145,.035);leg.fetlock.add(hoofRim);
+  const sock=trap("sock",[0,0,0],[.17,.075,.17],"#d9c7a7","Marca clara "+leg.hip.name);
+  sock.position.set(0,-.035,.004);leg.fetlock.add(sock);
  }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
- const patas=[["dianteira esquerda",-.34,.48,false],["dianteira direita",.34,.48,false],["traseira esquerda",-.36,-.99,true],["traseira direita",.36,-.99,true]],gait=[];
+ const patas=[["dianteira esquerda",-.36,.55,false],["dianteira direita",.36,.55,false],["traseira esquerda",-.38,-1.00,true],["traseira direita",.38,-1.00,true]],gait=[];
  const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);if(parent)parent.add(g);else scene.add(g);return g;};
  const segment=(parent,type,length,width,depth,color,name)=>{
   const m=trap(type,[0,0,0],[width,length,depth],color,name);
@@ -186,17 +184,18 @@ function quadruped(){
  };
  for(const [n,x,z,rear] of patas){
   // Quatro graus de liberdade por membro: anca/ombro, joelho, jarrete e boleto.
-  const hipY=rear?1.86:1.83, upperLen=rear?.57:.62, midLen=rear?.48:.48, cannonLen=rear?.38:.42, footLen=.16;
+  const hipY=rear?1.91:1.88, upperLen=rear?.60:.65, midLen=rear?.49:.50, cannonLen=rear?.40:.43;
   const hip=makePivot(null,[x,hipY,z],"Pivô anca/ombro "+n);
-  segment(hip,"femur",upperLen,rear?.34:.29,rear?.36:.30,BODY,(rear?"Fêmur":"Braço dianteiro")+" "+n);
+  // Segmentos mais largos e contrastados para manter a silhueta legível em vista lateral.
+  segment(hip,"femur",upperLen,rear?.39:.34,rear?.39:.34,BODY,(rear?"Coxa traseira":"Braço dianteiro")+" "+n);
   const knee=makePivot(hip,[0,-upperLen,0],"Pivô joelho "+n);
-  segment(knee,"knee-segment",midLen,rear?.23:.20,.22,LOWER,(rear?"Perna inferior":"Antebraço")+" "+n);
+  segment(knee,"knee-segment",midLen,rear?.27:.24,.25,LOWER,(rear?"Canela superior traseira":"Antebraço inferior")+" "+n);
   const hock=makePivot(knee,[0,-midLen,0],"Pivô jarrete/carpal "+n);
-  segment(hock,"cannon",cannonLen,.16,.17,LOWER,"Canela "+n);
+  segment(hock,"cannon",cannonLen,.19,.19,LOWER,"Canela inferior "+n);
   const fetlock=makePivot(hock,[0,-cannonLen,0],"Pivô boleto "+n);
-  segment(fetlock,"fetlock",.16,.14,.16,BODY,"Boleto "+n);
-  const hoof=trap("foot",[x,hipY-upperLen-midLen-cannonLen-.08,z+.035],[.25,.16,.3],HOOF,"Casco "+n);
-  hoof.position.set(0,-.08,.035);fetlock.add(hoof);
+  segment(fetlock,"fetlock",.18,.16,.17,BODY,"Boleto "+n);
+  const hoof=trap("foot",[x,hipY-upperLen-midLen-cannonLen-.09,z+.045],[.29,.18,.34],HOOF,"Casco "+n);
+  hoof.position.set(0,-.09,.045);fetlock.add(hoof);
   const left=n.includes("esquerda");const diagonalPhase=(rear?!left:left)?0:Math.PI;gait.push({hip,knee,hock,fetlock,hoof,phase:diagonalPhase,hind:rear,upperLen,midLen,cannonLen});
  }
  (window.__berofelHorseRigs||(window.__berofelHorseRigs=[])).push({body,bodyBaseY:body.position.y,chest,chestBlock,chestBaseZ:chest.position.z,shoulderBaseZ:chestBlock.position.z,rump,neck,neckBaseX:neck.rotation.x,head,headBaseX:head.rotation.x,tail,tailMid:tail,tailTip:tip,gait,bodyParts:[body],legBases:gait.map(g=>({hip:g.hip,y:g.hip.position.y}))});window.__berofelHorseRig=(window.__berofelHorseRigs||[]).at(-1);
