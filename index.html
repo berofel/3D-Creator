@@ -84,6 +84,17 @@ function quadruped(){
  const part=(parent,type,base,a,off,scale,color,name)=>{
   const m=trap(type,rel(base,a,off),scale,color,name);m.rotation.x=a;parent.attach(m);return m;
  };
+ // Tronco de pirâmide quadrangular: seção quadrada nas duas extremidades,
+ // com redução suave ao longo do eixo Z (sem perfil de losango).
+ const squareFrustumGeometry=(front=.86)=>{
+  const b=.5,f=.5*front;
+  const v=[-b,-b,-.5,b,-b,-.5,b,b,-.5,-b,b,-.5,-f,-f,.5,f,-f,.5,f,f,.5,-f,f,.5];
+  const idx=[0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7];
+  const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return g;
+ };
+ const frustumPart=(parent,type,base,a,off,scale,color,name,front=.86)=>{
+  const m=part(parent,type,base,a,off,scale,color,name);m.geometry.dispose();m.geometry=squareFrustumGeometry(front);return m;
+ };
  const body=trap("body",[0,1.68,-.15],[.86,.95,1.9],BODY,"Tronco");
  const belly=trap("belly",[0,1.3,-.15],[.9,.32,1.7],BODY,"Faixa inferior do tronco");
  const chestBlock=trap("body",[0,1.82,.68],[.84,1,.7],BODY,"Peito e ombros");
@@ -95,9 +106,9 @@ function quadruped(){
  const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço",false,nA);body.attach(neck);
  // A crina será adicionada depois; por enquanto, manter pescoço e cabeça limpos.
  const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
- const head=joint("head",hPos,[.5,.54,.95],BODY,"Cabeça articulada",false,hA);neck.attach(head);
- part(head,"nose-bridge",hPos,hA,[0,-.045,.67],[.40,.43,.66],BODY,"Segundo trapezoide — início do nariz");
- part(head,"muzzle",hPos,hA,[0,-.085,1.18],[.32,.37,.48],MUZZLE,"Terceiro trapezoide — focinho frontal");
+ const head=joint("head",hPos,[.5,.54,.95],BODY,"Cabeça articulada",false,hA);head.geometry.dispose();head.geometry=squareFrustumGeometry(.90);neck.attach(head);
+ frustumPart(head,"nose-bridge",hPos,hA,[0,-.045,.67],[.40,.43,.66],BODY,"Segundo tronco de pirâmide — ponte do nariz",.88);
+ frustumPart(head,"muzzle",hPos,hA,[0,-.085,1.18],[.32,.37,.48],MUZZLE,"Terceiro tronco de pirâmide — focinho frontal",.92);
  for(const s of [-1,1]){part(head,"nostril",hPos,hA,[s*.125,-.065,1.218],[.035,.045,.025],LOWER,"Narina "+(s<0?"esquerda":"direita"));part(head,"mouth",hPos,hA,[s*.085,-.205,1.15],[.075,.016,.02],LOWER,"Linha da boca "+(s<0?"esquerda":"direita"));}
  part(head,"chin",hPos,hA,[0,-.19,1.04],[.24,.07,.20],BODY,"Queixo trapezoidal");
  for(const s of [-1,1]){
@@ -105,7 +116,7 @@ function quadruped(){
   part(head,"eye",hPos,hA,[s*.255,.08,.18],[.05,.1,.1],EYE,"Olho "+lado);
   // Cada orelha: base quadrada lateral e ponta trapezoidal curta, levemente arredondada.
   part(head,"ear-base",hPos,hA,[s*.17,.31,-.29],[.105,.12,.105],MANE,"Base quadrada da orelha "+lado);
-  part(head,"ear-tip",hPos,hA,[s*.18,.425,-.31],[.082,.17,.082],MANE,"Ponta trapezoidal da orelha "+lado);
+  frustumPart(head,"ear-tip",hPos,hA,[s*.18,.425,-.31],[.082,.17,.082],MANE,"Ponta trapezoidal da orelha "+lado,.68);
  }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
