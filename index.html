@@ -96,10 +96,12 @@ function quadruped(){
  for(let i=0;i<5;i++)part(neck,"mane",rel(nBase,nA,[0,nL/2,0]),nA,[0,-.44+i*.22,-.4],[.16,.3,.13],MANE,"Crina "+(i+1));
  const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
  const head=joint("head",hPos,[.5,.54,.95],BODY,"Cabeça articulada",false,hA);neck.attach(head);
- part(head,"muzzle",hPos,hA,[0,-.075,.59],[.32,.30,.42],MUZZLE,"Focinho afilado");
- part(head,"nose-bridge",hPos,hA,[0,.015,.39],[.27,.25,.48],BODY,"Ponte nasal trapezoidal");
- for(const s of [-1,1]){part(head,"nostril",hPos,hA,[s*.135,-.055,.785],[.045,.052,.035],LOWER,"Narina "+(s<0?"esquerda":"direita"));part(head,"mouth",hPos,hA,[s*.095,-.19,.72],[.095,.018,.025],LOWER,"Linha da boca "+(s<0?"esquerda":"direita"));}
- part(head,"chin",hPos,hA,[0,-.19,.54],[.23,.10,.28],BODY,"Queixo trapezoidal");
+ part(head,"nose-base",hPos,hA,[0,-.015,.35],[.43,.43,.34],BODY,"Testa e início do focinho");
+ part(head,"nose-mid",hPos,hA,[0,-.045,.53],[.39,.37,.34],BODY,"Focinho trapezoidal médio");
+ part(head,"nose-bridge",hPos,hA,[0,-.065,.69],[.35,.32,.32],BODY,"Ponte nasal afunilada");
+ part(head,"muzzle",hPos,hA,[0,-.095,.83],[.32,.28,.24],MUZZLE,"Focinho quadrado frontal");
+ for(const s of [-1,1]){part(head,"nostril",hPos,hA,[s*.115,-.055,.946],[.035,.045,.022],LOWER,"Narina "+(s<0?"esquerda":"direita"));part(head,"mouth",hPos,hA,[s*.075,-.205,.88],[.075,.016,.018],LOWER,"Linha da boca "+(s<0?"esquerda":"direita"));}
+ part(head,"chin",hPos,hA,[0,-.19,.78],[.24,.075,.20],BODY,"Queixo trapezoidal");
  part(head,"forelock",hPos,hA,[0,.3,-.2],[.2,.16,.14],MANE,"Topete");
  for(const s of [-1,1]){
   const lado=s<0?"esquerdo":"direito";
