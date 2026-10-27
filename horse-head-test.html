@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Teste da cabeça low-poly — Berofel 3D Creator</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101827;color:#eef5ff;font:14px system-ui,sans-serif}header{padding:14px 18px;background:#0b1220;border-bottom:1px solid #31445c}h1{font-size:18px;margin:0}p{color:#a9bbd0;margin:5px 0 0}.tools{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;background:#182438}button{border:1px solid #40536b;border-radius:8px;background:#24364c;color:#eef5ff;padding:9px 12px;cursor:pointer}button:hover{border-color:#64d5bd}#stage{height:calc(100dvh - 150px);min-height:420px;position:relative}#stage canvas{display:block;width:100%;height:100%}#status{padding:9px 16px;color:#64d5bd;font-size:12px}.note{padding:0 16px 12px;color:#a9bbd0;font-size:12px}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header><h1>Berofel 3D Creator — Teste da cabeça</h1><p>Módulo isolado. Não altera o cavalo principal nem a animação.</p></header>
+<div class="tools">
+<button data-view="3d">Perspectiva 3D</button><button data-view="side">Lateral</button><button data-view="front">Frontal</button><button data-view="top">Superior</button><button id="ears">Orelhas: ON</button><button id="eyes">Olhos e narinas: ON</button><button id="reset">Restaurar vista</button>
+</div>
+<main id="stage"></main>
+<div id="status">Carregando Three.js…</div>
+<div class="note">Arraste para girar a câmera e use a roda/pinça para zoom. A cabeça pode ser girada em perspectiva para conferir as junções.</div>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+const stage=document.querySelector("#stage"),status=document.querySelector("#status");
+const scene=new THREE.Scene();scene.background=new THREE.Color("#dceaf2");
+const camera=new THREE.PerspectiveCamera(38,1,.1,100);camera.position.set(2.7,2.0,3.3);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,.15,.58);
+scene.add(new THREE.HemisphereLight(0xffffff,0x697889,2.1));
+const key=new THREE.DirectionalLight(0xfff1d9,3.0);key.position.set(4,7,5);scene.add(key);
+const fill=new THREE.DirectionalLight(0xb8dcff,1.2);fill.position.set(-4,2,-3);scene.add(fill);
+const grid=new THREE.GridHelper(5,20,0x8196a8,0xc3d0da);grid.position.y=-.62;scene.add(grid);
+const axes=new THREE.AxesHelper(.65);axes.position.set(-.8,-.5,0);scene.add(axes);
+function frustum({bw,bh,fw,fh,len,mat,back=true,front=true}){
+ const v=[[-bw/2,-bh/2,0],[bw/2,-bh/2,0],[bw/2,bh/2,0],[-bw/2,bh/2,0],[-fw/2,-fh/2,len],[fw/2,-fh/2,len],[fw/2,fh/2,len],[-fw/2,fh/2,len]];
+ const faces=[...(front?[[4,5,6],[4,6,7]]:[]),...(back?[[0,2,1],[0,3,2]]:[]),[0,1,5],[0,5,4],[1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]];
+ const pos=[];for(const f of faces)for(const i of f)pos.push(...v[i]);
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+ return new THREE.Mesh(g,mat);
+}
+const mats={body:new THREE.MeshLambertMaterial({color:0x8b5a2b,flatShading:true,side:THREE.DoubleSide}),light:new THREE.MeshLambertMaterial({color:0xd9b48a,flatShading:true,side:THREE.DoubleSide}),dark:new THREE.MeshLambertMaterial({color:0x2e1f14,flatShading:true,side:THREE.DoubleSide})};
+const head=new THREE.Group();head.name="horse-head-test";scene.add(head);
+const skull=frustum({bw:.46,bh:.50,fw:.38,fh:.42,len:.55,mat:mats.body,front:false});skull.name="Crânio";head.add(skull);
+const bridge=frustum({bw:.38,bh:.42,fw:.30,fh:.30,len:.42,mat:mats.body,back:false,front:false});bridge.position.z=.55;bridge.name="Ponte nasal";head.add(bridge);
+const muzzle=frustum({bw:.30,bh:.30,fw:.27,fh:.27,len:.20,mat:mats.body,back:false,front:false});muzzle.position.z=.97;muzzle.name="Focinho";head.add(muzzle);
+const tip=frustum({bw:.27,bh:.27,fw:.26,fh:.26,len:.12,mat:mats.light,back:false});tip.position.z=1.17;tip.name="Face frontal";head.add(tip);
+const details=new THREE.Group();details.name="Olhos e narinas";head.add(details);
+const eyeGeo=new THREE.BoxGeometry(.055,.055,.055);for(const side of [-1,1]){const m=new THREE.Mesh(eyeGeo,mats.dark);m.position.set(side*.205,.075,.34);details.add(m)}
+const nostrilGeo=new THREE.BoxGeometry(.045,.045,.025);for(const side of [-1,1]){const m=new THREE.Mesh(nostrilGeo,mats.dark);m.position.set(side*.075,-.025,1.255);details.add(m)}
+const ears=new THREE.Group();ears.name="Orelhas";head.add(ears);
+for(const side of [-1,1]){
+ const base=frustum({bw:.13,bh:.13,fw:.11,fh:.11,len:.12,mat:mats.body});base.rotation.x=-Math.PI/2;base.position.set(side*.12,.235,.055);ears.add(base);
+ const top=frustum({bw:.11,bh:.11,fw:.065,fh:.065,len:.09,mat:mats.light});top.rotation.x=-Math.PI/2;top.position.set(side*.12,.355,.055);ears.add(top);
+}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(stage);resize();
+function view(v){orbit.target.set(0,.12,.58);if(v==="side")camera.position.set(0,.2,3.7);else if(v==="front")camera.position.set(3.7,.15,.6);else if(v==="top")camera.position.set(0,3.7,.58);else camera.position.set(2.7,2,3.3);camera.up.set(0,1,0);camera.lookAt(orbit.target);orbit.update();status.textContent="Vista: "+({3d:"perspectiva 3D",side:"lateral",front:"frontal",top:"superior"}[v]||v)+" — cabeça isolada carregada."}
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>view(b.dataset.view)));
+document.querySelector("#ears").addEventListener("click",e=>{ears.visible=!ears.visible;e.currentTarget.textContent="Orelhas: "+(ears.visible?"ON":"OFF")});
+document.querySelector("#eyes").addEventListener("click",e=>{details.visible=!details.visible;e.currentTarget.textContent="Olhos e narinas: "+(details.visible?"ON":"OFF")});
+document.querySelector("#reset").addEventListener("click",()=>view("3d"));
+function loop(){requestAnimationFrame(loop);orbit.update();renderer.render(scene,camera)}loop();
+status.textContent="Cabeça de teste carregada. Use os botões para conferir as vistas.";
+window.addEventListener("error",e=>status.textContent="Erro: "+e.message);
+</script>
+</body></html>
