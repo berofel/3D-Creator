@@ -293,6 +293,13 @@ function humanoidPreset(isOgre=false){
  capsule(torso,"Peitoral",[0,.34,0],[.82,.42,.42],cloth);
  capsule(torso,"Cintura",[0,-.49,0],[.67,.19,.36],leather);
  capsule(torso,"Cinto",[0,-.38,.015],[.76,.09,.39],metal);
+ // Detalhes de lenhador: camisa xadrez, suspensórios, bolso de ferramentas e luvas.
+ if(!isOgre){
+  for(const y of [.10,.29,.47])capsule(torso,"Faixa da camisa",[0,y,.204],[.68,.045,.025],"#a84d36");
+  for(const x of [-.20,.20])capsule(torso,"Suspensório",[x,.10,.218],[.075,.60,.035],leather);
+  capsule(torso,"Bolso de ferramentas",[.22,-.24,.205],[.20,.20,.08],"#79523a");
+  capsule(torso,"Fivela do cinto",[0,-.38,.225],[.13,.11,.035],"#d8b56b");
+ }
  const neck=pivot(torso,[0,.64,0],"Rig pescoço");
  capsule(neck,"Pescoço",[0,.08,0],[.22,.28,.22],skin);
  const headPivot=pivot(neck,[0,.24,.015],"Rig cabeça");
@@ -301,6 +308,13 @@ function humanoidPreset(isOgre=false){
  capsule(headPivot,"Nariz",[0,.12,.30],[.14,.13,.14],skin);
  capsule(headPivot,"Olho esquerdo",[-.135,.22,.335],[.055,.055,.025],"#211b18");
  capsule(headPivot,"Olho direito",[.135,.22,.335],[.055,.055,.025],"#211b18");
+ if(!isOgre){
+  capsule(headPivot,"Barba",[0,-.01,.235],[.31,.25,.19],"#49352c");
+  capsule(headPivot,"Bigode",[0,.075,.335],[.25,.075,.045],"#38291f");
+  capsule(headPivot,"Sobrancelha esquerda",[-.135,.285,.342],[.12,.035,.03],"#38291f");
+  capsule(headPivot,"Sobrancelha direita",[.135,.285,.342],[.12,.035,.03],"#38291f");
+  for(const side of [-1,1])capsule(headPivot,"Orelha",[side*.225,.16,0],[.09,.14,.10],skin);
+ }
  if(isOgre){capsule(headPivot,"Presa esquerda",[-.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Presa direita",[.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Testa pesada",[0,.40,.04],[.55,.28,.42],skin)}
  const rig={torso,neck,head:headPivot,arms:[],legs:[]};
  for(const side of [-1,1]){
@@ -455,16 +469,20 @@ function treeUpdate(dt){
    for(const l of legs){const stride=Math.sin(t*10+(l.side>0?Math.PI:0));l.hip.rotation.x=stride*.34;l.knee.rotation.x=Math.max(0,-stride)*.35}
    if(left){left.shoulder.rotation.set(-.05,0,.12);left.elbow.rotation.z=-.12}if(right){right.shoulder.rotation.set(-.05,0,-.12);right.elbow.rotation.z=.12}
   }else if(t<3.45){
-   treeDemo.mode="side-chop";const q=t-.85,phase=(q% .72)/.72,swing=Math.sin(phase*Math.PI);
-   for(const l of legs){l.hip.rotation.x=0;l.knee.rotation.x=0}
-   poseGrip(swing,false);
-   // O tronco inteiro gira no eixo vertical; os braços acompanham sem atravessar o corpo.
-   const windup=Math.sin(phase*Math.PI*2);
-   treeDemo.player.rotation.y=treeDemo.walkStartY+windup*.62;
-   treeDemo.player.rotation.z=Math.sin(phase*Math.PI*2)*.045;
-   treeDemo.hits=Math.min(4,Math.floor(q/.72)+1);
-   treeDemo.shake=Math.max(treeDemo.shake,.045+swing*.035);
-   treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.012;
+   treeDemo.mode="side-chop";const q=t-.85,cycle=.86,phase=(q%cycle)/cycle;
+   // Ciclo legível: ergue o machado, pausa curta e golpe descendente com o peso do corpo.
+   const lift=phase<.42?phase/.42:(1-(phase-.42)/.58);
+   const strike=Math.pow(Math.max(0,(phase-.42)/.58),.65);
+   for(const l of legs){l.hip.rotation.x=phase>.62?-.10*strike:0;l.knee.rotation.x=phase>.62?.08*strike:0}
+   poseGrip(lift,phase<.42);
+   if(left){left.shoulder.rotation.x=-.18-.95*lift+1.05*strike;left.shoulder.rotation.z=.42+.30*lift;left.elbow.rotation.x=-.18-.35*lift+.52*strike;left.wrist.rotation.x=-.12-.22*lift+.28*strike}
+   if(right){right.shoulder.rotation.x=-.22-1.08*lift+1.18*strike;right.shoulder.rotation.z=-.42-.30*lift;right.elbow.rotation.x=-.22-.42*lift+.60*strike;right.wrist.rotation.x=-.12-.25*lift+.32*strike}
+   treeDemo.player.rotation.y=treeDemo.walkStartY+Math.sin(phase*Math.PI)*.22;
+   treeDemo.player.rotation.z=-.035*lift+.14*strike;
+   treeDemo.player.rotation.x=-.04*lift+.09*strike;
+   treeDemo.hits=Math.min(4,Math.floor(q/cycle)+1);
+   if(phase>.72){treeDemo.shake=Math.max(treeDemo.shake,.06+strike*.045);treeDemo.trunkPivot.rotation.z=-.025*strike}
+   else treeDemo.trunkPivot.rotation.z=0;
   }else if(t<4.65){
    treeDemo.mode="falling";const p=Math.min(1,(t-3.45)/1.2);treeDemo.fallProgress=p;
    treeDemo.trunkPivot.rotation.z=-p*(Math.PI/2);treeDemo.fallenPivot.visible=false;
