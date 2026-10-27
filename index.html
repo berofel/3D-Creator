@@ -394,7 +394,7 @@ function exportRoots(){
  }
  return roots;
 }
-function exportSlug(value){return String(value||"Node").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-zA-Z0-9_]+/g,"_").replace(/^_+|_+$/g,"").slice(0,36)||"Node"}
+function exportSlug(value){return String(value||"Node").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_]+/g,"_").replace(/^_+|_+$/g,"").slice(0,36)||"Node"}
 function buildExportBundle(){
  const roots=exportRoots();
  if(!roots.length)throw new Error("A cena está vazia. Adicione um modelo antes de exportar.");
@@ -402,6 +402,7 @@ function buildExportBundle(){
  const records=[];let serial=0;
  const pairTree=(original,clone)=>{
   clone.name="B3D_"+String(serial++).padStart(5,"0")+"_"+exportSlug(original.name||original.type);
+  if(original.isMesh&&original.material){const mats=Array.isArray(original.material)?original.material:[original.material];if(mats.length&&mats.every(m=>m.visible===false))clone.visible=false;}
   records.push({original,clone,name:clone.name});
   const n=Math.min(original.children.length,clone.children.length);
   for(let i=0;i<n;i++)pairTree(original.children[i],clone.children[i]);
