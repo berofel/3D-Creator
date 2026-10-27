@@ -283,13 +283,6 @@ function addElement(generator,label){
   scene.add(group);
   // Reunir raízes recém-criadas preservando posição, rotação e escala mundiais.
   for(const root of roots)if(root.parent===scene)group.attach(root);
-  // Se um gerador anexou todos os componentes a objetos antigos, reunir cada raiz nova
-  // restante sem reparentar peças que já pertenciam a elementos anteriores.
-  for(const obj of [...newParts,...newSkins]){
-   let root=obj;
-   while(root.parent&&root.parent!==scene&&!oldParts.has(root.parent)&&!oldSkins.has(root.parent))root=root.parent;
-   if(root.parent===scene&&!beforeRoots.has(root))group.attach(root);
-  }
   elementRoots.push(group);
   for(const p of newParts)p.userData.berofelElementLabel=label;
   select(null);
