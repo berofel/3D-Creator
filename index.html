@@ -178,7 +178,7 @@ function gnuPreset(){
   const left=n.includes("esquerda"),diagonalPhase=(rear?!left:left)?0:Math.PI;
   legs.push({hip,knee,hock,fetlock,hoof,phase:diagonalPhase,hind:rear,upperLen,midLen,cannonLen});
  }
- window.__berofelHorseRig={body,bodyBaseY:body.position.y,chest,rump,neck,head,tail,tailMid:tail,tailTip:tail,gait:legs};
+ (window.__berofelHorseRigs||(window.__berofelHorseRigs=[])).push({body,bodyBaseY:body.position.y,chest,rump,neck,head,tail,tailMid:tail,tailTip:tail,gait:legs});window.__berofelHorseRig=(window.__berofelHorseRigs||[]).at(-1);
  cacheRigPose();select(null);setSkinMode("bones");say("Gnu facetado criado: tronco trapezoidal, peito elevado, chifres angulares e quatro patas articuladas.");
 }
 function weaponMaterial(){return $("weaponMaterial").value}
