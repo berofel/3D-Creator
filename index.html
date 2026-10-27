@@ -402,7 +402,7 @@ function buildExportBundle(){
  const records=[];let serial=0;
  const pairTree=(original,clone)=>{
   clone.name="B3D_"+String(serial++).padStart(5,"0")+"_"+exportSlug(original.name||original.type);
-  if(original.isMesh&&original.material){const mats=Array.isArray(original.material)?original.material:[original.material];if(mats.length&&mats.every(m=>m.visible===false))clone.visible=false;}
+  if(original.isMesh&&original.material){const copyMat=m=>{const c=m.clone();if(m.visible===false){c.transparent=true;c.opacity=0;c.depthWrite=false;}return c};clone.material=Array.isArray(original.material)?original.material.map(copyMat):copyMat(original.material);}
   records.push({original,clone,name:clone.name});
   const n=Math.min(original.children.length,clone.children.length);
   for(let i=0;i<n;i++)pairTree(original.children[i],clone.children[i]);
