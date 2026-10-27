@@ -155,9 +155,26 @@ function quadruped(){
   part(head,"nostril",hPos,hA,[s*.075,-.045,1.015],[.035,.04,.022],LOWER,"Narina "+lado);
   part(head,"mouth",hPos,hA,[s*.065,-.145,.91],[.07,.014,.018],LOWER,"Linha da boca "+lado);
   part(head,"eye",hPos,hA,[s*.205,.075,.16],[.045,.065,.045],EYE,"Olho "+lado);
+  part(head,"eye-highlight",hPos,hA,[s*.211,.092,.198],[.012,.018,.009],"#f2dfb4","Brilho do olho "+lado);
   // Orelhas curtas e simétricas, com base e ponta truncada.
   part(head,"ear-base",hPos,hA,[s*.12,.255,-.12],[.12,.12,.12],BODY,"Base da orelha "+lado);
   frustumPart(head,"ear-tip",hPos,hA,[s*.12,.355,-.12],[.095,.10,.095],MANE,"Ponta truncada da orelha "+lado,.66);
+ }
+ // Crina em blocos facetados acompanhando a curva do pescoço, além de topete.
+ for(let i=0;i<5;i++){
+  const u=i/4, base=[0,nBase[1]+.12+u*.72,nBase[2]+u*.70], angle=nA-.10;
+  const mane=part(body,"mane",base,angle,[0,.03,.02],[.23,.17,.22],MANE,"Crina segmento "+(i+1));
+  mane.rotation.x=angle; mane.rotation.z=(i%2?-.10:.10);
+ }
+ const forelock=part(head,"mane",hPos,hA,[0,.28,-.10],[.25,.22,.24],MANE,"Topete");
+ // Linha de focinho e narinas em contraste para leitura da face em estilo voxel.
+ frustumPart(head,"muzzle-shadow",hPos,hA,[0,-.09,.94],[.22,.055,.055],LOWER,"Sombra inferior do focinho",.95);
+ // Marcas claras nas quatro patas e cascos mais definidos.
+ for(const leg of gait){
+  const sock=trap("sock",[0,0,0],[.18,.12,.18],"#d9c7a7","Marca clara "+leg.hip.name);
+  sock.position.set(0,-.045,.005);leg.fetlock.add(sock);
+  const hoofRim=trap("hoof-rim",[0,0,0],[.255,.045,.305],"#51443b","Borda do casco "+leg.hip.name);
+  hoofRim.position.set(0,-.145,.035);leg.fetlock.add(hoofRim);
  }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
