@@ -360,7 +360,7 @@ const treeDemo={root:null,player:null,axe:null,arm:null,trunkPivot:null,fallenPi
 const treeSay=t=>{const e=$("treeStatus");if(e)e.textContent=t};
 function treeMat(color,roughness=.88){return new THREE.MeshStandardMaterial({color,roughness,flatShading:true})}
 function treeMesh(geo,color,parent,pos=[0,0,0],rot=[0,0,0]){const m=new THREE.Mesh(geo,treeMat(color));m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function treeDisposeDemo(){if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
+function treeDisposeDemo(){if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
 function createTreeDemo(){
  treeDisposeDemo();Object.assign(treeDemo,{hits:0,groundHits:0,mode:"idle",time:0,playing:false,shake:0,fallProgress:0,impact:0});
  const root=new THREE.Group();root.name="Demonstração — jogador, machado e pinheiro";scene.add(root);treeDemo.root=root;
