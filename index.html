@@ -192,13 +192,23 @@ function addWeaponPart(kind){
 }
 function axePreset(){
  clear();$("name").value="Machado_de_Batalha";
- const addPart=(type,pos,scale,color,name,rot=0)=>{const m=make(type,pos,scale,color,name);m.rotation.z=rot;return m};
+ const addPart=(type,pos,scale,color,name,rot=0)=>{const m=make(type,pos,scale,color,name);m.rotation.z=rot;m.visible=true;m.material.visible=true;return m};
  addPart("body",[0,1.03,0],[.14,1.95,.14],"#79523a","Cabo de freixo");
  addPart("body",[0,.43,0],[.18,.42,.18],"#49352c","Empunhadura de couro");
  addPart("facet",[.29,1.92,0],[1.08,.72,.22],"#9aa8b5","Lâmina de aço",-.06);
  addPart("facet",[.25,1.92,.13],[.34,.31,.08],"#b88a43","Encaixe de bronze");
  addPart("body",[-.03,1.91,0],[.22,.24,.2],"#6c7885","Cabeça do machado");
- select(null);setSkinMode("bones");fit();say("Machado de batalha criado. Edite cada componente pela hierarquia e exporte em GLB para a Godot.");
+ // Garanta que o modelo recém-criado esteja visível mesmo após alternar pele/esqueleto.
+ for(const p of parts){p.visible=true;p.material.visible=true;p.updateMatrixWorld(true)}
+ skinMode="bones";for(const m of skinMeshes)m.visible=false;transformHelper.visible=true;
+ $("skinStatus").textContent="Peças do equipamento visíveis.";
+ select(null);
+ const bounds=new THREE.Box3();for(const p of parts)bounds.expandByObject(p);
+ if(!bounds.isEmpty()){
+  const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3()),span=Math.max(size.x,size.y,size.z,1);
+  orbit.target.copy(center);camera.position.set(center.x+span*2.4,center.y+span*1.4,center.z+span*3.2);camera.near=.05;camera.far=1000;camera.lookAt(center);camera.updateProjectionMatrix();orbit.update();
+ }
+ say("Machado de batalha criado com "+parts.length+" peças. Selecione cada componente na hierarquia para editar.");
 }
 function clear(){const humanRig=window.__berofelHumanoidRig;if(humanRig?.torso&&humanRig.torso.parent)humanRig.torso.parent.remove(humanRig.torso);window.__berofelHumanoidRig=null;const hr=window.__berofelHorseRig;if(hr&&Array.isArray(hr.gait)){for(const leg of hr.gait){const root=leg.hip;if(root&&root.parent)root.parent.remove(root)}}if(horseRoot){if(horseRoot.parent)horseRoot.parent.remove(horseRoot);horseRoot=null}clearSkin();for(const p of [...parts].reverse()){if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material?.dispose()}parts=[];horseJoints=[];window.__berofelHorseRig=null;selected=null;counter=0;renderParts()}
 function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));$("color").value="#"+selected.material.color.getHexString()}function select(m){selected=m;for(const p of parts)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
