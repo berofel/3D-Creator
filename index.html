@@ -137,44 +137,31 @@ function quadruped(){
  const rump=trap("rump",[0,1.72,-.98],[.88,.92,.68],BODY,"Garupa");
  // Peitoral e faixa inferior acompanham o mesmo pivô do tronco, sem ficarem soltos.
  body.attach(belly);body.attach(chestBlock);body.attach(chest);body.attach(rump);
- const nA=.43,nL=1.00,nBase=[0,1.98,.78];
- const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço facetado",false,nA);body.attach(neck);
- // Perfil lateral pensado como silhueta 2D: crânio compacto, ponte nasal inclinada,
- // focinho curto e quadrado, sem formar uma cabeça comprida e cônica.
- const hA=.24,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.13,.24]);
- const head=joint("head",hPos,[.48,.49,.52],BODY,"Crânio articulado",false,hA);
- head.geometry.dispose();head.geometry=squareFrustumGeometry(.90);neck.attach(head);
- frustumPart(head,"cheek",hPos,hA,[0,-.075,.16],[.47,.32,.34],BODY,"Bochecha facetada",.92);
- frustumPart(head,"nose-bridge",hPos,hA,[0,-.105,.43],[.34,.31,.43],BODY,"Ponte nasal inclinada",.86);
- frustumPart(head,"muzzle",hPos,hA,[0,-.19,.68],[.31,.25,.27],BODY,"Focinho curto quadrangular",.90);
- frustumPart(head,"muzzle-front",hPos,hA,[0,-.19,.82],[.28,.23,.11],MUZZLE,"Plano frontal do focinho",.98);
+ const nA=.62,nL=1.05,nBase=[0,2,.85];
+ const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço",false,nA);body.attach(neck);
+ // A crina será adicionada depois; por enquanto, manter pescoço e cabeça limpos.
+ const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
+ // Cabeça revisada: crânio, ponte nasal e focinho com seções quadrangulares
+ // proporcionais e alinhadas no eixo longitudinal. O pivô continua articulado.
+ const head=joint("head",hPos,[.46,.50,.55],BODY,"Cabeça articulada",false,hA);
+ head.geometry.dispose();head.geometry=squareFrustumGeometry(.83);neck.attach(head);
+ // Blocos no mesmo eixo vertical e com sobreposição intencional para eliminar
+ // frestas e o efeito de um trapezoide escorregar por baixo do outro.
+ frustumPart(head,"nose-bridge",hPos,hA,[0,0,.49],[.38,.40,.49],BODY,"Ponte nasal — centralizada",.84);
+ frustumPart(head,"muzzle",hPos,hA,[0,0,.785],[.30,.30,.29],BODY,"Focinho quadrangular centralizado",.90);
+ frustumPart(head,"muzzle-front",hPos,hA,[0,0,.965],[.27,.27,.13],MUZZLE,"Face frontal plana do focinho",.96);
  for(const s of [-1,1]){
   const lado=s<0?"esquerda":"direita";
   part(head,"nostril",hPos,hA,[s*.075,-.045,1.015],[.035,.04,.022],LOWER,"Narina "+lado);
   part(head,"mouth",hPos,hA,[s*.065,-.145,.91],[.07,.014,.018],LOWER,"Linha da boca "+lado);
   part(head,"eye",hPos,hA,[s*.205,.075,.16],[.045,.065,.045],EYE,"Olho "+lado);
-  part(head,"eye-highlight",hPos,hA,[s*.211,.092,.198],[.012,.018,.009],"#f2dfb4","Brilho do olho "+lado);
   // Orelhas curtas e simétricas, com base e ponta truncada.
   part(head,"ear-base",hPos,hA,[s*.12,.255,-.12],[.12,.12,.12],BODY,"Base da orelha "+lado);
   frustumPart(head,"ear-tip",hPos,hA,[s*.12,.355,-.12],[.095,.10,.095],MANE,"Ponta truncada da orelha "+lado,.66);
  }
- // Crina em blocos facetados acompanhando a curva do pescoço, além de topete.
- for(let i=0;i<5;i++){
-  const u=i/4, base=[0,nBase[1]+.12+u*.72,nBase[2]+u*.70], angle=nA-.10;
-  const mane=part(body,"mane",base,angle,[0,.03,.02],[.23,.17,.22],MANE,"Crina segmento "+(i+1));
-  mane.rotation.x=angle; mane.rotation.z=(i%2?-.10:.10);
- }
- const forelock=part(head,"mane",hPos,hA,[0,.28,-.10],[.25,.22,.24],MANE,"Topete");
- // Linha de focinho e narinas em contraste para leitura da face em estilo voxel.
- frustumPart(head,"muzzle-shadow",hPos,hA,[0,-.09,.94],[.22,.055,.055],LOWER,"Sombra inferior do focinho",.95);
- // Marcas claras discretas, sem cobrir os segmentos articulados nem os cascos.
- for(const leg of gait){
-  const sock=trap("sock",[0,0,0],[.17,.075,.17],"#d9c7a7","Marca clara "+leg.hip.name);
-  sock.position.set(0,-.035,.004);leg.fetlock.add(sock);
- }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
- const patas=[["dianteira esquerda",-.36,.55,false],["dianteira direita",.36,.55,false],["traseira esquerda",-.38,-1.00,true],["traseira direita",.38,-1.00,true]],gait=[];
+ const patas=[["dianteira esquerda",-.34,.48,false],["dianteira direita",.34,.48,false],["traseira esquerda",-.36,-.99,true],["traseira direita",.36,-.99,true]],gait=[];
  const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);if(parent)parent.add(g);else scene.add(g);return g;};
  const segment=(parent,type,length,width,depth,color,name)=>{
   const m=trap(type,[0,0,0],[width,length,depth],color,name);
@@ -182,21 +169,17 @@ function quadruped(){
  };
  for(const [n,x,z,rear] of patas){
   // Quatro graus de liberdade por membro: anca/ombro, joelho, jarrete e boleto.
-  const hipY=rear?1.91:1.88, upperLen=rear?.60:.65, midLen=rear?.49:.50, cannonLen=rear?.40:.43;
+  const hipY=rear?1.86:1.83, upperLen=rear?.57:.62, midLen=rear?.48:.48, cannonLen=rear?.38:.42, footLen=.16;
   const hip=makePivot(null,[x,hipY,z],"Pivô anca/ombro "+n);
-  // Cada perna nasce no corpo e desce claramente abaixo da barriga; a hierarquia
-  // preserva os quatro membros quando o tronco se move e evita peças soltas na cena.
-  body.attach(hip);
-  segment(hip,"femur",upperLen,rear?.43:.38,rear?.42:.38,BODY,(rear?"Coxa traseira":"Braço dianteiro")+" "+n);
+  segment(hip,"femur",upperLen,rear?.34:.29,rear?.36:.30,BODY,(rear?"Fêmur":"Braço dianteiro")+" "+n);
   const knee=makePivot(hip,[0,-upperLen,0],"Pivô joelho "+n);
-  const kneeBlock=segment(knee,"knee-segment",midLen,rear?.29:.26,.27,LOWER,(rear?"Perna traseira inferior":"Perna dianteira inferior")+" "+n);
-  kneeBlock.position.z=rear?-.015:.025;
+  segment(knee,"knee-segment",midLen,rear?.23:.20,.22,LOWER,(rear?"Perna inferior":"Antebraço")+" "+n);
   const hock=makePivot(knee,[0,-midLen,0],"Pivô jarrete/carpal "+n);
-  segment(hock,"cannon",cannonLen,.20,.20,LOWER,"Canela inferior "+n);
+  segment(hock,"cannon",cannonLen,.16,.17,LOWER,"Canela "+n);
   const fetlock=makePivot(hock,[0,-cannonLen,0],"Pivô boleto "+n);
-  segment(fetlock,"fetlock",.19,.17,.18,BODY,"Boleto "+n);
-  const hoof=trap("foot",[0,0,0],[.30,.18,.35],HOOF,"Casco "+n);
-  hoof.position.set(0,-.105,.06);fetlock.add(hoof);
+  segment(fetlock,"fetlock",.16,.14,.16,BODY,"Boleto "+n);
+  const hoof=trap("foot",[x,hipY-upperLen-midLen-cannonLen-.08,z+.035],[.25,.16,.3],HOOF,"Casco "+n);
+  hoof.position.set(0,-.08,.035);fetlock.add(hoof);
   const left=n.includes("esquerda");const diagonalPhase=(rear?!left:left)?0:Math.PI;gait.push({hip,knee,hock,fetlock,hoof,phase:diagonalPhase,hind:rear,upperLen,midLen,cannonLen});
  }
  (window.__berofelHorseRigs||(window.__berofelHorseRigs=[])).push({body,bodyBaseY:body.position.y,chest,chestBlock,chestBaseZ:chest.position.z,shoulderBaseZ:chestBlock.position.z,rump,neck,neckBaseX:neck.rotation.x,head,headBaseX:head.rotation.x,tail,tailMid:tail,tailTip:tip,gait,bodyParts:[body],legBases:gait.map(g=>({hip:g.hip,y:g.hip.position.y}))});window.__berofelHorseRig=(window.__berofelHorseRigs||[]).at(-1);
@@ -534,5 +517,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=88",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=85",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
