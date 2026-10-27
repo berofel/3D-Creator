@@ -414,7 +414,7 @@ function treePlay(){
  treeSay("Aproximação, golpes laterais com rotação do tronco e, só após a queda, golpes diagonais na madeira.");
 }
 function treeUpdate(dt){
- if(!treeDemo.root)return;dt*=+$("#treeSpeed").value||1;
+ if(!treeDemo.root)return;dt*=+$("treeSpeed").value||1;
  const arms=treeDemo.arms||[],left=arms.find(a=>a.side<0),right=arms.find(a=>a.side>0),legs=treeDemo.legs||[];
  const poseGrip=(swing=0,vertical=false)=>{
   // Cotovelos dobrados e braços recolhidos: o cabo fica entre as mãos, longe do peito.
