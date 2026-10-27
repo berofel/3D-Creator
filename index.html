@@ -360,7 +360,22 @@ const treeDemo={root:null,player:null,axe:null,arm:null,trunkPivot:null,fallenPi
 const treeSay=t=>{const e=$("treeStatus");if(e)e.textContent=t};
 function treeMat(color,roughness=.88){return new THREE.MeshStandardMaterial({color,roughness,flatShading:true})}
 function treeMesh(geo,color,parent,pos=[0,0,0],rot=[0,0,0]){const m=new THREE.Mesh(geo,treeMat(color));m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function treeDisposeDemo(){if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
+function treeDisposeDemo(){if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);treeDemo.humanRig=null;if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
+function treeAttachHuman(){
+ const rigs=window.__berofelHumanoidRigs||[];
+ const rig=window.__berofelHumanoidRig||rigs[rigs.length-1];
+ if(!rig||!rig.torso||!Array.isArray(rig.arms)||!rig.arms.length){treeSay("Adicione primeiro o humanoide pelo botão “Modelo humano” e depois inicie a animação.");return false}
+ const arm=rig.arms.find(a=>a.side>0)||rig.arms[0];
+ if(!arm||!arm.shoulder||!arm.wrist){treeSay("Não consegui acessar as articulações do braço do humanoide.");return false}
+ if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);
+ treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arm=arm.shoulder;
+ const axe=new THREE.Group();axe.name="Machado da animação de corte";axe.position.set(0,-.12,.12);axe.rotation.z=-.15;arm.wrist.add(axe);treeDemo.axe=axe;
+ treeMesh(new THREE.CylinderGeometry(.035,.045,.72,7),"#79523a",axe,[0,.27,0]);
+ treeMesh(new THREE.BoxGeometry(.14,.13,.13),"#9aa8b5",axe,[0,.57,0]);
+ treeMesh(new THREE.BoxGeometry(.36,.20,.11),"#9aa8b5",axe,[.16,.58,0],[0,0,-.12]);
+ treeMesh(new THREE.BoxGeometry(.10,.23,.13),"#6c7885",axe,[.02,.58,0]);
+ return true;
+}
 function createTreeDemo(){
  treeDisposeDemo();Object.assign(treeDemo,{hits:0,groundHits:0,mode:"idle",time:0,playing:false,shake:0,fallProgress:0,impact:0});
  const root=new THREE.Group();root.name="Demonstração — jogador, machado e pinheiro";scene.add(root);treeDemo.root=root;
@@ -388,18 +403,18 @@ function createTreeDemo(){
  orbit.target.set(.35,1.5,0);camera.position.set(5.6,4.4,7.5);camera.lookAt(orbit.target);orbit.update();
  treeSay("Cena carregada no editor. Use Reproduzir ou teste os golpes individualmente.");
 }
-function treeHit(){if(!treeDemo.root)createTreeDemo();if(["falling","fallen","groundhit","collected","sequence"].includes(treeDemo.mode)&&treeDemo.mode!=="sequence"){treeSay("A árvore já caiu. Use “Golpe na árvore caída”.");return}treeDemo.hits=Math.min(3,treeDemo.hits+1);treeDemo.mode="chop";treeDemo.shake=.34;treeDemo.impact=0;treeDemo.arm.rotation.x=-1.55;treeDemo.arm.rotation.z=-.72;treeSay("Golpe "+treeDemo.hits+"/3: machado em movimento e tronco reagindo.");if(treeDemo.hits>=3)treeSay("3/3 golpes. Pressione Derrubar para testar a queda.");}
-function treeFall(){if(!treeDemo.root)createTreeDemo();if(["fallen","groundhit","collected"].includes(treeDemo.mode))return;treeDemo.playing=false;treeDemo.mode="falling";treeDemo.fallProgress=0;treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.x=-1.1;treeSay("Árvore caindo: copa e tronco giram juntos; o toco fica no lugar.");}
-function treeGroundHit(){if(!treeDemo.root)createTreeDemo();if(treeDemo.mode!=="fallen"&&treeDemo.mode!=="groundhit"){treeSay("Derrube a árvore e aguarde ela tocar o chão antes de golpear.");return}if(treeDemo.mode==="collected")return;treeDemo.mode="groundhit";treeDemo.groundHits=Math.min(3,treeDemo.groundHits+1);treeDemo.shake=.2;treeDemo.arm.rotation.x=-1.45;treeSay("Golpe na madeira caída "+treeDemo.groundHits+"/3.");if(treeDemo.groundHits>=3)treeSay("Madeira pronta para coleta.");}
-function treeCollect(){if(!treeDemo.root)createTreeDemo();if(treeDemo.groundHits<3){treeSay("Faltam "+(3-treeDemo.groundHits)+" golpe(s) na madeira caída.");return}treeDemo.mode="collected";treeDemo.playing=false;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=false;treeSay("Madeira coletada no teste. O toco continua no chão.");}
+function treeHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(["falling","fallen","groundhit","collected","sequence"].includes(treeDemo.mode)&&treeDemo.mode!=="sequence"){treeSay("A árvore já caiu. Use “Golpe na árvore caída”.");return}treeDemo.hits=Math.min(3,treeDemo.hits+1);treeDemo.mode="chop";treeDemo.shake=.34;treeDemo.impact=0;treeDemo.arm.rotation.x=-1.55;treeDemo.arm.rotation.z=-.72;treeSay("Golpe "+treeDemo.hits+"/3: machado em movimento e tronco reagindo.");if(treeDemo.hits>=3)treeSay("3/3 golpes. Pressione Derrubar para testar a queda.");}
+function treeFall(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(["fallen","groundhit","collected"].includes(treeDemo.mode))return;treeDemo.playing=false;treeDemo.mode="falling";treeDemo.fallProgress=0;treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.x=-1.1;treeSay("Árvore caindo: copa e tronco giram juntos; o toco fica no lugar.");}
+function treeGroundHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(treeDemo.mode!=="fallen"&&treeDemo.mode!=="groundhit"){treeSay("Derrube a árvore e aguarde ela tocar o chão antes de golpear.");return}if(treeDemo.mode==="collected")return;treeDemo.mode="groundhit";treeDemo.groundHits=Math.min(3,treeDemo.groundHits+1);treeDemo.shake=.2;treeDemo.arm.rotation.x=-1.45;treeSay("Golpe na madeira caída "+treeDemo.groundHits+"/3.");if(treeDemo.groundHits>=3)treeSay("Madeira pronta para coleta.");}
+function treeCollect(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(treeDemo.groundHits<3){treeSay("Faltam "+(3-treeDemo.groundHits)+" golpe(s) na madeira caída.");return}treeDemo.mode="collected";treeDemo.playing=false;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=false;treeSay("Madeira coletada no teste. O toco continua no chão.");}
 function treeReset(){createTreeDemo();treeSay("Cena reiniciada. Pronta para testar novamente.");}
-function treePlay(){if(!treeDemo.root)createTreeDemo();treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.set(0,0,0);treeSay("Reproduzindo: aproximação, golpes, queda e golpes na madeira.");}
+function treePlay(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.set(0,0,0);treeSay("Reproduzindo: aproximação, golpes, queda e golpes na madeira.");}
 function treeUpdate(dt){
  if(!treeDemo.root)return;const sp=+$("treeSpeed").value||1;dt*=sp;
- if(treeDemo.playing){treeDemo.time+=dt;const t=treeDemo.time;treeDemo.player.position.x=-.8+Math.min(.24,t*.09);treeDemo.arm.rotation.x=0;
+ if(treeDemo.playing){treeDemo.time+=dt;const t=treeDemo.time;if(treeDemo.arm)treeDemo.arm.rotation.x=0;
   if(t<.85){treeDemo.mode="sequence";if(treeDemo.arm)treeDemo.arm.rotation.z=Math.sin(t*3)*.08}
   else if(t<2.05){treeDemo.hits=Math.min(3,Math.floor((t-.85)/.4)+1);const phase=((t-.85)% .4)/.4;if(treeDemo.arm)treeDemo.arm.rotation.x=phase<.48?-Math.sin(phase/.48*Math.PI)*1.45:0;treeDemo.shake=Math.max(treeDemo.shake,.09);treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.025}
-  else if(t<3.55){treeDemo.mode="falling";treeDemo.fallProgress=Math.min(1,(t-2.05)/1.5);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*(Math.PI/2);treeDemo.fallenPivot.visible=false}else if(t<5.05){treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;treeDemo.groundHits=Math.min(3,Math.floor((t-3.55)/.5)+1);const phase=((t-3.55)% .5)/.5;treeDemo.arm.rotation.x=phase<.55?-Math.sin(phase/.55*Math.PI)*1.4:0}
+  else if(t<3.55){treeDemo.mode="falling";treeDemo.fallProgress=Math.min(1,(t-2.05)/1.5);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*(Math.PI/2);treeDemo.fallenPivot.visible=false}else if(t<5.05){treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;treeDemo.groundHits=Math.min(3,Math.floor((t-3.55)/.5)+1);const phase=((t-3.55)% .5)/.5;if(treeDemo.arm)treeDemo.arm.rotation.x=phase<.55?-Math.sin(phase/.55*Math.PI)*1.4:0}
   else{treeDemo.playing=false;treeDemo.mode="collected";treeDemo.fallenPivot.visible=false;treeSay("Sequência concluída: jogador golpeou, árvore caiu e a madeira foi coletada.");}
  }
  if(treeDemo.shake>0){treeDemo.shake=Math.max(0,treeDemo.shake-dt);if(treeDemo.mode!=="falling"&&treeDemo.mode!=="sequence")treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.11)*treeDemo.shake*.22;treeDemo.trunkPivot.rotation.x=Math.sin(performance.now()*.13)*treeDemo.shake*.06}
