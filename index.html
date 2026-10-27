@@ -368,7 +368,7 @@ function treeAttachHuman(){
  const arm=rig.arms.find(a=>a.side>0)||rig.arms[0];
  if(!arm||!arm.shoulder||!arm.wrist){treeSay("Não consegui acessar as articulações do braço do humanoide.");return false}
  if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);
- treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arm=arm.shoulder;
+ treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arm=arm.shoulder;treeDemo.arms=rig.arms;treeDemo.legs=rig.legs;
  const axe=new THREE.Group();axe.name="Machado da animação de corte";axe.position.set(0,-.12,.12);axe.rotation.z=-.15;arm.wrist.add(axe);treeDemo.axe=axe;
  treeMesh(new THREE.CylinderGeometry(.035,.045,.72,7),"#79523a",axe,[0,.27,0]);
  treeMesh(new THREE.BoxGeometry(.14,.13,.13),"#9aa8b5",axe,[0,.57,0]);
@@ -381,7 +381,7 @@ function createTreeDemo(){
  const root=new THREE.Group();root.name="Demonstração — jogador, machado e pinheiro";scene.add(root);treeDemo.root=root;
  treeMesh(new THREE.CylinderGeometry(4.7,4.7,.12,24),"#78915b",root,[.15,-.12,0]);
  // Toco e raízes permanecem no solo; a árvore viva gira em um pivô na base.
- const base=new THREE.Group();base.position.set(1.55,0,0);root.add(base);
+ const base=new THREE.Group();base.position.set(1.55,0,0);base.scale.set(1.22,1.38,1.22);root.add(base);
  treeDemo.stump=treeMesh(new THREE.CylinderGeometry(.22,.3,.25,8),"#765039",base,[0,.125,0]);
  treeMesh(new THREE.CylinderGeometry(.2,.2,.035,8),"#b68a5a",base,[0,.255,0]);
  for(let i=0;i<4;i++){const a=i*Math.PI/2;const r=treeMesh(new THREE.CylinderGeometry(.035,.11,.38,5),"#765039",base,[Math.cos(a)*.2,.08,Math.sin(a)*.2]);r.rotation.z=Math.cos(a)*.55;r.rotation.x=Math.sin(a)*.55}
@@ -408,14 +408,41 @@ function treeFall(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");
 function treeGroundHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(treeDemo.mode!=="fallen"&&treeDemo.mode!=="groundhit"){treeSay("Derrube a árvore e aguarde ela tocar o chão antes de golpear.");return}if(treeDemo.mode==="collected")return;treeDemo.mode="groundhit";treeDemo.groundHits=Math.min(3,treeDemo.groundHits+1);treeDemo.shake=.2;treeDemo.arm.rotation.x=-1.45;treeSay("Golpe na madeira caída "+treeDemo.groundHits+"/3.");if(treeDemo.groundHits>=3)treeSay("Madeira pronta para coleta.");}
 function treeCollect(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(treeDemo.groundHits<3){treeSay("Faltam "+(3-treeDemo.groundHits)+" golpe(s) na madeira caída.");return}treeDemo.mode="collected";treeDemo.playing=false;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=false;treeSay("Madeira coletada no teste. O toco continua no chão.");}
 function treeReset(){createTreeDemo();treeSay("Cena reiniciada. Pronta para testar novamente.");}
-function treePlay(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.set(0,0,0);treeSay("Reproduzindo: aproximação, golpes, queda e golpes na madeira.");}
+function treePlay(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.set(0,0,0);treeDemo.walkStartX=treeDemo.player.position.x;treeDemo.walkStartZ=treeDemo.player.position.z;for(const a of (treeDemo.arms||[])){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}for(const l of (treeDemo.legs||[])){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}treeSay("O player se aproxima, segura o machado com as duas mãos, corta lateralmente e depois golpeia de cima para baixo.");}
 function treeUpdate(dt){
  if(!treeDemo.root)return;const sp=+$("treeSpeed").value||1;dt*=sp;
- if(treeDemo.playing){treeDemo.time+=dt;const t=treeDemo.time;if(treeDemo.arm)treeDemo.arm.rotation.x=0;
-  if(t<.85){treeDemo.mode="sequence";if(treeDemo.arm)treeDemo.arm.rotation.z=Math.sin(t*3)*.08}
-  else if(t<2.05){treeDemo.hits=Math.min(3,Math.floor((t-.85)/.4)+1);const phase=((t-.85)% .4)/.4;if(treeDemo.arm)treeDemo.arm.rotation.x=phase<.48?-Math.sin(phase/.48*Math.PI)*1.45:0;treeDemo.shake=Math.max(treeDemo.shake,.09);treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.025}
-  else if(t<3.55){treeDemo.mode="falling";treeDemo.fallProgress=Math.min(1,(t-2.05)/1.5);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*(Math.PI/2);treeDemo.fallenPivot.visible=false}else if(t<5.05){treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;treeDemo.groundHits=Math.min(3,Math.floor((t-3.55)/.5)+1);const phase=((t-3.55)% .5)/.5;if(treeDemo.arm)treeDemo.arm.rotation.x=phase<.55?-Math.sin(phase/.55*Math.PI)*1.4:0}
-  else{treeDemo.playing=false;treeDemo.mode="idle";treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);if(treeDemo.stump)treeDemo.stump.visible=true;treeDemo.fallProgress=0;treeDemo.shake=0;treeDemo.hits=0;treeDemo.groundHits=0;if(treeDemo.arm)treeDemo.arm.rotation.set(0,0,0);treeSay("Sequência concluída: pinheiro reiniciado em pé para novo teste. No jogo, a árvore poderá ser removida ao terminar.");}
+ if(treeDemo.playing){
+  treeDemo.time+=dt;const t=treeDemo.time;
+  const arms=treeDemo.arms||[],left=arms.find(a=>a.side<0),right=arms.find(a=>a.side>0),legs=treeDemo.legs||[];
+  if(t<1.0){
+   treeDemo.mode="approach";const p=Math.min(1,t);treeDemo.player.position.x=treeDemo.walkStartX+.52*p;treeDemo.player.position.z=treeDemo.walkStartZ;
+   for(const l of legs){const stride=Math.sin(t*10+(l.side>0?Math.PI:0));l.hip.rotation.x=stride*.42;l.knee.rotation.x=Math.max(0,-stride)*.5}
+   if(left){left.shoulder.rotation.x=-.1;left.shoulder.rotation.z=.15}if(right){right.shoulder.rotation.x=-.1;right.shoulder.rotation.z=-.15}
+  }else if(t<2.25){
+   treeDemo.mode="side-chop";const phase=((t-1.0)% .42)/.42,swing=Math.sin(phase*Math.PI);
+   for(const l of legs){l.hip.rotation.x=0;l.knee.rotation.x=0}
+   if(left){left.shoulder.rotation.set(-.28,0,.55+swing*.75);left.elbow.rotation.z=-.65-swing*.25;left.wrist.rotation.z=-.18}
+   if(right){right.shoulder.rotation.set(-.35,0,-.62-swing*.78);right.elbow.rotation.z=-.55-swing*.25;right.wrist.rotation.z=.18}
+   treeDemo.hits=Math.min(3,Math.floor((t-1.0)/.42)+1);treeDemo.shake=Math.max(treeDemo.shake,.07+swing*.04);treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.018;
+  }else if(t<3.25){
+   treeDemo.mode="vertical-chop";const phase=((t-2.25)% .5)/.5,swing=Math.sin(phase*Math.PI);
+   if(left){left.shoulder.rotation.set(-.25-swing*1.1,0,.3);left.elbow.rotation.set(-.25-swing*.45,0,-.25);left.wrist.rotation.z=-.1}
+   if(right){right.shoulder.rotation.set(-.2-swing*1.2,0,-.3);right.elbow.rotation.set(-.25-swing*.45,0,.25);right.wrist.rotation.z=.1}
+   treeDemo.hits=Math.min(5,3+Math.floor((t-2.25)/.5)+1);treeDemo.shake=Math.max(treeDemo.shake,.10+swing*.05);
+  }else if(t<4.75){
+   treeDemo.mode="falling";treeDemo.fallProgress=Math.min(1,(t-3.25)/1.5);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*(Math.PI/2);treeDemo.fallenPivot.visible=false;
+   if(left){left.shoulder.rotation.x=-.3;left.shoulder.rotation.z=.35}if(right){right.shoulder.rotation.x=-.3;right.shoulder.rotation.z=-.35}
+  }else if(t<6.25){
+   treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;
+   const phase=((t-4.75)% .5)/.5,swing=Math.sin(phase*Math.PI);
+   if(left){left.shoulder.rotation.x=-.15-swing*.75;left.shoulder.rotation.z=.25;left.elbow.rotation.x=-.3-swing*.3}
+   if(right){right.shoulder.rotation.x=-.15-swing*.8;right.shoulder.rotation.z=-.25;right.elbow.rotation.x=-.3-swing*.3}
+   treeDemo.groundHits=Math.min(3,Math.floor((t-4.75)/.5)+1);
+  }else{
+   treeDemo.playing=false;treeDemo.mode="idle";treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);if(treeDemo.stump)treeDemo.stump.visible=true;treeDemo.fallProgress=0;treeDemo.shake=0;treeDemo.hits=0;treeDemo.groundHits=0;
+   for(const a of arms){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}for(const l of legs){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}
+   treeDemo.player.position.x=treeDemo.walkStartX;treeDemo.player.position.z=treeDemo.walkStartZ;treeSay("Sequência concluída: aproximação, machadadas laterais e verticais, queda e golpes finais.");
+  }
  }
  if(treeDemo.shake>0){treeDemo.shake=Math.max(0,treeDemo.shake-dt);if(treeDemo.mode!=="falling"&&treeDemo.mode!=="sequence")treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.11)*treeDemo.shake*.22;treeDemo.trunkPivot.rotation.x=Math.sin(performance.now()*.13)*treeDemo.shake*.06}
  if(treeDemo.mode==="falling"&&!treeDemo.playing){treeDemo.fallProgress=Math.min(1,treeDemo.fallProgress+dt*.72);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*1.48;if(treeDemo.fallProgress>=1){treeDemo.mode="fallen";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;treeSay("Árvore no chão. Continue golpeando a madeira; o toco permanece.")}}
