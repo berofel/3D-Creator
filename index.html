@@ -362,18 +362,16 @@ function treeMat(color,roughness=.88){return new THREE.MeshStandardMaterial({col
 function treeMesh(geo,color,parent,pos=[0,0,0],rot=[0,0,0]){const m=new THREE.Mesh(geo,treeMat(color));m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function treeDisposeDemo(){if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);treeDemo.humanRig=null;if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
 function treeAttachHuman(){
- const rigs=window.__berofelHumanoidRigs||[];
- const rig=window.__berofelHumanoidRig||rigs[rigs.length-1];
- if(!rig||!rig.torso||!Array.isArray(rig.arms)||!rig.arms.length){treeSay("Adicione primeiro o humanoide pelo botão “Modelo humano” e depois inicie a animação.");return false}
- const arm=rig.arms.find(a=>a.side>0)||rig.arms[0];
- if(!arm||!arm.shoulder||!arm.wrist){treeSay("Não consegui acessar as articulações do braço do humanoide.");return false}
+ const rigs=window.__berofelHumanoidRigs||[],rig=window.__berofelHumanoidRig||rigs[rigs.length-1];
+ if(!rig||!rig.torso||!Array.isArray(rig.arms)||rig.arms.length<2){treeSay("Adicione primeiro o humanoide pelo botão “Modelo humano”.");return false}
  if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);
- treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arm=arm.shoulder;treeDemo.arms=rig.arms;treeDemo.legs=rig.legs;
- const axe=new THREE.Group();axe.name="Machado da animação de corte";axe.position.set(0,-.12,.12);axe.rotation.z=-.15;arm.wrist.add(axe);treeDemo.axe=axe;
- treeMesh(new THREE.CylinderGeometry(.035,.045,.72,7),"#79523a",axe,[0,.27,0]);
- treeMesh(new THREE.BoxGeometry(.14,.13,.13),"#9aa8b5",axe,[0,.57,0]);
- treeMesh(new THREE.BoxGeometry(.36,.20,.11),"#9aa8b5",axe,[.16,.58,0],[0,0,-.12]);
- treeMesh(new THREE.BoxGeometry(.10,.23,.13),"#6c7885",axe,[.02,.58,0]);
+ treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arms=rig.arms;treeDemo.legs=rig.legs;
+ // Machado preso ao eixo central do tronco: as duas mãos acompanham o mesmo cabo.
+ const axe=new THREE.Group();axe.name="Machado de duas mãos";axe.position.set(0,-.58,.29);axe.rotation.set(0,0,0);rig.torso.add(axe);treeDemo.axe=axe;
+ treeMesh(new THREE.CylinderGeometry(.038,.045,.98,8),"#79523a",axe,[0,0,0],[0,0,Math.PI/2]);
+ treeMesh(new THREE.BoxGeometry(.16,.14,.14),"#9aa8b5",axe,[.48,.02,0]);
+ treeMesh(new THREE.BoxGeometry(.40,.22,.12),"#aab5c0",axe,[.62,.02,0],[0,0,-.12]);
+ treeMesh(new THREE.BoxGeometry(.11,.24,.15),"#6c7885",axe,[.48,.02,0]);
  return true;
 }
 function createTreeDemo(){
@@ -408,46 +406,65 @@ function treeFall(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");
 function treeGroundHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(treeDemo.mode!=="fallen"&&treeDemo.mode!=="groundhit"){treeSay("Derrube a árvore e aguarde ela tocar o chão antes de golpear.");return}if(treeDemo.mode==="collected")return;treeDemo.mode="groundhit";treeDemo.groundHits=Math.min(3,treeDemo.groundHits+1);treeDemo.shake=.2;treeDemo.arm.rotation.x=-1.45;treeSay("Golpe na madeira caída "+treeDemo.groundHits+"/3.");if(treeDemo.groundHits>=3)treeSay("Madeira pronta para coleta.");}
 function treeCollect(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(treeDemo.groundHits<3){treeSay("Faltam "+(3-treeDemo.groundHits)+" golpe(s) na madeira caída.");return}treeDemo.mode="collected";treeDemo.playing=false;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=false;treeSay("Madeira coletada no teste. O toco continua no chão.");}
 function treeReset(){createTreeDemo();treeSay("Cena reiniciada. Pronta para testar novamente.");}
-function treePlay(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;treeDemo.arm.rotation.set(0,0,0);treeDemo.walkStartX=treeDemo.player.position.x;treeDemo.walkStartZ=treeDemo.player.position.z;for(const a of (treeDemo.arms||[])){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}for(const l of (treeDemo.legs||[])){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}treeSay("O player se aproxima, segura o machado com as duas mãos, corta lateralmente e depois golpeia de cima para baixo.");}
+function treePlay(){
+ if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;
+ treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;
+ treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;
+ treeDemo.walkStartX=treeDemo.player.position.x;treeDemo.walkStartZ=treeDemo.player.position.z;treeDemo.walkStartY=treeDemo.player.rotation.y;
+ treeSay("Aproximação, golpes laterais com rotação do tronco e, só após a queda, golpes diagonais na madeira.");
+}
 function treeUpdate(dt){
- if(!treeDemo.root)return;const sp=+$("treeSpeed").value||1;dt*=sp;
+ if(!treeDemo.root)return;dt*=+$("#treeSpeed").value||1;
+ const arms=treeDemo.arms||[],left=arms.find(a=>a.side<0),right=arms.find(a=>a.side>0),legs=treeDemo.legs||[];
+ const poseGrip=(swing=0,vertical=false)=>{
+  // Cotovelos dobrados e braços recolhidos: o cabo fica entre as mãos, longe do peito.
+  if(left){left.shoulder.rotation.set(vertical?-.18:-.12,0,.58+swing*.12);left.elbow.rotation.set(0,0,-.92);left.wrist.rotation.set(0,0,-.08)}
+  if(right){right.shoulder.rotation.set(vertical?-.18:-.12,0,-.58-swing*.12);right.elbow.rotation.set(0,0,.92);right.wrist.rotation.set(0,0,.08)}
+  if(treeDemo.axe){treeDemo.axe.rotation.x=vertical?-.08:0;treeDemo.axe.rotation.z=vertical?-.52:0}
+ };
  if(treeDemo.playing){
   treeDemo.time+=dt;const t=treeDemo.time;
-  const arms=treeDemo.arms||[],left=arms.find(a=>a.side<0),right=arms.find(a=>a.side>0),legs=treeDemo.legs||[];
-  if(t<1.0){
-   treeDemo.mode="approach";const p=Math.min(1,t);treeDemo.player.position.x=treeDemo.walkStartX+.52*p;treeDemo.player.position.z=treeDemo.walkStartZ;
-   for(const l of legs){const stride=Math.sin(t*10+(l.side>0?Math.PI:0));l.hip.rotation.x=stride*.42;l.knee.rotation.x=Math.max(0,-stride)*.5}
-   if(left){left.shoulder.rotation.x=-.1;left.shoulder.rotation.z=.15}if(right){right.shoulder.rotation.x=-.1;right.shoulder.rotation.z=-.15}
-  }else if(t<2.25){
-   treeDemo.mode="side-chop";const phase=((t-1.0)% .42)/.42,swing=Math.sin(phase*Math.PI);
+  if(t<.85){
+   treeDemo.mode="approach";const p=t/.85;treeDemo.player.position.x=treeDemo.walkStartX+.42*p;treeDemo.player.position.z=treeDemo.walkStartZ;
+   treeDemo.player.rotation.y=treeDemo.walkStartY;
+   for(const l of legs){const stride=Math.sin(t*10+(l.side>0?Math.PI:0));l.hip.rotation.x=stride*.34;l.knee.rotation.x=Math.max(0,-stride)*.35}
+   if(left){left.shoulder.rotation.set(-.05,0,.12);left.elbow.rotation.z=-.12}if(right){right.shoulder.rotation.set(-.05,0,-.12);right.elbow.rotation.z=.12}
+  }else if(t<3.45){
+   treeDemo.mode="side-chop";const q=t-.85,phase=(q% .72)/.72,swing=Math.sin(phase*Math.PI);
    for(const l of legs){l.hip.rotation.x=0;l.knee.rotation.x=0}
-   if(left){left.shoulder.rotation.set(-.28,0,.55+swing*.75);left.elbow.rotation.z=-.65-swing*.25;left.wrist.rotation.z=-.18}
-   if(right){right.shoulder.rotation.set(-.35,0,-.62-swing*.78);right.elbow.rotation.z=-.55-swing*.25;right.wrist.rotation.z=.18}
-   treeDemo.hits=Math.min(3,Math.floor((t-1.0)/.42)+1);treeDemo.shake=Math.max(treeDemo.shake,.07+swing*.04);treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.018;
-  }else if(t<3.25){
-   treeDemo.mode="vertical-chop";const phase=((t-2.25)% .5)/.5,swing=Math.sin(phase*Math.PI);
-   if(left){left.shoulder.rotation.set(-.25-swing*1.1,0,.3);left.elbow.rotation.set(-.25-swing*.45,0,-.25);left.wrist.rotation.z=-.1}
-   if(right){right.shoulder.rotation.set(-.2-swing*1.2,0,-.3);right.elbow.rotation.set(-.25-swing*.45,0,.25);right.wrist.rotation.z=.1}
-   treeDemo.hits=Math.min(5,3+Math.floor((t-2.25)/.5)+1);treeDemo.shake=Math.max(treeDemo.shake,.10+swing*.05);
-  }else if(t<4.75){
-   treeDemo.mode="falling";treeDemo.fallProgress=Math.min(1,(t-3.25)/1.5);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*(Math.PI/2);treeDemo.fallenPivot.visible=false;
-   if(left){left.shoulder.rotation.x=-.3;left.shoulder.rotation.z=.35}if(right){right.shoulder.rotation.x=-.3;right.shoulder.rotation.z=-.35}
-  }else if(t<6.25){
+   poseGrip(swing,false);
+   // O tronco inteiro gira no eixo vertical; os braços acompanham sem atravessar o corpo.
+   const windup=Math.sin(phase*Math.PI*2);
+   treeDemo.player.rotation.y=treeDemo.walkStartY+windup*.62;
+   treeDemo.player.rotation.z=Math.sin(phase*Math.PI*2)*.045;
+   treeDemo.hits=Math.min(4,Math.floor(q/.72)+1);
+   treeDemo.shake=Math.max(treeDemo.shake,.045+swing*.035);
+   treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.06)*.012;
+  }else if(t<4.65){
+   treeDemo.mode="falling";const p=Math.min(1,(t-3.45)/1.2);treeDemo.fallProgress=p;
+   treeDemo.trunkPivot.rotation.z=-p*(Math.PI/2);treeDemo.fallenPivot.visible=false;
+   treeDemo.player.rotation.y=treeDemo.walkStartY;treeDemo.player.rotation.z=0;poseGrip(0,false);
+  }else if(t<7.05){
+   // A etapa vertical/diagonal só começa depois de a árvore estar totalmente no chão.
    treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;
-   const phase=((t-4.75)% .5)/.5,swing=Math.sin(phase*Math.PI);
-   if(left){left.shoulder.rotation.x=-.15-swing*.75;left.shoulder.rotation.z=.25;left.elbow.rotation.x=-.3-swing*.3}
-   if(right){right.shoulder.rotation.x=-.15-swing*.8;right.shoulder.rotation.z=-.25;right.elbow.rotation.x=-.3-swing*.3}
-   treeDemo.groundHits=Math.min(3,Math.floor((t-4.75)/.5)+1);
+   const q=t-4.65,phase=(q% .8)/.8,swing=Math.sin(phase*Math.PI);
+   poseGrip(swing,true);treeDemo.player.rotation.y=treeDemo.walkStartY-.12;treeDemo.player.rotation.z=-.06+swing*.05;
+   if(left){left.shoulder.rotation.x=-.15-swing*.38;left.elbow.rotation.x=-.12-swing*.2}
+   if(right){right.shoulder.rotation.x=-.15-swing*.42;right.elbow.rotation.x=-.12-swing*.2}
+   treeDemo.groundHits=Math.min(3,Math.floor(q/.8)+1);
   }else{
-   treeDemo.playing=false;treeDemo.mode="idle";treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);if(treeDemo.stump)treeDemo.stump.visible=true;treeDemo.fallProgress=0;treeDemo.shake=0;treeDemo.hits=0;treeDemo.groundHits=0;
-   for(const a of arms){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}for(const l of legs){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}
-   treeDemo.player.position.x=treeDemo.walkStartX;treeDemo.player.position.z=treeDemo.walkStartZ;treeSay("Sequência concluída: aproximação, machadadas laterais e verticais, queda e golpes finais.");
+   treeDemo.playing=false;treeDemo.mode="idle";treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallProgress=0;treeDemo.shake=0;
+   treeDemo.player.position.x=treeDemo.walkStartX;treeDemo.player.position.z=treeDemo.walkStartZ;treeDemo.player.rotation.set(0,treeDemo.walkStartY,0);
+   for(const a of arms){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}
+   for(const l of legs){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}
+   if(treeDemo.axe)treeDemo.axe.rotation.set(0,0,0);
+   treeSay("Sequência concluída: golpes laterais com rotação do tronco, queda e golpes diagonais na madeira.");
   }
  }
- if(treeDemo.shake>0){treeDemo.shake=Math.max(0,treeDemo.shake-dt);if(treeDemo.mode!=="falling"&&treeDemo.mode!=="sequence")treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.11)*treeDemo.shake*.22;treeDemo.trunkPivot.rotation.x=Math.sin(performance.now()*.13)*treeDemo.shake*.06}
+ if(treeDemo.shake>0){treeDemo.shake=Math.max(0,treeDemo.shake-dt);if(treeDemo.mode!=="falling"&&treeDemo.mode!=="sequence")treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.11)*treeDemo.shake*.22}
  if(treeDemo.mode==="falling"&&!treeDemo.playing){treeDemo.fallProgress=Math.min(1,treeDemo.fallProgress+dt*.72);treeDemo.trunkPivot.rotation.z=-treeDemo.fallProgress*1.48;if(treeDemo.fallProgress>=1){treeDemo.mode="fallen";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;treeSay("Árvore no chão. Continue golpeando a madeira; o toco permanece.")}}
- if(treeDemo.mode==="fallen"||treeDemo.mode==="groundhit"){treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;}
- if(treeDemo.mode==="chop"||treeDemo.mode==="groundhit"){if(treeDemo.arm){treeDemo.arm.rotation.x=Math.min(0,treeDemo.arm.rotation.x+dt*3.6);treeDemo.arm.rotation.z=Math.min(0,treeDemo.arm.rotation.z+dt*3)}}
+ if(treeDemo.mode==="fallen"||treeDemo.mode==="groundhit"){treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false}
+ if(treeDemo.mode==="chop"&&treeDemo.arm){treeDemo.arm.rotation.x=Math.min(0,treeDemo.arm.rotation.x+dt*3.6);treeDemo.arm.rotation.z=Math.min(0,treeDemo.arm.rotation.z+dt*3)}
 }
 $("treeCreate").onclick=createTreeDemo;$("treePlay").onclick=treePlay;$("treePause").onclick=()=>{treeDemo.playing=false;treeSay("Animação pausada.")};$("treeReset").onclick=treeReset;$("treeHit").onclick=treeHit;$("treeFall").onclick=treeFall;$("treeGroundHit").onclick=treeGroundHit;$("treeCollect").onclick=treeCollect;
 // A cena inicia vazia: o usuário escolhe quando adicionar o pinheiro e reproduzir a animação.
