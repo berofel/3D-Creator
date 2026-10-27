@@ -116,17 +116,22 @@ function quadruped(){
  const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço",false,nA);body.attach(neck);
  // A crina será adicionada depois; por enquanto, manter pescoço e cabeça limpos.
  const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
- const head=joint("head",hPos,[.5,.54,.95],BODY,"Cabeça articulada",false,hA);head.geometry.dispose();head.geometry=squareFrustumGeometry(.90);neck.attach(head);
- frustumPart(head,"nose-bridge",hPos,hA,[0,0,.52],[.40,.43,.72],BODY,"Segundo tronco de pirâmide — ponte do nariz",.94);
- frustumPart(head,"muzzle",hPos,hA,[0,0,.99],[.32,.37,.50],MUZZLE,"Terceiro tronco de pirâmide — focinho frontal",.96);
- for(const s of [-1,1]){part(head,"nostril",hPos,hA,[s*.125,-.065,1.218],[.035,.045,.025],LOWER,"Narina "+(s<0?"esquerda":"direita"));part(head,"mouth",hPos,hA,[s*.085,-.205,1.15],[.075,.016,.02],LOWER,"Linha da boca "+(s<0?"esquerda":"direita"));}
- part(head,"chin",hPos,hA,[0,-.19,1.04],[.24,.07,.20],BODY,"Queixo trapezoidal");
+ // Cabeça revisada: crânio, ponte nasal e focinho com seções quadrangulares
+ // proporcionais e alinhadas no eixo longitudinal. O pivô continua articulado.
+ const head=joint("head",hPos,[.46,.50,.55],BODY,"Cabeça articulada",false,hA);
+ head.geometry.dispose();head.geometry=squareFrustumGeometry(.83);neck.attach(head);
+ // A ponte começa junto à face frontal do crânio; os volumes são centrados no eixo.
+ frustumPart(head,"nose-bridge",hPos,hA,[0,0,.515],[.38,.42,.43],BODY,"Ponte nasal — cabeça revisada",.79);
+ frustumPart(head,"muzzle",hPos,hA,[0,-.015,.815],[.30,.30,.22],BODY,"Focinho quadrangular",.90);
+ frustumPart(head,"muzzle-front",hPos,hA,[0,-.015,.965],[.27,.27,.10],MUZZLE,"Face frontal plana do focinho",.96);
  for(const s of [-1,1]){
-  const lado=s<0?"esquerdo":"direito";
-  part(head,"eye",hPos,hA,[s*.255,.08,.18],[.05,.1,.1],EYE,"Olho "+lado);
-  // Cada orelha: base quadrada lateral e ponta trapezoidal curta, levemente arredondada.
-  part(head,"ear-base",hPos,hA,[s*.17,.31,-.29],[.105,.12,.105],MANE,"Base quadrada da orelha "+lado);
-  frustumPart(head,"ear-tip",hPos,hA,[s*.18,.425,-.31],[.082,.17,.082],MANE,"Ponta trapezoidal da orelha "+lado,.68);
+  const lado=s<0?"esquerda":"direita";
+  part(head,"nostril",hPos,hA,[s*.075,-.045,1.015],[.035,.04,.022],LOWER,"Narina "+lado);
+  part(head,"mouth",hPos,hA,[s*.065,-.145,.91],[.07,.014,.018],LOWER,"Linha da boca "+lado);
+  part(head,"eye",hPos,hA,[s*.205,.075,.16],[.045,.065,.045],EYE,"Olho "+lado);
+  // Orelhas curtas e simétricas, com base e ponta truncada.
+  part(head,"ear-base",hPos,hA,[s*.12,.255,-.12],[.12,.12,.12],BODY,"Base da orelha "+lado);
+  frustumPart(head,"ear-tip",hPos,hA,[s*.12,.355,-.12],[.095,.10,.095],MANE,"Ponta truncada da orelha "+lado,.66);
  }
  const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
  const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
