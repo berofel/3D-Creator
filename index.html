@@ -96,7 +96,10 @@ function quadruped(){
  for(let i=0;i<5;i++)part(neck,"mane",rel(nBase,nA,[0,nL/2,0]),nA,[0,-.44+i*.22,-.4],[.16,.3,.13],MANE,"Crina "+(i+1));
  const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
  const head=joint("head",hPos,[.5,.54,.95],BODY,"Cabeça articulada",false,hA);neck.attach(head);
- part(head,"muzzle",hPos,hA,[0,-.06,.52],[.4,.42,.34],MUZZLE,"Focinho");
+ part(head,"muzzle",hPos,hA,[0,-.075,.59],[.32,.30,.42],MUZZLE,"Focinho afilado");
+ part(head,"nose-bridge",hPos,hA,[0,.015,.39],[.27,.25,.48],BODY,"Ponte nasal trapezoidal");
+ for(const s of [-1,1]){part(head,"nostril",hPos,hA,[s*.135,-.055,.785],[.045,.052,.035],LOWER,"Narina "+(s<0?"esquerda":"direita"));part(head,"mouth",hPos,hA,[s*.095,-.19,.72],[.095,.018,.025],LOWER,"Linha da boca "+(s<0?"esquerda":"direita"));}
+ part(head,"chin",hPos,hA,[0,-.19,.54],[.23,.10,.28],BODY,"Queixo trapezoidal");
  part(head,"forelock",hPos,hA,[0,.3,-.2],[.2,.16,.14],MANE,"Topete");
  for(const s of [-1,1]){
   const lado=s<0?"esquerdo":"direito";
