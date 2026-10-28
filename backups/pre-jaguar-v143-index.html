@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101827"><meta name="description" content="Berofel 3D Create — editor 3D modular de criaturas, armas e ferramentas low-poly.">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Berofel 3D Create</title>
+<style>
+:root{color-scheme:dark;--bg:#101827;--panel:#182438;--line:#31445c;--text:#eef5ff;--muted:#9bb0c8;--accent:#64d5bd}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,sans-serif}body.gizmo-active{overflow:hidden!important;overscroll-behavior:none!important;touch-action:none!important}body.gizmo-active .layout,body.gizmo-active #viewport,body.gizmo-active #viewport canvas{touch-action:none!important;overscroll-behavior:none!important}header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#0b1220;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3}.brand{font-weight:800;font-size:17px}.brand small{display:block;color:var(--muted);font-weight:500;font-size:11px}button,input,select{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#202f45;color:var(--text)}button{cursor:pointer}button.primary{background:var(--accent);color:#06231f;border:0;font-weight:800}button.active-tool{outline:2px solid var(--accent);background:#25423f;color:var(--text)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:calc(100dvh - 60px)}#viewport{position:relative;min-height:55vh;overflow:hidden;touch-action:none;overscroll-behavior:contain; -webkit-user-select:none;user-select:none}#viewport canvas{display:block;width:100%;height:100%}.side{padding:14px;background:var(--panel);border-left:1px solid var(--line);overflow:auto}.section{padding:0 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}h2{font-size:12px;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input,select{width:100%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wide{width:100%;margin-top:7px}.hint{color:var(--muted);font-size:12px;line-height:1.45}.status{padding:8px;color:var(--accent);font-size:12px;min-height:30px}.part-list{display:grid;gap:5px;max-height:160px;overflow:auto}.part{display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%}.part.active{border-color:var(--accent);background:#25423f}.mobilebar{display:none}
+#viewport-tools{position:absolute;z-index:4;top:12px;left:12px;display:flex;flex-direction:column;gap:7px;max-width:min(280px,calc(100% - 24px));padding:9px;background:rgba(11,18,32,.91);border:1px solid #52677d;border-radius:12px;box-shadow:0 8px 24px #0003;backdrop-filter:blur(10px)}
+#viewport-tools .tool-row{display:flex;gap:5px;flex-wrap:wrap}
+#viewport-tools button{padding:7px 9px;font-size:12px;white-space:nowrap}
+#viewport-tools .tool-caption{font-size:10px;letter-spacing:.1em;color:var(--muted);font-weight:800}
+#viewport-tools select{padding:7px 8px;font-size:12px;min-width:0}
+#viewport-tools .compact-select{display:flex;gap:6px;align-items:center}
+#viewport-tools .compact-select select{flex:1}
+details.add-group{border:1px solid var(--line);border-radius:10px;margin:7px 0;overflow:hidden;background:#142033}
+details.add-group summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:750;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+details.add-group summary::-webkit-details-marker{display:none}
+details.add-group summary::after{content:"＋";color:var(--accent)}
+details.add-group[open] summary::after{content:"−"}
+details.add-group .group-content{padding:0 9px 10px}
+details.add-group .group-content button{margin-top:6px}
+@media(max-width:760px){#viewport-tools{top:8px;left:8px;max-width:calc(100% - 16px);padding:7px;gap:5px}#viewport-tools button{padding:6px 7px;font-size:11px}#viewport-tools .tool-caption{display:none}details.add-group summary{padding:9px 10px}}
+@media(max-width:760px){header{padding:9px 11px}.brand{font-size:15px}.topbuttons button{padding:8px 9px;font-size:12px}.layout{display:flex;flex-direction:column}#viewport{height:53dvh;min-height:300px;order:0}.side{order:1;border:0;border-top:1px solid var(--line);padding:12px}.part-list{max-height:125px}.mobilebar{display:flex;gap:6px;overflow:auto;padding:8px;background:#0b1220}.mobilebar button{white-space:nowrap}.section{margin-bottom:10px;padding-bottom:10px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script>
+(function(){
+ function show(msg){const el=document.getElementById("status");if(el){el.textContent=msg;el.style.background="#7f1d1d";el.style.color="#fff";el.style.padding="10px";el.style.borderRadius="8px"}}
+ window.addEventListener("error",e=>{if(e.message)show("Erro JavaScript: "+e.message.slice(0,220))});
+ window.addEventListener("unhandledrejection",e=>{const r=e.reason;show("Falha ao carregar módulo 3D: "+String(r&&r.message||r||"erro desconhecido").slice(0,220))});
+ setTimeout(()=>{if(!document.querySelector("#viewport canvas"))show("O motor 3D não criou o canvas. Verifique WebGL ou o carregamento do Three.js; recarregue a página após alguns segundos.")},3500);
+})();
+</script>
+</head>
+<body>
+<header><div class="brand">◆ Berofel 3D Create<small>Editor modular 3D • criaturas, armas e ferramentas</small></div><div class="topbuttons"><button id="new">Novo</button> <button id="save" class="primary">Exportar JSON</button></div></header>
+<nav class="mobilebar"><button data-add="body">＋ Tronco</button><button data-add="head">＋ Cabeça</button><button data-add="leg">＋ Perna</button><button data-add="tail">＋ Cauda</button><button data-add="horn">＋ Chifre</button><button id="fit">Centralizar</button></nav>
+<div class="layout"><main id="viewport" aria-label="Visualização 3D">
+<div id="viewport-tools" aria-label="Ferramentas do editor">
+<div class="tool-caption">TRANSFORMAR</div>
+<div class="tool-row"><button id="toolMove" class="active-tool" title="Mover">↔ Mover</button><button id="toolRotate" title="Girar">⟳ Girar</button><button id="toolScale" title="Escalar">↗ Escalar</button></div>
+<div class="tool-row"><button id="moveElement" title="Alternar mover elemento inteiro">Mover tudo: OFF</button><button id="viewFront" title="Vista frontal">Vista frontal</button><button id="view3d" title="Voltar à câmera 3D">3D</button></div>
+<div class="compact-select"><span class="tool-caption">ANIMAÇÃO</span><select id="quickAnimation" aria-label="Animação da criatura selecionada"><option value="idle">Respirar</option><option value="walk">Caminhar</option><option value="gallop">Galopar</option><option value="chop">Cortar árvore</option><option value="stop">Parar</option></select><button id="quickAnimationPlay">▶</button></div>
+</div></main><aside class="side">
+<div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
+<div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
+<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details>
+<details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
+<details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
+<details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
+<div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
+<div class="section"><h2>TRANSFORMAR PEÇA</h2><label>Posição X / Y / Z</label><div class="grid"><input id="px" type="number" step=".1" value="0"><input id="py" type="number" step=".1" value="0"><input id="pz" type="number" step=".1" value="0"></div><label>Escala X / Y / Z</label><div class="grid"><input id="sx" type="number" step=".1" min=".1" value="1"><input id="sy" type="number" step=".1" min=".1" value="1"><input id="sz" type="number" step=".1" min=".1" value="1"></div><label>Cor</label><input id="color" type="color" value="#65a8a1"><button id="apply" class="wide primary">Aplicar alterações</button></div>
+<div class="section"><h2>ESQUELETO E PELE</h2><p class="hint">O esqueleto é a estrutura articulada; a pele é uma camada de volumes suaves por cima. Alterne as visualizações durante a construção.</p><div class="grid"><button id="showSkin" class="primary">Ver pele</button><button id="showBones">Ver esqueleto</button></div><div class="hint" id="skinStatus">Pele visível; esqueleto oculto.</div></div><div class="section"><h2>RIG E ANIMAÇÃO</h2><p class="hint">Ciclos com flexão das juntas, transferência de peso e movimentos secundários. A anatomia ainda é uma aproximação procedural, não simulação muscular física.</p><div class="grid"><button id="animIdle">▶ Respiração</button><button id="animWalk">▶ Caminhar</button><button id="animGallop">▶ Galope</button><button id="animStop">■ Parar</button><button id="rigReset">↺ Pose base</button></div><label for="animSpeed">Velocidade da animação</label><input id="animSpeed" type="range" min="0.3" max="2.5" step="0.1" value="1"><div class="status" id="animStatus">Rig pronto — escolha uma animação.</div></div><div class="section"><h2>ARQUIVOS E EXPORTAÇÃO</h2><button id="open" class="wide">Abrir JSON</button><input id="file" type="file" accept=".json,application/json" hidden><label for="exportAnimation">Animação para exportar</label><select id="exportAnimation" class="wide"><option value="idle">Respiração (idle)</option><option value="walk">Caminhada (walk)</option><option value="gallop">Galope (gallop)</option></select><p class="hint">A seleção acompanha a animação escolhida no preview. Exporte somente a animação selecionada para não baixar a respiração por engano.</p><button id="exportglb" class="wide primary">Baixar modelo + animação selecionada (.GLB)</button><button id="exportpackage" class="wide">Baixar pacote completo (.ZIP)</button><p class="hint">O ZIP contém o modelo e a animação escolhida, com manifesto e instruções para a Godot 4.</p><div class="status" id="exportStatus">Pronto para validar a exportação.</div></div><div class="section" id="treeWorkshop"><h2>ANIMAÇÃO — ÁRVORE</h2><p class="hint">Adicione o pinheiro à cena e, quando quiser, escolha a animação de corte. A animação usa o humanoide articulado criado no editor.</p><div class="grid"><button id="treePlay">▶ Animação: cortar e derrubar</button><button id="treePause">Ⅱ Pausar</button><button id="treeReset">↺ Reiniciar</button><button id="treeHit">🪓 Golpe no tronco</button><button id="treeFall">🌲 Derrubar</button><button id="treeGroundHit">Golpe na árvore caída</button><button id="treeCollect">Coletar madeira</button></div><label for="treeSpeed">Velocidade da animação</label><input id="treeSpeed" type="range" min="0.5" max="1.8" step="0.1" value="1"><div class="status" id="treeStatus">Crie a demonstração para visualizar a sequência.</div><p class="hint">O modelo é gerado no editor com cilindros, galhos e copas onduladas. Não usa modelo baixado nem simulação física pesada.</p></div><div id="status" class="status">Carregando motor 3D…</div><p class="hint">Protótipo inicial. Requer internet para carregar Three.js. Testado ainda não em todos os dispositivos.</p>
+</aside></div>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+import {TransformControls} from "three/addons/controls/TransformControls.js";
+import {GLTFExporter} from "three/addons/exporters/GLTFExporter.js";
+import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
+const $=id=>document.getElementById(id), viewport=$("viewport"), scene=new THREE.Scene();
+scene.background=new THREE.Color("#dceaf2");scene.fog=new THREE.Fog("#dceaf2",18,42);
+const camera=new THREE.PerspectiveCamera(42,1,.1,1000);camera.position.set(7,5.5,9);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;viewport.appendChild(renderer.domElement);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,1.4,0);
+const transform=new TransformControls(camera,renderer.domElement);const transformHelper=transform.getHelper();scene.add(transformHelper);transform.setMode("translate");transform.setSpace("world");transform.setSize(1.25);transform.showX=true;transform.showY=true;transform.showZ=true;let gizmoDragging=false;function lockPageScroll(lock){document.body.classList.toggle("gizmo-active",lock);document.documentElement.style.overscrollBehavior=lock?"none":"";if(lock){window.addEventListener("touchmove",blockPageTouch,{passive:false});window.addEventListener("wheel",blockPageWheel,{passive:false})}else{window.removeEventListener("touchmove",blockPageTouch);window.removeEventListener("wheel",blockPageWheel)}}function blockPageTouch(e){if(gizmoDragging||transform.axis!==null)e.preventDefault()}function blockPageWheel(e){if(gizmoDragging||transform.axis!==null)e.preventDefault()}transform.addEventListener("dragging-changed",e=>{gizmoDragging=e.value;orbit.enabled=!e.value;lockPageScroll(e.value)});transform.addEventListener("objectChange",()=>{if(selected){syncFields();say("Peça movida no espaço 3D.")}});let frontView=false;
+scene.add(new THREE.HemisphereLight(0xffffff,0x607080,2));const light=new THREE.DirectionalLight(0xffefd8,3);light.position.set(5,9,6);light.castShadow=true;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:0xe9f0f3,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.04;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(30,30,0x7792a4,0xc1d0da);grid.position.y=-.025;scene.add(grid);
+let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBase=new WeakMap();
+let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
+function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
+function clearSkin(){if(appendMode)return;for(const m of skinMeshes){if(m.parent)m.parent.remove(m);m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}skinMeshes=[]}
+function skinPiece(name,pos,scale,color,segments=7){const sides=Math.max(4,Math.min(7,Math.round(segments)));const rings=Math.max(3,Math.min(5,Math.floor(sides*.65)));const geo=new THREE.SphereGeometry(1,sides,rings);const mat=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={skin:true,name};scene.add(m);skinMeshes.push(m);return m}
+function setSkinMode(mode){skinMode=mode;const showSkin=mode==="skin";for(const m of skinMeshes)m.visible=showSkin;for(const p of parts){p.visible=true;p.material.visible=!showSkin}if(showSkin)transform.detach();transformHelper.visible=!showSkin;$("skinStatus").textContent=showSkin?"Pele visível; esqueleto oculto.":"Esqueleto articulado visível; pele ocultada.";say(showSkin?"Camada de pele ativada.":"Esqueleto articulado ativado.")}
+function buildSkin(kind){
+ clearSkin();const horse=kind==="horse",ogre=kind==="ogre";
+ const coat=horse?"#a96535":ogre?"#6f9650":"#d6a27d",light=horse?"#c7834b":coat, dark=horse?"#49352c":ogre?"#42533a":"#344f78";
+ if(horse){
+ skinPiece("Pele tronco",[0,1.49,-.34],[.51,.39,.94],coat,14);skinPiece("Pele garupa",[0,1.48,-.91],[.54,.43,.51],light,14);skinPiece("Pele peito",[0,1.48,.39],[.48,.44,.42],coat,12);
+ skinPiece("Pele pescoço",[0,1.99,.77],[.29,.67,.31],light,12).rotation.x=-.24;skinPiece("Pele cabeça",[0,2.47,1.20],[.27,.37,.33],coat,12).rotation.x=-.16;skinPiece("Pele focinho",[0,2.23,1.49],[.25,.16,.28],"#d9b18a",10);
+ skinPiece("Crina pele",[0,2.58,.87],[.30,.48,.13],"#33251f",8).rotation.x=-.22;skinPiece("Cauda pele",[0,1.49,-1.53],[.13,.37,.13],"#33251f",8).rotation.x=-.25;
+ for(const side of [-1,1]){skinPiece("Pele ombro "+(side<0?"esquerda":"direita"),[side*.31,1.22,.42],[.17,.39,.19],coat,10);skinPiece("Pele anca "+(side<0?"esquerda":"direita"),[side*.34,1.16,-.91],[.18,.40,.22],light,10)}
+ const legs=[[-.34,.48,"Dianteira E"],[.34,.48,"Dianteira D"],[-.36,-.99,"Traseira E"],[.36,-.99,"Traseira D"]];
+ for(let i=0;i<legs.length;i++){const [x,z,n]=legs[i];const upper=skinPiece("Pele perna "+n,[x,.91,z],[.115,.39,.12],coat,9);upper.userData.phase=(i===0||i===3)?0:Math.PI;upper.userData.limb="upper";const lower=skinPiece("Pele canela "+n,[x,.43,z+.04],[.075,.27,.085],light,9);lower.userData.phase=upper.userData.phase;lower.userData.limb="lower";skinPiece("Casco "+n,[x,.17,z+.10],[.14,.095,.16],"#292b30",8)}
+ }else{
+ skinPiece("Pele torso",[0,1.47,0],[.46,.52,.27],dark,14);skinPiece("Pele abdômen",[0,1.06,.01],[.37,.27,.25],dark,12);skinPiece("Pele cabeça",[0,2.32,0],[.29,.34,.27],coat,12);skinPiece("Pele cabelo",[0,2.61,-.03],[.31,.12,.28],ogre?"#382c22":"#47362b",10);
+ for(const side of [-1,1]){const arm=skinPiece("Pele braço",[side*.65,1.47,0],[.14,.43,.17],coat,10);arm.userData.phase=side<0?0:Math.PI;arm.userData.limb="arm";skinPiece("Pele mão",[side*.69,1.00,.08],[.16,.14,.15],coat,8);const leg=skinPiece("Pele perna",[side*.25,.54,0],[.17,.42,.19],coat,10);leg.userData.phase=side<0?0:Math.PI;leg.userData.limb="humanLeg";skinPiece("Bota",[side*.25,.10,.10],[.22,.10,.30],"#49352c",8)}
+ }
+ scene.updateMatrixWorld(true);for(const m of skinMeshes){const n=m.userData.name.toLowerCase();let targetName=null;if(n==="pele tronco")targetName="Tronco dianteiro";else if(n==="pele garupa")targetName="Garupa";else if(n==="pele peito")targetName="Peito e ombros";else if(n==="pele pescoço")targetName="Pescoço";else if(n==="pele cabeça")targetName="Cabeça";else if(n==="pele focinho")targetName="Focinho";else if(n==="crina pele")targetName="Pescoço";else if(n==="cauda pele")targetName="Cauda";else if(n.startsWith("pele ombro"))targetName="Perna superior dianteira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele anca"))targetName="Perna superior traseira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele perna dianteira")||n.startsWith("pele perna traseira")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Perna superior "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("pele canela")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Canela "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("casco")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Casco "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}const target=parts.find(p=>p.userData.name===targetName);if(target)target.attach(m);m.userData.limb=n.includes("tronco")||n.includes("garupa")||n.includes("peito")?"body":n.includes("cabeça")||n.includes("pescoço")?"head":null;skinBase.set(m,{position:m.position.clone(),rotation:m.rotation.clone()})}setSkinMode("skin");
+}
+function add(type){let p=[0,1,0],s=[1,1,1],c="#65a8a1";if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1"}if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8"}if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d"}if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b"}if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1"}if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b"}return make(type,p,s,c)}
+let horseRoot=null,horseJoints=[];
+function horseTexture(base){const cv=document.createElement("canvas");cv.width=cv.height=16;const x=cv.getContext("2d");x.fillStyle=base;x.fillRect(0,0,16,16);const rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));let s=base.split("").reduce((a,b)=>a+b.charCodeAt(0),37);for(let i=0;i<42;i++){s=(s*1664525+1013904223)>>>0;const px=s%16;s=(s*1664525+1013904223)>>>0;const py=s%16;s=(s*1664525+1013904223)>>>0;const d=s%43-21;x.fillStyle="rgb("+rgb.map(v=>Math.max(0,Math.min(255,v+d))).join(",")+")";x.fillRect(px,py,1,1)}const t=new THREE.CanvasTexture(cv);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.colorSpace=THREE.SRGBColorSpace;return t}
+function quadruped(){
+ clear();clearSkin();horseJoints=[];horseRoot=null;
+ const BODY="#b8774a",BELLY="#d9ae82",MANE="#2e211b",LOWER="#3a2b24",MUZZLE="#e6d3b8",HOOF="#2a2a2e",EYE="#000000";
+ const cos=Math.cos,sin=Math.sin;
+ const trapezoidGeometry=()=>{const v=[-.5,-.5,-.5,.5,-.5,-.5,.5,-.5,.5,-.5,-.5,.5,-.36,.5,-.39,.36,.5,-.39,.36,.5,.39,-.36,.5,.39];const idx=[0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7];const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return g;};
+ const trap=(type,pos,scale,color,name)=>{const m=make(type,pos,scale,color,name);m.geometry.dispose();m.geometry=trapezoidGeometry();return m;};
+ const rel=(b,a,o)=>[b[0]+o[0],b[1]+o[1]*cos(a)-o[2]*sin(a),b[2]+o[1]*sin(a)+o[2]*cos(a)];
+ const joint=(type,pos,size,color,name,pivotTop=false,rotX=0)=>{
+  const m=trap(type,pos,size,color,name);
+  m.geometry.dispose();m.geometry=trapezoidGeometry();
+  if(pivotTop)m.geometry.translate(0,-size[1]/2,0);
+  m.rotation.x=rotX;return m;
+ };
+ const part=(parent,type,base,a,off,scale,color,name)=>{
+  const m=trap(type,rel(base,a,off),scale,color,name);m.rotation.x=a;parent.attach(m);return m;
+ };
+ // Tronco de pirâmide quadrangular: seção quadrada nas duas extremidades,
+ // com redução suave ao longo do eixo Z (sem perfil de losango).
+ const squareFrustumGeometry=(front=.92)=>{
+  // Tronco quadrangular: duas faces planas e quadradas, com laterais planas.
+  // Vértices separados por face evitam diagonais de sombreamento que parecem losangos.
+  const b=.5,f=.5*Math.max(.78,Math.min(1,front));
+  const faces=[
+   [[-b,-b,-.5],[b,-b,-.5],[b,b,-.5],[-b,b,-.5]],
+   [[-f,-f,.5],[-f,f,.5],[f,f,.5],[f,-f,.5]],
+   [[-b,-b,-.5],[-f,-f,.5],[f,-f,.5],[b,-b,-.5]],
+   [[b,-b,-.5],[f,-f,.5],[f,f,.5],[b,b,-.5]],
+   [[b,b,-.5],[f,f,.5],[-f,f,.5],[-b,b,-.5]],
+   [[-b,b,-.5],[-f,f,.5],[-f,-f,.5],[-b,-b,-.5]]
+  ];
+  const v=[],idx=[];
+  for(const face of faces){const n=v.length/3;for(const p of face)v.push(...p);idx.push(n,n+1,n+2,n,n+2,n+3);}
+  const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return g;
+ };
+ const frustumPart=(parent,type,base,a,off,scale,color,name,front=.86)=>{
+  const m=part(parent,type,base,a,off,scale,color,name);m.geometry.dispose();m.geometry=squareFrustumGeometry(front);return m;
+ };
+ const body=trap("body",[0,1.68,-.15],[.86,.95,1.9],BODY,"Tronco");
+ const belly=trap("belly",[0,1.3,-.15],[.9,.32,1.7],BODY,"Faixa inferior do tronco");
+ const chestBlock=trap("body",[0,1.82,.68],[.84,1,.7],BODY,"Peito e ombros");
+ const chest=trap("chest",[0,1.45,.92],[.82,.5,.42],BODY,"Peito");
+ const rump=trap("rump",[0,1.72,-.98],[.88,.92,.68],BODY,"Garupa");
+ // Peitoral e faixa inferior acompanham o mesmo pivô do tronco, sem ficarem soltos.
+ body.attach(belly);body.attach(chestBlock);body.attach(chest);body.attach(rump);
+ const nA=.62,nL=1.05,nBase=[0,2,.85];
+ const neck=joint("neck",rel(nBase,nA,[0,nL/2,0]),[.62,nL,.72],BODY,"Pescoço",false,nA);body.attach(neck);
+ // A crina será adicionada depois; por enquanto, manter pescoço e cabeça limpos.
+ const hA=.5,nTop=rel(nBase,nA,[0,nL,0]),hPos=rel(nTop,hA,[0,-.05,.32]);
+ // Cabeça revisada: crânio, ponte nasal e focinho com seções quadrangulares
+ // proporcionais e alinhadas no eixo longitudinal. O pivô continua articulado.
+ const head=joint("head",hPos,[.46,.50,.55],BODY,"Cabeça articulada",false,hA);
+ head.geometry.dispose();head.geometry=squareFrustumGeometry(.83);neck.attach(head);
+ // Blocos no mesmo eixo vertical e com sobreposição intencional para eliminar
+ // frestas e o efeito de um trapezoide escorregar por baixo do outro.
+ frustumPart(head,"nose-bridge",hPos,hA,[0,0,.49],[.38,.40,.49],BODY,"Ponte nasal — centralizada",.84);
+ frustumPart(head,"muzzle",hPos,hA,[0,0,.785],[.30,.30,.29],BODY,"Focinho quadrangular centralizado",.90);
+ frustumPart(head,"muzzle-front",hPos,hA,[0,0,.965],[.27,.27,.13],MUZZLE,"Face frontal plana do focinho",.96);
+ for(const s of [-1,1]){
+  const lado=s<0?"esquerda":"direita";
+  part(head,"nostril",hPos,hA,[s*.075,-.045,1.015],[.035,.04,.022],LOWER,"Narina "+lado);
+  part(head,"mouth",hPos,hA,[s*.065,-.145,.91],[.07,.014,.018],LOWER,"Linha da boca "+lado);
+  part(head,"eye",hPos,hA,[s*.205,.075,.16],[.045,.065,.045],EYE,"Olho "+lado);
+  // Orelhas curtas e simétricas, com base e ponta truncada.
+  part(head,"ear-base",hPos,hA,[s*.12,.255,-.12],[.12,.12,.12],BODY,"Base da orelha "+lado);
+  frustumPart(head,"ear-tip",hPos,hA,[s*.12,.355,-.12],[.095,.10,.095],MANE,"Ponta truncada da orelha "+lado,.66);
+ }
+ const tA=.28,tTop=[0,2.08,-1.34],tail=joint("tail",tTop,[.2,.62,.2],MANE,"Cauda",true,tA);
+ const tipPos=[0,tTop[1]-.58*cos(tA),tTop[2]-.58*sin(tA)],tip=joint("tail-tip",tipPos,[.26,.5,.26],MANE,"Ponta da cauda",true,tA);tail.attach(tip);body.attach(tail);
+ const patas=[["dianteira esquerda",-.34,.48,false],["dianteira direita",.34,.48,false],["traseira esquerda",-.36,-.99,true],["traseira direita",.36,-.99,true]],gait=[];
+ const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);if(parent)parent.add(g);else scene.add(g);return g;};
+ const segment=(parent,type,length,width,depth,color,name)=>{
+  const m=trap(type,[0,0,0],[width,length,depth],color,name);
+  m.geometry.translate(0,-.5,0);parent.add(m);return m;
+ };
+ for(const [n,x,z,rear] of patas){
+  // Quatro graus de liberdade por membro: anca/ombro, joelho, jarrete e boleto.
+  const hipY=rear?1.86:1.83, upperLen=rear?.57:.62, midLen=rear?.48:.48, cannonLen=rear?.38:.42, footLen=.16;
+  const hip=makePivot(null,[x,hipY,z],"Pivô anca/ombro "+n);
+  segment(hip,"femur",upperLen,rear?.34:.29,rear?.36:.30,BODY,(rear?"Fêmur":"Braço dianteiro")+" "+n);
+  const knee=makePivot(hip,[0,-upperLen,0],"Pivô joelho "+n);
+  segment(knee,"knee-segment",midLen,rear?.23:.20,.22,LOWER,(rear?"Perna inferior":"Antebraço")+" "+n);
+  const hock=makePivot(knee,[0,-midLen,0],"Pivô jarrete/carpal "+n);
+  segment(hock,"cannon",cannonLen,.16,.17,LOWER,"Canela "+n);
+  const fetlock=makePivot(hock,[0,-cannonLen,0],"Pivô boleto "+n);
+  segment(fetlock,"fetlock",.16,.14,.16,BODY,"Boleto "+n);
+  const hoof=trap("foot",[x,hipY-upperLen-midLen-cannonLen-.08,z+.035],[.25,.16,.3],HOOF,"Casco "+n);
+  hoof.position.set(0,-.08,.035);fetlock.add(hoof);
+  const left=n.includes("esquerda");const diagonalPhase=(rear?!left:left)?0:Math.PI;gait.push({hip,knee,hock,fetlock,hoof,phase:diagonalPhase,hind:rear,upperLen,midLen,cannonLen});
+ }
+ (window.__berofelHorseRigs||(window.__berofelHorseRigs=[])).push({body,bodyBaseY:body.position.y,chest,chestBlock,chestBaseZ:chest.position.z,shoulderBaseZ:chestBlock.position.z,rump,neck,neckBaseX:neck.rotation.x,head,headBaseX:head.rotation.x,tail,tailMid:tail,tailTip:tip,gait,bodyParts:[body],legBases:gait.map(g=>({hip:g.hip,y:g.hip.position.y}))});window.__berofelHorseRig=(window.__berofelHorseRigs||[]).at(-1);
+ cacheRigPose();select(null);setSkinMode("bones");say("Cavalo voxel recriado com tronco, pescoço, cabeça e patas articuladas.");
+}
+function gnuPreset(){
+ clear();clearSkin();horseJoints=[];horseRoot=null;
+ const HUMP="#9a7458",BARREL="#625b56",RUMP="#76675f",NECK="#896247",HEAD="#594238",MUZZLE="#b9957c",HORN="#514943",BAND="#c5b39a",DARK="#272526",LOWER="#6c6864",MANE="#302722";
+ // Silhueta facetada: tronco trapezoidal largo, peito alto, garupa robusta e cabeça pesada.
+ const trapezoidGeometry=(top=.72,depthTop=.78)=>{const v=[-.5,-.5,-.5,.5,-.5,-.5,.5,-.5,.5,-.5,-.5,.5,-top/2,.5,-depthTop/2,top/2,.5,-depthTop/2,top/2,.5,depthTop/2,-top/2,.5,depthTop/2];const idx=[0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7];const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return g};
+ const fac=(m,top=.72,depthTop=.78)=>{m.geometry.dispose();m.geometry=trapezoidGeometry(top,depthTop);m.material.flatShading=true;return m};
+ const part=(type,pos,size,color,name,top=.72,depthTop=.78)=>fac(make(type,pos,size,color,name),top,depthTop);
+ const body=part("body",[0,2.05,-.22],[1.12,.92,1.72],BARREL,"Tronco",.78,.82);
+ const hump=part("body",[0,2.57,.43],[.94,.72,1.08],HUMP,"Corcova",.7,.82);
+ const chest=part("body",[0,2.08,.72],[1.08,1.02,.82],BARREL,"Peito e ombros",.76,.8);
+ const rump=part("rump",[0,2.02,-1.02],[1.06,.84,.86],RUMP,"Garupa",.78,.82);
+ // Integração estrutural: peito, corcova e garupa herdam o movimento do tronco.
+ body.attach(chest);body.attach(hump);body.attach(rump);
+ const neck=part("neck",[0,2.55,1.12],[.68,.95,.72],NECK,"Pescoço",.7,.8);neck.rotation.x=.48;body.attach(neck);
+ const crina=part("mane",[0,2.83,1.03],[.23,.62,.92],MANE,"Crina",.42,.58);crina.rotation.x=.48;neck.attach(crina);
+ const head=part("head",[0,2.37,1.82],[.62,.72,.66],HEAD,"Cabeça",.72,.78);head.rotation.x=-.2;neck.attach(head);
+ const att=m=>head.attach(m);
+ att(part("muzzle",[0,2.08,2.08],[.48,.32,.42],MUZZLE,"Focinho",.78,.82));
+ att(part("beard",[0,1.82,1.68],[.25,.46,.32],MANE,"Barba",.58,.68));
+ for(const side of [-1,1]){
+  const label=side<0?"esquerdo":"direito";
+  att(make("eye",[side*.30,2.45,1.96],[.055,.075,.045],"#171311","Olho "+label));
+  const ear=part("ear",[side*.43,2.61,1.59],[.28,.13,.22],"#72503e","Orelha "+label,.6,.7);ear.rotation.z=side*.25;att(ear);
+  // Chifres em segmentos angulares, abrindo para os lados e subindo nas pontas.
+  [[.57,2.67,.42,.08],[.91,2.77,.43,.42],[1.18,3.03,.38,.95],[1.30,3.31,.27,1.35]].forEach(([x,y,len,ang],i)=>{
+   const h=part("horn-seg",[side*x,y,1.59],[len,.15-i*.025,.15-i*.025],HORN,"Chifre "+label+" "+(i+1),.62,.65);h.rotation.z=side*ang;att(h);
+  });
+  att(part("horn-band",[side*.50,2.66,1.59],[.17,.2,.2],BAND,"Base do chifre "+label,.75,.8));
+ }
+ const tail=part("tail",[0,1.8,-1.58],[.18,.78,.18],DARK,"Cauda",.5,.6);tail.geometry.translate(0,-.5,0);body.attach(tail);
+ const legs=[];
+ const patas=[["dianteira esquerda",-.39,.78,false],["dianteira direita",.39,.78,false],["traseira esquerda",-.41,-1.02,true],["traseira direita",.41,-1.02,true]];
+ const makePivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g;};
+ const segment=(parent,type,length,width,depth,color,name,top=.72,depthTop=.78)=>{
+  const m=part(type,[0,0,0],[width,length,depth],color,name,top,depthTop);
+  m.geometry.translate(0,-.5,0);parent.add(m);return m;
+ };
+ for(const [n,x,z,rear] of patas){
+  // Mesma hierarquia do cavalo: ombro/anca > joelho > jarrete > boleto > casco.
+  const hipY=rear?1.88:1.91,upperLen=rear?.59:.63,midLen=rear?.48:.47,cannonLen=rear?.39:.40;
+  const hip=makePivot(null,[x,hipY,z],"Pivô ombro/anca "+n);
+  segment(hip,"leg",upperLen,rear?.35:.31,rear?.34:.30,rear?RUMP:"#514b47","Segmento superior "+n,.72,.74);
+  const knee=makePivot(hip,[0,-upperLen,0],"Pivô joelho "+n);
+  segment(knee,"lowerleg",midLen,rear?.24:.21,.22,LOWER,"Segmento inferior "+n,.62,.66);
+  const hock=makePivot(knee,[0,-midLen,0],"Pivô jarrete "+n);
+  segment(hock,"cannon",cannonLen,.16,.17,LOWER,"Canela "+n,.58,.62);
+  const fetlock=makePivot(hock,[0,-cannonLen,0],"Pivô boleto "+n);
+  segment(fetlock,"fetlock",.15,.14,.15,BARREL,"Boleto "+n,.66,.7);
+  const hoof=part("foot",[0,-.09,.045],[.27,.17,.30],DARK,"Casco "+n,.85,.85);
+  hoof.position.set(0,-.09,.045);fetlock.add(hoof);
+  const left=n.includes("esquerda"),diagonalPhase=(rear?!left:left)?0:Math.PI;
+  legs.push({hip,knee,hock,fetlock,hoof,phase:diagonalPhase,hind:rear,upperLen,midLen,cannonLen});
+ }
+ (window.__berofelHorseRigs||(window.__berofelHorseRigs=[])).push({body,bodyBaseY:body.position.y,chest,rump,hump,neck,neckBaseX:neck.rotation.x,head,headBaseX:head.rotation.x,tail,tailMid:tail,tailTip:tail,gait:legs,bodyParts:[body,chest,hump,rump],legBases:legs.map(g=>({hip:g.hip,y:g.hip.position.y}))});window.__berofelHorseRig=(window.__berofelHorseRigs||[]).at(-1);
+ cacheRigPose();select(null);setSkinMode("bones");say("Gnu facetado criado: tronco trapezoidal, peito elevado, chifres angulares e quatro patas articuladas.");
+}
+function weaponMaterial(){return $("weaponMaterial").value}
+function addWeaponPart(kind){
+ const defs={
+  haft:{name:"Cabo de freixo",type:"body",pos:[0,1.05,0],scale:[.13,1.9,.13],color:"#79523a"},
+  axeHead:{name:"Lâmina de aço",type:"facet",pos:[.27,1.93,0],scale:[1.12,.72,.22],color:"#9aa8b5"},
+  grip:{name:"Empunhadura de couro",type:"body",pos:[0,.43,0],scale:[.17,.42,.17],color:"#49352c"},
+  rune:{name:"Detalhe de bronze",type:"facet",pos:[.32,1.93,.125],scale:[.24,.2,.08],color:"#b88a43"}
+ };
+ const d=defs[kind];if(!d)return;const m=make(d.type,d.pos,d.scale,weaponMaterial()||d.color,d.name);$("name").value="Machado_de_Batalha";say("Componente adicionado: "+d.name+". Selecione-o para editar.");
+}
+function axePreset(){
+ clear();$("name").value="Machado_de_Batalha";
+ const addPart=(type,pos,scale,color,name,rot=0)=>{const m=make(type,pos,scale,color,name);m.rotation.z=rot;m.visible=true;m.material.visible=true;return m};
+ addPart("body",[0,1.03,0],[.14,1.95,.14],"#79523a","Cabo de freixo");
+ addPart("body",[0,.43,0],[.18,.42,.18],"#49352c","Empunhadura de couro");
+ addPart("facet",[.29,1.92,0],[1.08,.72,.22],"#9aa8b5","Lâmina de aço",-.06);
+ addPart("facet",[.25,1.92,.13],[.34,.31,.08],"#b88a43","Encaixe de bronze");
+ addPart("body",[-.03,1.91,0],[.22,.24,.2],"#6c7885","Cabeça do machado");
+ // Garanta que o modelo recém-criado esteja visível mesmo após alternar pele/esqueleto.
+ for(const p of parts){p.visible=true;p.material.visible=true;p.updateMatrixWorld(true)}
+ skinMode="bones";for(const m of skinMeshes)m.visible=false;transformHelper.visible=true;
+ $("skinStatus").textContent="Peças do equipamento visíveis.";
+ select(null);
+ const bounds=new THREE.Box3();for(const p of parts)bounds.expandByObject(p);
+ if(!bounds.isEmpty()){
+  const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3()),span=Math.max(size.x,size.y,size.z,1);
+  orbit.target.copy(center);camera.position.set(center.x+span*2.4,center.y+span*1.4,center.z+span*3.2);camera.near=.05;camera.far=1000;camera.lookAt(center);camera.updateProjectionMatrix();orbit.update();
+ }
+ say("Machado de batalha criado com "+parts.length+" peças. Selecione cada componente na hierarquia para editar.");
+}
+function clear(){if(appendMode)return;const humanRig=window.__berofelHumanoidRig;if(humanRig?.torso&&humanRig.torso.parent)humanRig.torso.parent.remove(humanRig.torso);window.__berofelHumanoidRig=null;const hr=window.__berofelHorseRig;if(hr&&Array.isArray(hr.gait)){for(const leg of hr.gait){const root=leg.hip;if(root&&root.parent)root.parent.remove(root)}}if(horseRoot){if(horseRoot.parent)horseRoot.parent.remove(horseRoot);horseRoot=null}clearSkin();for(const p of [...parts].reverse()){if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else p.material?.dispose()}parts=[];horseJoints=[];window.__berofelHorseRig=null;selected=null;counter=0;renderParts()}
+function syncFields(){if(!selected)return;["px","py","pz"].forEach((id,i)=>$(id).value=selected.position.toArray()[i].toFixed(2));["sx","sy","sz"].forEach((id,i)=>$(id).value=selected.scale.toArray()[i].toFixed(2));if(selected.material?.color)$("color").value="#"+selected.material.color.getHexString()}function elementRootFor(obj){let n=obj;while(n&&n!==scene){if(n.userData?.berofelElementRoot)return n;n=n.parent}return null}function select(m){if(m&&m.userData?.treeRoot)m=m.userData.treeRoot;if(m&&moveWholeElement&&!m.userData?.berofelElementRoot)m=elementRootFor(m)||m;selected=m;for(const p of parts)if(p.material?.emissive)p.material.emissive.set(p===m?0x193c37:0x000000);if(m){transform.attach(m);syncFields()}else{transform.detach()}renderParts()}
+function renderParts(){const box=$("parts");box.replaceChildren();for(const p of parts){const b=document.createElement("button");b.className="part"+(p===selected?" active":"");b.textContent=p.userData.name;b.onclick=()=>select(p);box.append(b)}for(const root of (window.__berofelTreeRoots||[])){if(!root.parent)continue;const b=document.createElement("button");b.className="part"+(root===selected?" active":"");b.textContent=root.name;b.onclick=()=>select(root);box.append(b)}}
+function say(t){$("status").textContent=t}
+function apply(){if(!selected)return;selected.position.set(+$("px").value||0,+$("py").value||0,+$("pz").value||0);selected.scale.set(Math.max(.1,+$("sx").value||1),Math.max(.1,+$("sy").value||1),Math.max(.1,+$("sz").value||1));if(selected.material?.color)selected.material.color.set($("color").value);say(selected.userData?.berofelElementRoot?"Transformação do elemento inteiro aplicada.":"Alterações aplicadas.")}
+function data(){return {app:"Berofel 3D Create",version:"0.3",name:$("name").value,parts:parts.map(p=>({name:p.userData.name,type:p.userData.type,position:p.position.toArray(),scale:p.scale.toArray(),rotation:p.rotation.toArray(),color:"#"+p.material.color.getHexString()}))}}
+function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+function fit(){frontView=false;camera.position.set(7,5.5,9);orbit.target.set(0,1.4,0);orbit.up.set(0,1,0);camera.up.set(0,1,0);orbit.update();transform.showZ=true;say("Câmera 3D restaurada.")}function setTool(mode){transform.setMode(mode);transform.setSize(1.25);["toolMove","toolRotate","toolScale"].forEach(id=>$(id).classList.remove("active-tool"));$("tool"+({translate:"Move",rotate:"Rotate",scale:"Scale"}[mode])).classList.add("active-tool");say(({translate:"Arraste as setas para mover a peça.",rotate:"Arraste os arcos para girar a peça.",scale:"Arraste os controles para escalar a peça."})[mode])}function setFront(){frontView=true;transform.setSize(1.35);orbit.target.set(0,1.4,0);camera.up.set(0,1,0);camera.position.set(0,1.4,14);camera.lookAt(0,1.4,0);orbit.update();transform.showZ=false;transform.setSpace("world");say("Vista frontal XY: X para os lados, Y para cima e para baixo.")}
+let pressStart=null;renderer.domElement.style.touchAction="none";renderer.domElement.addEventListener("pointerdown",e=>{pressStart={x:e.clientX,y:e.clientY,wasGizmo:gizmoDragging||transform.axis!==null};if(pressStart.wasGizmo||e.pointerType==="touch"){e.preventDefault()}},{passive:false});renderer.domElement.addEventListener("pointermove",e=>{if(gizmoDragging||transform.axis!==null)e.preventDefault()},{passive:false});renderer.domElement.addEventListener("pointerup",e=>{if(!pressStart)return;const start=pressStart;pressStart=null;if(gizmoDragging||start.wasGizmo||transform.axis!==null)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(dx*dx+dy*dy>64)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);const targets=[...parts,...(window.__berofelTreeRoots||[]).filter(r=>r.parent)];const hits=ray.intersectObjects(targets,true);let hit=hits.length?hits[0].object:null;while(hit&&hit!==scene&&!hit.userData?.treeRoot)hit=hit.parent;select(hit&&hit.userData?.treeRoot?hit:(hits.length?hits[0].object:null))});
+let twistLastAngle=null;function touchAngle(touches){return Math.atan2(touches[1].clientY-touches[0].clientY,touches[1].clientX-touches[0].clientX)}renderer.domElement.addEventListener("touchstart",e=>{if(e.touches.length===2&&selected){twistLastAngle=touchAngle(e.touches);e.preventDefault()}},{passive:false});renderer.domElement.addEventListener("touchmove",e=>{if(e.touches.length===2&&selected&&twistLastAngle!==null){const a=touchAngle(e.touches);let delta=a-twistLastAngle;if(delta>Math.PI)delta-=Math.PI*2;if(delta< -Math.PI)delta+=Math.PI*2;const axis=new THREE.Vector3();camera.getWorldDirection(axis).normalize();selected.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,-delta));selected.updateMatrixWorld();twistLastAngle=a;syncFields();say("Peça girada com dois dedos.");e.preventDefault()}},{passive:false});function endTwist(e){if(e.touches.length<2)twistLastAngle=null}renderer.domElement.addEventListener("touchend",endTwist,{passive:false});renderer.domElement.addEventListener("touchcancel",endTwist,{passive:false});
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>add(b.dataset.add)));
+document.querySelectorAll("[data-weapon]").forEach(b=>b.addEventListener("click",()=>addWeaponPart(b.dataset.weapon)));$("axePreset").onclick=()=>addElement(axePreset,"Machado de batalha");
+
+/* Preset modular de onça-pintada: geometria em blocos pré-configurados.
+   Animação procedural para pré-visualização; não substitui um rig de deformação. */
+window.__berofelJaguarRigs = window.__berofelJaguarRigs || [];
+function jaguarPreset(){
+ const COAT="#a9784e",COAT2="#8c5e3f",COAT3="#c28d5c",CREAM="#d9c9ad",
+       DARK="#30251f",SPOT1="#4a3328",SPOT2="#62432f",PAW="#332a26",
+       EYE="#d4b45a",NOSE="#211b18";
+ clear();clearSkin();
+ const body=new THREE.Group();body.name="Onça | peitoral e tronco";body.position.set(0,0,0);scene.add(body);
+ const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);parent.add(g);return g};
+ const block=(parent,name,pos,size,color,type="body",rot=[0,0,0])=>{
+  const m=make(type,pos,size,color,name);m.rotation.set(...rot);parent.add(m);return m;
+ };
+ // O tronco central fica estreito e encaixado entre o peitoral e a anca.
+ // A coluna funciona como um pistão curto: ligeiramente menor que a anca,
+ // com movimento longitudinal e vertical próprio, sem atravessar o contorno dela.
+ block(body,"Peitoral", [0,1.48,.43],[.84,.76,.78],COAT2);
+ const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
+ block(spine,"Eixo central do tronco",[0,0,0],[.61,.43,.76],COAT3);
+ const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
+ block(rump,"Massa da anca",[0,0,0],[.84,.68,.66],COAT2,"body",[0,0,-.02]);
+ // Manchas ficam sobre as laterais do corpo; são rasas para não parecerem espinhos.
+ let spotIndex=0;
+ for(const side of [-1,1]){
+  for(const [z,y] of [[-.68,1.61],[-.43,1.70],[-.18,1.60],[.06,1.69],[.29,1.58],[.50,1.65],[-.58,1.38],[-.30,1.43],[-.04,1.36],[.22,1.43],[.43,1.36]]){
+   const onPiston=z<-.30;
+   const parent=onPiston?spine:body;
+   const localY=onPiston?y-1.47:y;
+   const localZ=onPiston?z+.19:z;
+   spotIndex++;
+   block(parent,"Mancha lateral "+spotIndex,[side*(onPiston?.326:.36),localY,localZ],[.018,spotIndex%3===0?.075:.06,spotIndex%4===0?.095:.075],spotIndex%3===0?SPOT1:SPOT2,"body",[0,0,spotIndex%2?.10:-.08]);
+  }
+  for(const z of [-.42,-.18,.04]){
+   block(spine,"Mancha dorsal",[side*.18,.22,z+.19],[.065,.018,.075],SPOT1);
+  }
+ }
+ // Pescoço/cabeça baixos e compactos.
+ const neck=group(body,[0,1.55,.72],"Pescoço móvel");
+ block(neck,"Pescoço inclinado",[0,.08,.20],[.52,.50,.57],COAT2,"body",[-.12,0,0]);
+ const head=group(neck,[0,.22,.49],"Cabeça móvel");
+ block(head,"Crânio felino",[0,.14,.15],[.51,.40,.49],COAT3);
+ block(head,"Bochecha esquerda",[-.17,.01,.28],[.18,.19,.22],COAT);
+ block(head,"Bochecha direita",[.17,.01,.28],[.18,.19,.22],COAT);
+ block(head,"Focinho claro",[0,-.04,.43],[.34,.19,.25],CREAM);
+ block(head,"Nariz",[0,.01,.565],[.13,.08,.06],NOSE);
+ for(const side of [-1,1]){
+  block(head,"Orelha",[side*.20,.38,.05],[.16,.16,.14],COAT2,"ear",[0,0,side*-.12]);
+  block(head,"Interior da orelha",[side*.20,.39,.125],[.075,.075,.02],DARK);
+  block(head,"Olho dourado",[side*.235,.19,.30],[.065,.065,.03],EYE,"eye");
+  block(head,"Pupila vertical",[side*.235,.19,.322],[.018,.05,.012],NOSE);
+  block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
+  block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
+ }
+ // Membros articulados. Na traseira, a silhueta reproduz a onça do vídeo: coxa volumosa ligada à anca, jarrete marcado, segmento inferior mais estreito e pata compacta.
+ const legs=[];
+ const specs=[
+  {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
+  {side:-1,z:-.12,phase:Math.PI,hind:true},{side:1,z:-.12,phase:0,hind:true}
+ ];
+ for(const q of specs){
+  const parent=q.hind?rump:body;
+  const pivotPos=q.hind?[q.side*.29,-.22,q.z]:[q.side*.30,1.14,q.z];
+  const pivotName=(q.hind?"Pivô da anca traseira ":"Pivô escapular dianteiro ")+(q.side<0?"esquerdo":"direito");
+  const scapula=q.hind?null:group(parent,pivotPos,pivotName);
+  const hip=q.hind?group(parent,pivotPos,pivotName):group(scapula,[0,-.025,0],"Articulação do ombro "+(q.side<0?"esquerdo":"direito"));
+  let knee=null,elbow=null;
+  if(q.hind){
+   // Cadeia traseira: anca > coxa > jarrete > boleto.
+   block(hip,"Coxa traseira musculosa",[0,-.29,.075],[.35,.62,.33],COAT3,"taper",[-.20,0,q.side*.025]);
+   knee=group(hip,[0,-.54,.14],"Articulação do joelho/jarrete traseiro");
+   block(knee,"Volume do jarrete",[0,-.035,.015],[.235,.19,.245],COAT3,"taper",[.10,0,q.side*.02]);
+   block(knee,"Canela traseira estreita",[0,-.245,-.035],[.205,.46,.22],COAT3,"taper",[.22,0,q.side*.02]);
+  }else{
+   // Cadeia dianteira segmentada: escápula > ombro > braço > cotovelo > antebraço > carpo.
+   block(hip,"Braço dianteiro superior",[0,-.235,0],[.235,.48,.245],COAT3,"taper",[0,0,q.side*-.018]);
+   elbow=group(hip,[0,-.46,0],"Articulação do cotovelo "+(q.side<0?"esquerdo":"direito"));
+   block(elbow,"Antebraço dianteiro",[0,-.19,.015],[.205,.39,.22],COAT3,"taper",[.025,0,q.side*.012]);
+  }
+  const wrist=group(knee||elbow||hip,[0,q.hind?-.46:(elbow?-.38:-.84),q.hind?-.025:.07],"Pivô do carpo/boleto");
+  const paw=group(wrist,[0,0,0],"Articulação dos dedos e apoio da pata");
+  block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
+  for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
+  legs.push({hip,scapula,elbow,knee,baseKneeRot:knee?knee.rotation.clone():null,baseElbowRot:elbow?elbow.rotation.clone():null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
+ }
+ // Cauda presa à anca, com balanço secundário.
+ const tail=group(rump,[0,.02,-.39],"Pivô da cauda");
+ block(tail,"Cauda base",[0,-.02,-.19],[.15,.15,.36],COAT2,"taper",[.10,0,0]);
+ block(tail,"Cauda média",[0,-.10,-.47],[.13,.13,.30],COAT3,"taper",[.16,0,0]);
+ block(tail,"Faixa escura",[0,-.14,-.60],[.13,.13,.09],DARK);
+ block(tail,"Ponta escura",[0,-.16,-.72],[.13,.13,.15],DARK,"taper",[.12,0,0]);
+ window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
+ select(null);setSkinMode("bones");say("Onça revisada: passada traseira mais ampla, origem da perna aproximada à lateral da anca e apoio mais suave.");
+}
+function updateJaguarRig(){
+ const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
+ const t=animClock,rate=gallop?6.0:3.25;
+ const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
+ const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
+ const ramp=(p,a,b)=>smooth((p-a)/(b-a));
+ for(const r of (window.__berofelJaguarRigs||[])){
+  const cycle=t*rate;
+  if(mode==="stop"){
+   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.paw){leg.paw.position.copy(leg.basePawPos);leg.paw.rotation.copy(leg.basePawRot);}if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);if(leg.elbow)leg.elbow.rotation.copy(leg.baseElbowRot);if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos)}}
+   r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
+   r.spine.position.set(0,r.baseSpineY,r.baseSpineZ);r.spine.rotation.set(0,0,0);
+   r.rump.position.copy(r.baseRumpPos);r.rump.rotation.copy(r.baseRumpRot);
+   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
+   continue;
+  }
+  let foreLoad=0,hindLoad=0;
+  for(const leg of r.legs){
+   const hind=leg.hind,side=leg.side;
+   // Passadas alternadas; no galope, pares diagonais se aproximam de sincronia.
+   const offset=gallop?(hind?(side<0?.04:.20):(side<0?.52:.68)):(hind?(side<0?0:.50):(side<0?.25:.75));
+   const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
+   const swing=arc(p,.02,.43),lift=arc(p,.04,.39),plant=ramp(p,.34,.43),push=ramp(p,.43,.78),release=ramp(p,.78,.98);
+   const phase=cycle+leg.phase;
+   const stance=p<.62;
+   const stanceT=stance?p/.62:1;
+   const recoveryT=stance?0:(p-.62)/.38;
+   const recover=smooth(recoveryT);
+   if(hind){
+    // A passada nasce na cadeia anca > coxa > jarrete > boleto > pata.
+    // +Z aponta para a cabeça; a extensão da anca leva o membro para trás no apoio,
+    // enquanto o corpo avança sobre a pata. A pata NÃO recebe translação independente.
+    // O vídeo mostra um impulso final curto e forte: a pata fica firme no apoio
+    // e dá uma rotação rápida dos dedos no fim da passada, acompanhada pelo jarrete.
+    const pushOff=Math.pow(Math.max(0,Math.min(1,(p-.48)/.14)),2.2);
+    const recoverySnap=smooth(Math.min(1,recoveryT/.28));
+    const hipPitch=stance?(-.34+.38*stanceT+.26*pushOff):(.30-.66*recover);
+    const hipYaw=.018*Math.sin(phase*.5+side*.5);
+    leg.hip.rotation.set(gallop?hipPitch*1.12:hipPitch,hipYaw,side*.012*Math.sin(phase));
+    leg.hip.position.copy(leg.baseHip);
+    // O joelho mantém carga durante o apoio e estende mais depressa no último instante.
+    if(leg.knee){
+     const kneeFlex=stance?(-.015-.08*stanceT-.24*pushOff):(-.335+.24*recoverySnap-.16*Math.sin(Math.PI*recoveryT));
+     leg.knee.rotation.set(leg.baseKneeRot.x+kneeFlex,leg.baseKneeRot.y,leg.baseKneeRot.z);
+    }
+    // O jarrete dispara junto com a pata; a saída do solo não é uma rotação isolada.
+    const hock=stance?(.025+.08*stanceT+.34*pushOff):(.445-.48*recoverySnap-.12*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.set(hock,.012*Math.sin(phase+.5),leg.baseWristRot.z+side*.008*Math.sin(phase));
+    leg.wrist.position.copy(leg.baseWrist);
+    // A pata gira rapidamente para pressionar o chão para trás no fim do apoio,
+    // depois recolhe cedo na recuperação. Sem deslocamento artificial da pata.
+    const toePush=stance?(-.045+.88*pushOff):(.835-1.08*recoverySnap);
+    if(leg.paw){
+     leg.paw.position.copy(leg.basePawPos);
+     leg.paw.rotation.set(leg.basePawRot.x+toePush,leg.basePawRot.y,leg.basePawRot.z);
+    }
+    hindLoad+=stance?1:0;
+   }else{
+    // Dianteira articulada: escápula desliza, ombro conduz, cotovelo recolhe,
+    // carpo ajusta a pata. A trajetória continua sincronizada com apoio/recuperação.
+    const shoulder=stance?(-.20+.42*stanceT):(.22-.46*recover);
+    const scapulaGlide=stance?(-.075+.15*stanceT):(.075-.15*recover);
+    if(leg.scapula){
+     // A escápula acompanha o tórax com rotação suave e pequeno deslizamento.
+     leg.scapula.rotation.set(scapulaGlide+(gallop?.045:0),.018*Math.sin(phase*.5+side*.3),side*.012*Math.sin(phase));
+     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+scapulaGlide*.65);
+    }
+    // O ombro impulsiona o membro; o cotovelo encurta a perna na recuperação.
+    leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.035*Math.sin(phase*.5+side*.4),side*.018*Math.sin(phase));
+    leg.hip.position.copy(leg.baseHip);
+    if(leg.elbow){
+     const elbowFlex=stance?(.015+.08*stanceT):(-.10-.62*Math.sin(Math.PI*recoveryT));
+     leg.elbow.rotation.set(gallop?elbowFlex*1.10:elbowFlex,.012*Math.sin(phase+side*.2),side*.012*Math.sin(phase+.3));
+    }
+    leg.wrist.rotation.x=stance?(-.015-.07*stanceT):(.18*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.y=.018*Math.sin(phase+.4);
+    // Importante: a pata fica no seu pivô hierárquico. Não é animada por translação independente.
+    foreLoad+=stance?1:0;
+   }
+  }
+  foreLoad/=2;hindLoad/=2;
+  if(gallop){
+   const airborne=Math.max(0,Math.sin(cycle*2+.25));
+   r.body.position.y=r.baseY+.003+airborne*.012;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.035+(hindLoad-foreLoad)*.012;
+   r.spine.position.y=r.baseSpineY+Math.sin(cycle+.3)*.009;
+   r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;
+   r.spine.rotation.x=Math.sin(cycle+.3)*.035+(hindLoad-foreLoad)*.012;
+  }else{
+   r.body.position.y=r.baseY+Math.sin(cycle*2)*.0025;
+   r.body.rotation.x=Math.sin(cycle+.3)*.006;
+   // Pistão desliza longitudinalmente, mas permanece visualmente dentro da anca.
+   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.007;
+   r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*.026;
+   r.spine.rotation.x=.018*Math.sin(cycle*2)+(hindLoad-foreLoad)*.008;
+  }
+  // A anca faz pequena rotação vertical e horizontal independente do pistão.
+  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.018:.008),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.045:.018));
+  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.055:.025),Math.sin(cycle*.55)*(gallop?.065:.03),Math.sin(cycle+.2)*(gallop?.02:.01));
+  r.neck.rotation.x=moving?(gallop?-.11*Math.sin(cycle+.4):-.035*Math.sin(cycle+.35)):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?.075*Math.sin(cycle+.4):.025*Math.sin(cycle+.35)):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.28:.17);
+  r.tail.rotation.x=Math.sin(cycle+.7)*(gallop?.20:.07);
+ }
+}
+$("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
+function humanoidPreset(isOgre=false){
+ clear();clearSkin();const skin=isOgre?"#6f9650":"#d6a27d",cloth=isOgre?"#42533a":"#344f78",leather="#49352c",metal=isOgre?"#6b735b":"#b18a4b";
+ const pivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g};
+ const capsule=(parent,name,pos,scale,color,type="body")=>{const m=make(type,pos,scale,color,name);parent.add(m);return m};
+ const torso=pivot(null,[0,1.42,0],"Rig torso");
+ capsule(torso,"Túnica",[0,.02,0],[.72,.82,.39],cloth);
+ capsule(torso,"Peitoral",[0,.34,0],[.82,.42,.42],cloth);
+ capsule(torso,"Cintura",[0,-.49,0],[.67,.19,.36],leather);
+ capsule(torso,"Cinto",[0,-.38,.015],[.76,.09,.39],metal);
+ // Detalhes de lenhador: camisa xadrez, suspensórios, bolso de ferramentas e luvas.
+ if(!isOgre){
+  for(const y of [.10,.29,.47])capsule(torso,"Faixa da camisa",[0,y,.204],[.68,.045,.025],"#a84d36");
+  for(const x of [-.20,.20])capsule(torso,"Suspensório",[x,.10,.218],[.075,.60,.035],leather);
+  capsule(torso,"Bolso de ferramentas",[.22,-.24,.205],[.20,.20,.08],"#79523a");
+  capsule(torso,"Fivela do cinto",[0,-.38,.225],[.13,.11,.035],"#d8b56b");
+ }
+ const neck=pivot(torso,[0,.64,0],"Rig pescoço");
+ capsule(neck,"Pescoço",[0,.08,0],[.22,.28,.22],skin);
+ const headPivot=pivot(neck,[0,.24,.015],"Rig cabeça");
+ capsule(headPivot,"Cabeça",[0,.16,0],[.43,.52,.38],skin,"head");
+ capsule(headPivot,"Cabelo",[0,.39,-.045],[.45,.18,.40],isOgre?"#382c22":"#47362b");
+ capsule(headPivot,"Nariz",[0,.12,.30],[.14,.13,.14],skin);
+ capsule(headPivot,"Olho esquerdo",[-.135,.22,.335],[.055,.055,.025],"#211b18");
+ capsule(headPivot,"Olho direito",[.135,.22,.335],[.055,.055,.025],"#211b18");
+ if(!isOgre){
+  capsule(headPivot,"Barba",[0,-.01,.235],[.31,.25,.19],"#49352c");
+  capsule(headPivot,"Bigode",[0,.075,.335],[.25,.075,.045],"#38291f");
+  capsule(headPivot,"Sobrancelha esquerda",[-.135,.285,.342],[.12,.035,.03],"#38291f");
+  capsule(headPivot,"Sobrancelha direita",[.135,.285,.342],[.12,.035,.03],"#38291f");
+  for(const side of [-1,1])capsule(headPivot,"Orelha",[side*.225,.16,0],[.09,.14,.10],skin);
+ }
+ if(isOgre){capsule(headPivot,"Presa esquerda",[-.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Presa direita",[.19,.02,.30],[.12,.22,.12],"#e8dfc5","horn");capsule(headPivot,"Testa pesada",[0,.40,.04],[.55,.28,.42],skin)}
+ const rig={torso,neck,head:headPivot,arms:[],legs:[]};
+ for(const side of [-1,1]){
+  const label=side<0?"esquerdo":"direito";
+  const shoulder=pivot(torso,[side*.48,.40,0],"Rig ombro "+label);
+  capsule(shoulder,"Ombro "+label,[side*-.015,-.06,0],[.27,.28,.29],skin);
+  capsule(shoulder,"Braço superior "+label,[0,-.25,0],[.22,.34,.23],skin,"arm");
+  const elbow=pivot(shoulder,[0,-.43,0],"Rig cotovelo "+label);
+  capsule(elbow,"Antebraço "+label,[0,-.20,.015],[.18,.31,.19],skin,"arm");
+  const wrist=pivot(elbow,[0,-.39,.02],"Rig pulso "+label);
+  capsule(wrist,"Mão "+label,[0,-.10,.04],[.19,.22,.13],skin,"hand");
+  rig.arms.push({shoulder,elbow,wrist,side});
+  const hip=pivot(torso,[side*.23,-.52,0],"Rig quadril "+label);
+  capsule(hip,"Coxa "+label,[0,-.22,0],[.27,.48,.29],cloth,"leg");
+  const knee=pivot(hip,[0,-.46,0],"Rig joelho "+label);
+  capsule(knee,"Canela "+label,[0,-.22,.015],[.22,.45,.24],leather,"lowerleg");
+  const ankle=pivot(knee,[0,-.44,.015],"Rig tornozelo "+label);
+  capsule(ankle,"Bota "+label,[0,-.055,.12],[.27,.16,.42],leather,"foot");
+  rig.legs.push({hip,knee,ankle,side});
+ }
+ (window.__berofelHumanoidRigs||(window.__berofelHumanoidRigs=[])).push(rig);window.__berofelHumanoidRig=rig;
+ cacheRigPose();setSkinMode("bones");select(null);
+ say(isOgre?"Humanoide ogro criado com ombros, cotovelos, quadris e joelhos articulados.":"Humano criado com proporções revisadas e articulações reais.");
+}
+
+
+function addElement(generator,label){
+ appendMode=true;
+ const beforeRoots=new Set(scene.children);
+ const oldParts=new Set(parts);
+ const oldSkins=new Set(skinMeshes);
+ let group=null;
+ try{
+  generator();
+  const newParts=parts.filter(p=>!oldParts.has(p));
+  const newSkins=skinMeshes.filter(m=>!oldSkins.has(m));
+  const roots=scene.children.filter(o=>!beforeRoots.has(o)&&o!==transformHelper);
+  if(!newParts.length&&!newSkins.length&&!roots.length){say("Nenhum componente novo foi criado para "+label+".");return}
+  group=new THREE.Group();group.name=label;group.userData.berofelElementRoot=true;group.userData.elementLabel=label;
+  scene.add(group);
+  // Reunir raízes recém-criadas preservando posição, rotação e escala mundiais.
+  for(const root of roots)if(root.parent===scene)group.attach(root);
+  elementRoots.push(group);
+  for(const p of newParts)p.userData.berofelElementLabel=label;
+  select(null);
+  say(label+" adicionado à cena. Elementos anteriores preservados.");
+ }catch(err){
+  console.error("Falha ao criar elemento "+label,err);
+  if(group&&group.parent)group.parent.remove(group);
+  say("Erro ao criar "+label+": "+String(err?.message||err).slice(0,160));
+ }
+}
+function resetScene(){
+ appendMode=false;moveWholeElement=false;$("moveElement").textContent="Mover elemento: OFF";transform.detach();
+ for(const root of elementRoots)if(root.parent)root.parent.remove(root);
+ elementRoots=[];
+ clear();clearSkin();window.__berofelHumanoidRig=null;window.__berofelHorseRig=null;window.__berofelHumanoidRigs=[];window.__berofelHorseRigs=[];window.__berofelJaguarRigs=[];horseRoot=null;horseJoints=[];
+ appendMode=true;$("name").value="Cena_01";select(null);fit();say("Cena nova e vazia. Os próximos elementos serão adicionados sem apagar os anteriores.");
+}
+$("moveElement").onclick=()=>{moveWholeElement=!moveWholeElement;$("moveElement").textContent=moveWholeElement?"Mover tudo: ON":"Mover tudo: OFF";$("moveElement").classList.toggle("active-tool",moveWholeElement);say(moveWholeElement?"Modo mover elemento inteiro: clique numa peça do modelo para mover o conjunto.":"Modo mover peça: clique numa peça para editar somente ela.")};
+$("quickAnimationPlay").onclick=()=>{const mode=$("quickAnimation").value;if(mode==="chop"){treePlay();$("treeStatus").textContent="Animação de corte iniciada."}else{setAnimation(mode);$("animStatus").textContent="Animação selecionada: "+$("quickAnimation").selectedOptions[0].text}};$("quickAnimation").onchange=()=>{if($("quickAnimation").value==="chop")say("Selecione/crie o humanoide e a árvore para executar o corte.");else setAnimation($("quickAnimation").value)};$("exportAnimation").onchange=()=>{const mode=$("exportAnimation").value;if(["idle","walk","gallop"].includes(mode)){setAnimation(mode);$("quickAnimation").value=mode;$("animStatus").textContent="Animação selecionada para preview e exportação: "+mode;}};$("fit").onclick=fit;$("toolMove").onclick=()=>setTool("translate");$("toolRotate").onclick=()=>setTool("rotate");$("toolScale").onclick=()=>setTool("scale");$("viewFront").onclick=setFront;$("view3d").onclick=fit;$("new").onclick=resetScene;$("remove").onclick=()=>{if(!selected)return;const p=selected;if(p.userData?.berofelElementRoot){if(p.parent)p.parent.remove(p);elementRoots=elementRoots.filter(x=>x!==p);const descendants=[];p.traverse(o=>{if(o.isMesh)descendants.push(o)});parts=parts.filter(x=>!descendants.includes(x));for(const m of descendants){m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}if(window.__berofelHumanoidRig&&p.name==="Homem")window.__berofelHumanoidRig=null;say("Elemento inteiro removido.")}else{if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(x=>x.dispose());else p.material?.dispose();parts=parts.filter(x=>x!==p);say("Peça removida.")}selected=null;transform.detach();renderParts()};
+$("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
+$("open").onclick=()=>$("file").click();$("file").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());clear();$("name").value=d.name||"Criatura_importada";for(const p of d.parts||[]){const m=make(p.type||"body",p.position||[0,1,0],p.scale||[1,1,1],p.color||"#65a8a1",p.name);if(p.rotation)m.rotation.fromArray(p.rotation)}say("JSON carregado.")}catch(err){say("Não foi possível abrir esse JSON.")}e.target.value=""};
+
+// Exportação preservando as raízes e hierarquias reais. A implementação anterior
+// clonava cada peça isoladamente e perdia as transformações dos grupos-pai.
+function exportRoots(){
+ const roots=[],add=r=>{if(r&&r.parent===scene&&!roots.includes(r))roots.push(r)};
+ for(const r of elementRoots)add(r);
+ for(const p of parts)if(p.parent===scene)add(p);
+ for(const m of skinMeshes)if(m.parent===scene)add(m);
+ for(const r of (window.__berofelTreeRoots||[]))add(r);
+ for(const r of scene.children){
+  if(r===transformHelper||r===floor||r===grid||r.isLight||r.isCamera)continue;
+  if(r.userData?.berofelElementRoot||r.userData?.treeRoot)add(r);
+ }
+ return roots;
+}
+function exportSlug(value){return String(value||"Node").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_]+/g,"_").replace(/^_+|_+$/g,"").slice(0,36)||"Node"}
+function buildExportBundle(requestedModes){
+ const roots=exportRoots();
+ if(!roots.length)throw new Error("A cena está vazia. Adicione um modelo antes de exportar.");
+ const exportScene=new THREE.Group();exportScene.name="Berofel_3D_Create";
+ const records=[];let serial=0;
+ const pairTree=(original,clone)=>{
+  clone.name="B3D_"+String(serial++).padStart(5,"0")+"_"+exportSlug(original.name||original.type);
+  if(original.isMesh&&original.material){const copyMat=m=>{const c=m.clone();if(m.visible===false){c.transparent=true;c.opacity=0;c.depthWrite=false;}return c};clone.material=Array.isArray(original.material)?original.material.map(copyMat):copyMat(original.material);}
+  records.push({original,clone,name:clone.name});
+  const n=Math.min(original.children.length,clone.children.length);
+  for(let i=0;i<n;i++)pairTree(original.children[i],clone.children[i]);
+ };
+ for(const root of roots){const clone=root.clone(true);pairTree(root,clone);exportScene.add(clone)}
+ exportScene.updateMatrixWorld(true);
+ const oldMode=animMode,oldClock=animClock,oldLast=animLast;
+ const saved=records.map(r=>({o:r.original,p:r.original.position.clone(),q:r.original.quaternion.clone(),s:r.original.scale.clone()}));
+ const fps=24,duration=2,frameCount=Math.round(fps*duration)+1,times=Array.from({length:frameCount},(_,i)=>i/fps);
+ const clips=[];
+ try{
+  for(const mode of (requestedModes&&requestedModes.length?requestedModes:["idle","walk","gallop"])){
+   const samples=new Map(records.map(r=>[r.name,{p:[],q:[],s:[]}]));
+   animMode=mode;
+   for(let frame=0;frame<frameCount;frame++){
+    animClock=times[frame];updateRig(0);
+    for(const r of records){
+     const a=samples.get(r.name),o=r.original;
+     a.p.push(o.position.x,o.position.y,o.position.z);
+     a.q.push(o.quaternion.x,o.quaternion.y,o.quaternion.z,o.quaternion.w);
+     a.s.push(o.scale.x,o.scale.y,o.scale.z);
+    }
+   }
+   const tracks=[];
+   const changed=(values,stride)=>{for(let i=stride;i<values.length;i++)if(Math.abs(values[i]-values[i%stride])>1e-5)return true;return false};
+   for(const r of records){
+    const a=samples.get(r.name);
+    if(changed(a.p,3))tracks.push(new THREE.VectorKeyframeTrack(r.name+".position",times,a.p));
+    if(changed(a.q,4))tracks.push(new THREE.QuaternionKeyframeTrack(r.name+".quaternion",times,a.q));
+    if(changed(a.s,3))tracks.push(new THREE.VectorKeyframeTrack(r.name+".scale",times,a.s));
+   }
+   if(tracks.length)clips.push(new THREE.AnimationClip(mode,duration,tracks));
+  }
+ }finally{
+  for(const x of saved){x.o.position.copy(x.p);x.o.quaternion.copy(x.q);x.o.scale.copy(x.s);x.o.updateMatrix()}
+  animMode=oldMode;animClock=oldClock;animLast=oldLast;
+  exportScene.updateMatrixWorld(true);
+ }
+ return {scene:exportScene,animations:clips,rootCount:roots.length,nodeCount:records.length};
+}
+function parseExportGLB(input,animations=[]){
+ return new Promise((resolve,reject)=>{try{new GLTFExporter().parse(input,result=>resolve(new Blob([result],{type:"model/gltf-binary"})),err=>reject(err),{binary:true,animations})}catch(err){reject(err)}});
+}
+function exportName(){return exportSlug($("name").value||"criatura").replace(/^_+|_+$/g,"")||"criatura"}
+ function selectedExportAnimation(){const chosen=$("exportAnimation")?.value;return ["idle","walk","gallop"].includes(chosen)?chosen:(["idle","walk","gallop"].includes(animMode)?animMode:"idle")}
+ function syncExportAnimation(mode){if(["idle","walk","gallop"].includes(mode))$("exportAnimation").value=mode}
+$("exportglb").onclick=async()=>{
+ const button=$("exportglb"),status=$("exportStatus");button.disabled=true;
+ try{
+  const chosen=selectedExportAnimation();status.textContent="Preparando a animação "+chosen+"…";
+  const bundle=buildExportBundle([chosen]);
+  status.textContent="Gerando GLB com a animação "+chosen+"…";
+  const blob=await parseExportGLB(bundle.scene,bundle.animations);
+  download(blob,exportName()+".glb");
+  status.textContent="GLB pronto. Animação exportada: "+(bundle.animations.map(a=>a.name).join(", ")||"nenhuma detectada")+" • nós: "+bundle.nodeCount+".";
+  say("Modelo exportado com a animação "+chosen+".");
+ }catch(e){console.error("Falha na exportação GLB",e);status.textContent="Falha na exportação: "+String(e?.message||e).slice(0,220);say("Falha ao exportar GLB: "+String(e?.message||e).slice(0,120))}
+ finally{button.disabled=false}
+};
+$("exportpackage").onclick=async()=>{
+ const button=$("exportpackage"),status=$("exportStatus");button.disabled=true;
+ try{
+  const chosen=selectedExportAnimation();status.textContent="Preparando o pacote com a animação "+chosen+"…";
+  const bundle=buildExportBundle([chosen]);
+  const modelBlob=await parseExportGLB(bundle.scene,[]);
+  if(!bundle.animations.length)throw new Error("A animação "+chosen+" não gerou canais. Confira se o animal está na cena e se essa animação move as articulações.");
+  status.textContent="Empacotando a animação "+chosen+"…";
+  const animBlob=await parseExportGLB(bundle.scene,bundle.animations);
+  const zip=new JSZip(),base=exportName();
+  zip.file(base+"_model.glb",modelBlob);
+  zip.file(base+"_anims.glb",animBlob);
+  zip.file("manifest.json",JSON.stringify({format:"Berofel 3D Create export package",formatVersion:1,model:base+"_model.glb",animationsFile:base+"_anims.glb",nodeCount:bundle.nodeCount,animations:bundle.animations.map(a=>({name:a.name,duration:a.duration,tracks:a.tracks.length})),note:"Os dois GLBs mantêm a mesma hierarquia e nomes de nós. O arquivo _anims contém uma cópia autônoma do modelo com os canais de animação para permitir importar e transferir as animações sem perder as referências."},null,2));
+  zip.file("README.txt","BEROFEL 3D CREATE — PACOTE DE EXPORTAÇÃO\n\n1. Importe "+base+"_model.glb na Godot 4.\n2. Importe "+base+"_anims.glb para consultar as animações exportadas.\n3. Os dois arquivos preservam a mesma hierarquia e os mesmos nomes de nós. Para reutilizar animações, copie a AnimationLibrary/AnimationPlayer do arquivo _anims para a cena do modelo e confirme os caminhos de nós no editor da Godot.\n4. Abra manifest.json para ver a lista de animações e o número de nós exportados.\n\nObservação: este editor anima peças e grupos por transformações de nós; não gera automaticamente um armature/skin de deformação muscular. As animações exportadas reproduzem as transformações dos nós existentes.");
+  const zipBlob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:5}});
+  download(zipBlob,base+"_pacote_completo.zip");
+  status.textContent="Pacote ZIP pronto • animação: "+chosen+" • nós: "+bundle.nodeCount+".";
+  say("Pacote completo exportado com a animação "+chosen+".");
+ }catch(e){console.error("Falha na exportação do pacote",e);status.textContent="Falha no pacote: "+String(e?.message||e).slice(0,220);say("Falha ao exportar pacote: "+String(e?.message||e).slice(0,120))}
+ finally{button.disabled=false}
+};
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(viewport);resize();
+
+// Rig procedural: pose base + animações cíclicas não destrutivas.
+let animMode="idle",animClock=0,animLast=0;
+const rigBase=new WeakMap();
+function cacheRigPose(){for(const p of parts)rigBase.set(p,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()})}
+function resetRigPose(){if(!window.__berofelHumanoidRig)for(const p of parts){const b=rigBase.get(p);if(b){p.position.copy(b.position);p.rotation.copy(b.rotation);p.scale.copy(b.scale)}}}
+function rigLabel(){ $("animStatus").textContent=animMode==="stop"?"Animação parada.":animMode==="walk"?"Rig ativo: caminhada.":"Rig ativo: respiração."}
+function setAnimation(mode){resetRigPose();animMode=mode;animClock=0;syncExportAnimation(mode);if(mode!=="stop"&&mode!=="chop")$("quickAnimation").value=mode;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
+$("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animGallop").onclick=()=>setAnimation("gallop");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
+cacheRigPose();
+// A cena inicia vazia; o usuário escolhe qual elemento criar primeiro.
+function updateRig(dt){if(animMode==="stop")return;animClock+=dt*(+$("animSpeed").value||1);const t=animClock;for(const humanRig of (window.__berofelHumanoidRigs||[])){const walking=animMode==="walk"||animMode==="gallop",gallop=animMode==="gallop",rate=gallop?7.4:4.2;for(const arm of humanRig.arms){const ph=t*rate+(arm.side<0?0:Math.PI);arm.shoulder.rotation.x=walking?Math.sin(ph)* (gallop?.72:.38):Math.sin(t*1.5+(arm.side<0?0:Math.PI))*.025;arm.shoulder.rotation.z=walking?Math.sin(ph+Math.PI/2)*(gallop?.12:.06):0;arm.elbow.rotation.x=walking?Math.max(0,Math.sin(ph+1.0))*(gallop?.85:.38):0;arm.wrist.rotation.x=walking?Math.sin(ph+.4)*.12:0;}for(const leg of humanRig.legs){const ph=t*rate+(leg.side<0?0:Math.PI);leg.hip.rotation.x=walking?Math.sin(ph+(gallop?.5:0))*(gallop?.68:.32):0;leg.knee.rotation.x=walking?Math.max(0,Math.sin(ph+1.1))*(gallop?1.0:.45):0;leg.ankle.rotation.x=walking?-leg.hip.rotation.x*.35-leg.knee.rotation.x*.25:0;}humanRig.torso.position.y=1.42+(walking?Math.pow(Math.max(0,Math.sin(t*rate*2)),2)*(gallop?.12:.025):Math.sin(t*2)*.008);humanRig.neck.rotation.x=walking?Math.sin(t*rate+Math.PI)*.06:Math.sin(t*1.3)*.02;humanRig.head.rotation.x=walking?Math.sin(t*rate+Math.PI)*.04:Math.sin(t*1.3)*.015;}for(const hr of (window.__berofelHorseRigs||[])){const walk=animMode==="walk",gallop=animMode==="gallop",moving=walk||gallop;const rate=gallop?7.4:4.2;for(const leg of hr.gait){const gaitTime=-t*rate;const phase=leg.phase,q=Math.sin(gaitTime+phase),fold=Math.max(0,Math.sin(gaitTime+phase+Math.PI*.65));if(leg.hock&&leg.fetlock){leg.hip.rotation.x=moving?q*(gallop?(leg.hind?.72:.5):(leg.hind?.32:.36)):0;leg.knee.rotation.x=moving?(gallop?fold*(leg.hind?1.12:.82):Math.max(0,Math.sin(gaitTime+phase+Math.PI*.4))*(leg.hind?.58:.42)):0;leg.hock.rotation.x=moving?(gallop?Math.max(0,Math.sin(gaitTime+phase+Math.PI*.9))*(leg.hind?.82:.42):-q*.12):0;leg.fetlock.rotation.x=moving?(gallop?q*.32:q*.12):0;leg.hoof.rotation.x=moving?-(leg.hip.rotation.x+leg.knee.rotation.x+leg.hock.rotation.x+leg.fetlock.rotation.x):0;}else{leg.hip.rotation.x=moving?Math.sin(t*rate+phase)*(gallop?.72:.34):0;leg.knee.rotation.x=moving?Math.max(0,Math.sin(gaitTime+phase+Math.PI*.55))*(gallop?1.0:.45):0;leg.hoof.rotation.x=moving?-(leg.hip.rotation.x+leg.knee.rotation.x):0;}}const gaitTime=-t*rate;const swing=hr.gait.reduce((sum,leg)=>sum+Math.max(0,Math.sin(gaitTime+leg.phase+Math.PI*.65)),0)/Math.max(1,hr.gait.length);const plant=hr.gait.reduce((sum,leg)=>sum+Math.max(0,Math.sin(gaitTime+leg.phase-Math.PI*.25)),0)/Math.max(1,hr.gait.length);const foreDrive=hr.gait.filter(leg=>!leg.hind).reduce((sum,leg)=>sum+Math.max(0,Math.sin(gaitTime+leg.phase-Math.PI*.15)),0)/Math.max(1,hr.gait.filter(leg=>!leg.hind).length);const hindDrive=hr.gait.filter(leg=>leg.hind).reduce((sum,leg)=>sum+Math.max(0,Math.sin(gaitTime+leg.phase-Math.PI*.15)),0)/Math.max(1,hr.gait.filter(leg=>leg.hind).length);const drive=(foreDrive+hindDrive)*.5;const shoulderPush=moving?(foreDrive-hindDrive)*(gallop?.045:.025):0;if(hr.chestBlock)hr.chestBlock.position.z=(hr.shoulderBaseZ??hr.chestBlock.position.z)+shoulderPush;if(hr.chest)hr.chest.position.z=(hr.chestBaseZ??hr.chest.position.z)+shoulderPush*.7;const baseBounce=gallop?Math.pow(Math.max(0,Math.sin(t*rate*2)),2)*.045:walk?Math.abs(Math.sin(t*rate*2))*.012:Math.sin(t*2)*.004;const bounce=moving?baseBounce-swing*(gallop?.03:.018)+plant*(gallop?.014:.01):baseBounce;hr.body.position.y=hr.bodyBaseY+bounce;const baseZ=hr.bodyBaseZ??(hr.bodyBaseZ=hr.body.position.z);hr.body.position.z=baseZ+(moving?Math.sin(t*rate)*(gallop?.065:.035):Math.sin(t*1.1)*.002);for(const lb of (hr.legBases||[]))lb.hip.position.y=lb.y+bounce;hr.body.rotation.x=moving?(Math.sin(t*rate+Math.PI*.25)*(gallop?.035:.018)+(hindDrive-foreDrive)*(gallop?.055:.032)):Math.sin(t*1.1)*.004;hr.body.rotation.z=moving?(foreDrive-hindDrive)*(gallop?.025:.012):0;for(const leg of hr.gait){const q=Math.sin(gaitTime+leg.phase);if(leg.hind)leg.hip.rotation.x+=moving?-Math.max(0,q)*(gallop?.10:.055):0;else leg.hip.rotation.x+=moving?Math.max(0,q)*(gallop?.08:.045):0;}if(hr.rump)hr.rump.rotation.x=moving?-hr.body.rotation.x*.45:0;hr.neck.rotation.x=(hr.neckBaseX??.3)+(moving?Math.sin(t*rate+Math.PI)*(gallop?.075:.035):Math.sin(t*1.3)*.012);hr.head.rotation.x=(hr.headBaseX??0)+(moving?Math.sin(t*rate+Math.PI)*(gallop?.045:.022):Math.sin(t*1.3)*.01);hr.tail.rotation.y=Math.sin(t*(moving?rate:1.8))*(gallop?.28:walk?.18:.06);hr.tailMid.rotation.y=Math.sin(t*(moving?rate:1.8)-.4)*(gallop?.3:walk?.2:.07);hr.tailTip.rotation.y=Math.sin(t*(moving?rate:1.8)-.8)*(gallop?.32:walk?.22:.08);}if(horseRoot){for(const j of horseJoints){const q=Math.sin(t*4.2+j.phase);j.group.rotation.set(j.baseX,j.baseY,j.baseZ);if(animMode==="walk"||animMode==="gallop"){const gallop=animMode==="gallop",rate=gallop?7.4:4.2,phase=t*rate+j.phase,fold=Math.max(0,Math.sin(phase+Math.PI*.65));if(j.kind==="hip")j.group.rotation.x=Math.sin(phase)*j.amp*(gallop?1.8:1);if(j.kind==="knee")j.group.rotation.x=fold*j.amp*(gallop?1.65:1);if(j.kind==="shin")j.group.rotation.x=(gallop?fold:-q)*j.amp*.65;if(j.kind==="fetlock")j.group.rotation.x=-q*j.amp*(gallop?.8:.45);if(j.kind==="hoof")j.group.rotation.x=-q*j.amp*(gallop?.55:.25);if(j.kind==="body")horseRoot.position.y=Math.pow(Math.max(0,Math.sin(t*rate*2)),2)*(gallop?.14:.02);if(j.kind==="neck"||j.kind==="head")j.group.rotation.x=j.baseX+Math.sin(t*4.2+Math.PI)*j.amp;if(j.kind==="tail")j.group.rotation.y=Math.sin(t*4.2-j.phase*2)*j.amp}else{if(j.kind==="body")horseRoot.position.y=Math.sin(t*2)*.008;if(j.kind==="neck"||j.kind==="head")j.group.rotation.x=j.baseX+Math.sin(t*1.3+j.phase)*.025;if(j.kind==="tail")j.group.rotation.y=Math.sin(t*1.8-j.phase*2)*.08}}}}
+
+
+// Oficina procedural de colheita — integrado à cena ativa do editor.
+window.__berofelTreeRoots=window.__berofelTreeRoots||[];const treeDemo={root:null,player:null,axe:null,arm:null,trunkPivot:null,fallenPivot:null,stump:null,leaves:[],debris:[],hits:0,groundHits:0,mode:"idle",time:0,playing:false,shake:0,fallProgress:0,impact:0,impactDone:false};
+const treeSay=t=>{const e=$("treeStatus");if(e)e.textContent=t};
+function treeMat(color,roughness=.88){return new THREE.MeshStandardMaterial({color,roughness,flatShading:true})}
+function treeMesh(geo,color,parent,pos=[0,0,0],rot=[0,0,0]){const m=new THREE.Mesh(geo,treeMat(color));m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function treeDisposeDemo(){if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);treeDemo.humanRig=null;if(treeDemo.root){scene.remove(treeDemo.root);treeDemo.root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}for(const d of treeDemo.debris||[]){if(d.parent)d.parent.remove(d);d.geometry?.dispose();d.material?.dispose()}treeDemo.debris=[];treeDemo.root=null;treeDemo.player=null;treeDemo.axe=null;treeDemo.arm=null;treeDemo.trunkPivot=null;treeDemo.stump=null;treeDemo.leaves=[]}
+function treeAttachHuman(){
+ const rigs=window.__berofelHumanoidRigs||[],rig=window.__berofelHumanoidRig||rigs[rigs.length-1];
+ if(!rig||!rig.torso||!Array.isArray(rig.arms)||rig.arms.length<2){treeSay("Adicione primeiro o humanoide pelo botão “Modelo humano”.");return false}
+ if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);
+ treeDemo.humanRig=rig;treeDemo.player=rig.torso;treeDemo.arms=rig.arms;treeDemo.legs=rig.legs;
+ // Machado preso ao eixo central do tronco: as duas mãos acompanham o mesmo cabo.
+ const axe=new THREE.Group();axe.name="Machado de duas mãos";axe.position.set(0,-.58,.29);axe.rotation.set(0,0,0);rig.torso.add(axe);treeDemo.axe=axe;
+ treeMesh(new THREE.CylinderGeometry(.038,.045,.98,8),"#79523a",axe,[0,0,0],[0,0,Math.PI/2]);
+ treeMesh(new THREE.BoxGeometry(.16,.14,.14),"#9aa8b5",axe,[.48,.02,0]);
+ treeMesh(new THREE.BoxGeometry(.40,.22,.12),"#aab5c0",axe,[.62,.02,0],[0,0,-.12]);
+ treeMesh(new THREE.BoxGeometry(.11,.24,.15),"#6c7885",axe,[.48,.02,0]);
+ return true;
+}
+function createTreeDemo(species="pine"){
+ if(treeDemo.axe&&treeDemo.axe.parent)treeDemo.axe.parent.remove(treeDemo.axe);for(const d of treeDemo.debris||[]){if(d.parent)d.parent.remove(d);d.geometry?.dispose();d.material?.dispose()}treeDemo.debris=[];Object.assign(treeDemo,{root:null,player:null,axe:null,arm:null,trunkPivot:null,fallenPivot:null,stump:null,leaves:[],hits:0,groundHits:0,mode:"idle",time:0,playing:false,shake:0,fallProgress:0,impact:0,impactDone:false,species});
+ const speciesConfig={pine:{name:"Pinheiro",trunk:"#765039",leaf:["#2d6847","#367b50"],kind:"cone"},spruce:{name:"Abeto",trunk:"#684832",leaf:["#24553e","#2f7049"],kind:"spruce"},oak:{name:"Carvalho",trunk:"#765039",leaf:["#47783b","#568b43"],kind:"broad"},birch:{name:"Bétula",trunk:"#d5c8a7",leaf:["#527e3d","#6b9848"],kind:"broad"},apple:{name:"Macieira",trunk:"#80563a",leaf:["#397544","#4f8a43"],kind:"fruit",fruit:"#c94339"},cherry:{name:"Cerejeira",trunk:"#6f4b3b",leaf:["#d78cae","#edb2c8"],kind:"fruit",fruit:"#a72e4e"},orange:{name:"Laranjeira",trunk:"#805538",leaf:["#3f7e35","#559644"],kind:"fruit",fruit:"#f18a27"},willow:{name:"Salgueiro",trunk:"#6f6548",leaf:["#6e9654","#8aae68"],kind:"willow"}};
+ const cfg=speciesConfig[species]||speciesConfig.pine;
+ const root=new THREE.Group();root.name="Árvore — "+cfg.name;root.userData.treeRoot=root;root.userData.berofelElementRoot=true;scene.add(root);window.__berofelTreeRoots.push(root);treeDemo.root=root;
+ treeMesh(new THREE.CylinderGeometry(4.7,4.7,.12,24),"#78915b",root,[.15,-.12,0]);
+ // Toco e raízes permanecem no solo; a árvore viva gira em um pivô na base.
+ const base=new THREE.Group();base.position.set(1.55,0,0);base.scale.set(1.22,1.38,1.22);root.add(base);
+ treeDemo.stump=treeMesh(new THREE.CylinderGeometry(.22,.3,.25,8),"#765039",base,[0,.125,0]);
+ treeMesh(new THREE.CylinderGeometry(.2,.2,.035,8),"#b68a5a",base,[0,.255,0]);
+ for(let i=0;i<4;i++){const a=i*Math.PI/2;const r=treeMesh(new THREE.CylinderGeometry(.035,.11,.38,5),"#765039",base,[Math.cos(a)*.2,.08,Math.sin(a)*.2]);r.rotation.z=Math.cos(a)*.55;r.rotation.x=Math.sin(a)*.55}
+ treeDemo.trunkPivot=new THREE.Group();base.add(treeDemo.trunkPivot);
+ treeMesh(new THREE.CylinderGeometry(.16,.23,2.65,8),cfg.trunk,treeDemo.trunkPivot,[0,1.325,0]);
+ // Galhos concentrados na metade superior, com menos volume e inclinação para cima.
+ for(let i=0;i<5;i++){const y=1.05+i*.27;for(let side=0;side<3;side++){const a=side*Math.PI*2/3+i*.58;const len=.38-i*.035;const branch=treeMesh(new THREE.CylinderGeometry(.018,.045,len,6),cfg.trunk,treeDemo.trunkPivot,[Math.cos(a)*len*.34,y,Math.sin(a)*len*.34]);branch.rotation.z=-Math.cos(a)*.72;branch.rotation.x=Math.sin(a)*.72}}
+ if(cfg.kind==="cone"||cfg.kind==="spruce"){
+  const tiers=species==="spruce"?7:6;
+  for(let i=0;i<tiers;i++){const y=.72+i*(2.8/tiers),rad=(species==="spruce"?.82:1.02)-i*(species==="spruce"?.105:.135),h=species==="spruce"?.92:1.15;const pivot=new THREE.Group();pivot.position.set(0,y,0);treeDemo.trunkPivot.add(pivot);const g=new THREE.ConeGeometry(rad,h,10,3);const p=g.attributes.position;for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k),yy=p.getY(k),a=Math.atan2(z,x),ripple=Math.sin(a*5+i*.8)*.045;p.setX(k,x+ripple*Math.cos(a));p.setZ(k,z+ripple*Math.sin(a))}g.computeVertexNormals();treeDemo.leaves.push(treeMesh(g,cfg.leaf[i%2],pivot,[0,h*.35,0]));}
+ } else if(cfg.kind==="willow"){
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7,branch=new THREE.Group();branch.position.set(Math.cos(a)*.3,2.25,Math.sin(a)*.3);branch.rotation.z=Math.cos(a)*.45;branch.rotation.x=-Math.sin(a)*.45;treeDemo.trunkPivot.add(branch);treeMesh(new THREE.CylinderGeometry(.035,.075,.85,5),cfg.trunk,branch,[0,.35,0]);const leaf=treeMesh(new THREE.SphereGeometry(.35,7,5),cfg.leaf[i%2],branch,[Math.cos(a)*.1,.65,Math.sin(a)*.1]);leaf.scale.set(.7,1.7,.7);treeDemo.leaves.push(leaf)}
+ } else {
+  const count=species==="birch"?5:7;
+  for(let i=0;i<count;i++){const a=i*2.399,rad=species==="birch"?.45:.62,y=species==="birch"?2.65+(i%2)*.12:2.35+(i%3)*.22;const crown=treeMesh(new THREE.IcosahedronGeometry(rad,1),cfg.leaf[i%2],treeDemo.trunkPivot,[Math.cos(a)*rad*.85,y,Math.sin(a)*rad*.85]);crown.scale.set(1.05,.9,1.05);treeDemo.leaves.push(crown);
+   if(cfg.kind==="fruit"&&i%2===0){const fruit=treeMesh(new THREE.IcosahedronGeometry(.105,1),cfg.fruit,treeDemo.trunkPivot,[Math.cos(a)*rad*1.2,y-.12,Math.sin(a)*rad*1.2]);fruit.castShadow=false}
+  }
+ }
+ treeMesh(new THREE.ConeGeometry(.2,.48,7,2),cfg.leaf[0],treeDemo.trunkPivot,[0,3.62,0]);
+ // Usa o humanoide articulado existente no editor; não cria um personagem substituto.
+ treeDemo.player=null;treeDemo.arm=null;treeDemo.axe=null;
+ // Grupo de tronco/copa caído, criado uma única vez e revelado na etapa certa.
+ const fallen=new THREE.Group();fallen.position.set(-.1,.23,0);fallen.visible=false;base.add(fallen);treeDemo.fallenPivot=fallen;
+ treeMesh(new THREE.CylinderGeometry(.17,.21,2.6,8),"#765039",fallen,[.85,0,0],[0,0,Math.PI/2]);
+ for(let i=0;i<5;i++){const cone=treeMesh(new THREE.ConeGeometry(.7-i*.1,.9-i*.11,10,4),"#367b50",fallen,[1.45-i*.28,.05,0],[0,0,-Math.PI/2]);}
+ orbit.target.set(.35,1.5,0);camera.position.set(5.6,4.4,7.5);camera.lookAt(orbit.target);orbit.update();
+ treeSay("Cena carregada no editor. Use Reproduzir ou teste os golpes individualmente.");
+}
+function treeHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(["falling","fallen","groundhit","collected","sequence"].includes(treeDemo.mode)&&treeDemo.mode!=="sequence"){treeSay("A árvore já caiu. Use “Golpe na árvore caída”.");return}treeDemo.hits=Math.min(3,treeDemo.hits+1);treeDemo.mode="chop";treeDemo.shake=.34;treeDemo.impact=0;treeDemo.arm.rotation.x=-1.55;treeDemo.arm.rotation.z=-.72;treeSay("Golpe "+treeDemo.hits+"/3: machado em movimento e tronco reagindo.");if(treeDemo.hits>=3)treeSay("3/3 golpes. Pressione Derrubar para testar a queda.");}
+function treeFall(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(["fallen","groundhit","collected"].includes(treeDemo.mode))return;treeDemo.playing=false;treeDemo.mode="falling";treeDemo.fallProgress=0;treeDemo.impactDone=false;treeDemo.shake=0;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.arm.rotation.x=-1.1;treeSay("Queda iniciada: tronco acelera, copa acompanha e partículas marcam o impacto.");}
+function treeGroundHit(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;if(treeDemo.mode!=="fallen"&&treeDemo.mode!=="groundhit"){treeSay("Derrube a árvore e aguarde ela tocar o chão antes de golpear.");return}if(treeDemo.mode==="collected")return;treeDemo.mode="groundhit";treeDemo.groundHits=Math.min(3,treeDemo.groundHits+1);treeDemo.shake=.2;treeDemo.arm.rotation.x=-1.45;treeSay("Golpe na madeira caída "+treeDemo.groundHits+"/3.");if(treeDemo.groundHits>=3)treeSay("Madeira pronta para coleta.");}
+function treeCollect(){if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(treeDemo.groundHits<3){treeSay("Faltam "+(3-treeDemo.groundHits)+" golpe(s) na madeira caída.");return}treeDemo.mode="collected";treeDemo.playing=false;treeDemo.fallenPivot.visible=false;treeDemo.trunkPivot.visible=false;treeSay("Madeira coletada no teste. O toco continua no chão.");}
+function treeReset(){if(treeDemo.root){scene.remove(treeDemo.root);window.__berofelTreeRoots=window.__berofelTreeRoots.filter(r=>r!==treeDemo.root)}createTreeDemo(treeDemo.species||"pine");treeSay("Árvore reiniciada. Pronta para testar novamente.");}
+function treePlay(){
+ if(!treeDemo.root){treeSay("Adicione o pinheiro primeiro.");return}if(!treeAttachHuman())return;
+ treeDemo.hits=0;treeDemo.groundHits=0;treeDemo.time=0;treeDemo.playing=true;treeDemo.mode="sequence";treeDemo.fallProgress=0;
+ treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallenPivot.visible=false;
+ treeDemo.walkStartX=treeDemo.player.position.x;treeDemo.walkStartZ=treeDemo.player.position.z;treeDemo.walkStartY=treeDemo.player.rotation.y;
+ treeSay("Aproximação, golpes laterais com rotação do tronco e, só após a queda, golpes diagonais na madeira.");
+}
+function treeUpdate(dt){
+ if(!treeDemo.root)return;dt*=+$("treeSpeed").value||1;
+ const arms=treeDemo.arms||[],left=arms.find(a=>a.side<0),right=arms.find(a=>a.side>0),legs=treeDemo.legs||[];
+ const poseGrip=(swing=0,vertical=false)=>{
+  // Cotovelos dobrados e braços recolhidos: o cabo fica entre as mãos, longe do peito.
+  if(left){left.shoulder.rotation.set(vertical?-.18:-.12,0,.58+swing*.12);left.elbow.rotation.set(0,0,-.92);left.wrist.rotation.set(0,0,-.08)}
+  if(right){right.shoulder.rotation.set(vertical?-.18:-.12,0,-.58-swing*.12);right.elbow.rotation.set(0,0,.92);right.wrist.rotation.set(0,0,.08)}
+  if(treeDemo.axe){treeDemo.axe.rotation.x=vertical?-.08:0;treeDemo.axe.rotation.z=vertical?-.52:0}
+ };
+ if(treeDemo.playing){
+  treeDemo.time+=dt;const t=treeDemo.time;
+  if(t<.85){
+   treeDemo.mode="approach";const p=t/.85;treeDemo.player.position.x=treeDemo.walkStartX+.42*p;treeDemo.player.position.z=treeDemo.walkStartZ;
+   treeDemo.player.rotation.y=treeDemo.walkStartY;
+   for(const l of legs){const stride=Math.sin(t*10+(l.side>0?Math.PI:0));l.hip.rotation.x=stride*.34;l.knee.rotation.x=Math.max(0,-stride)*.35}
+   if(left){left.shoulder.rotation.set(-.05,0,.12);left.elbow.rotation.z=-.12}if(right){right.shoulder.rotation.set(-.05,0,-.12);right.elbow.rotation.z=.12}
+  }else if(t<3.45){
+   treeDemo.mode="side-chop";const q=t-.85,cycle=.86,phase=(q%cycle)/cycle;
+   // Ciclo legível: ergue o machado, pausa curta e golpe descendente com o peso do corpo.
+   const lift=phase<.42?phase/.42:(1-(phase-.42)/.58);
+   const strike=Math.pow(Math.max(0,(phase-.42)/.58),.65);
+   for(const l of legs){l.hip.rotation.x=phase>.62?-.10*strike:0;l.knee.rotation.x=phase>.62?.08*strike:0}
+   poseGrip(lift,phase<.42);
+   if(left){left.shoulder.rotation.x=-.18-.95*lift+1.05*strike;left.shoulder.rotation.z=.42+.30*lift;left.elbow.rotation.x=-.18-.35*lift+.52*strike;left.wrist.rotation.x=-.12-.22*lift+.28*strike}
+   if(right){right.shoulder.rotation.x=-.22-1.08*lift+1.18*strike;right.shoulder.rotation.z=-.42-.30*lift;right.elbow.rotation.x=-.22-.42*lift+.60*strike;right.wrist.rotation.x=-.12-.25*lift+.32*strike}
+   treeDemo.player.rotation.y=treeDemo.walkStartY+Math.sin(phase*Math.PI)*.22;
+   treeDemo.player.rotation.z=-.035*lift+.14*strike;
+   treeDemo.player.rotation.x=-.04*lift+.09*strike;
+   treeDemo.hits=Math.min(4,Math.floor(q/cycle)+1);
+   if(phase>.72){treeDemo.shake=Math.max(treeDemo.shake,.06+strike*.045);treeDemo.trunkPivot.rotation.z=-.025*strike}
+   else treeDemo.trunkPivot.rotation.z=0;
+  }else if(t<4.65){
+   treeDemo.mode="falling";const p=Math.min(1,(t-3.45)/1.2);treeDemo.fallProgress=p;
+   treeDemo.trunkPivot.rotation.z=-p*(Math.PI/2);treeDemo.fallenPivot.visible=false;
+   treeDemo.player.rotation.y=treeDemo.walkStartY;treeDemo.player.rotation.z=0;poseGrip(0,false);
+  }else if(t<7.05){
+   // A etapa vertical/diagonal só começa depois de a árvore estar totalmente no chão.
+   treeDemo.mode="groundhit";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;
+   const q=t-4.65,phase=(q% .8)/.8,swing=Math.sin(phase*Math.PI);
+   poseGrip(swing,true);treeDemo.player.rotation.y=treeDemo.walkStartY-.12;treeDemo.player.rotation.z=-.06+swing*.05;
+   if(left){left.shoulder.rotation.x=-.15-swing*.38;left.elbow.rotation.x=-.12-swing*.2}
+   if(right){right.shoulder.rotation.x=-.15-swing*.42;right.elbow.rotation.x=-.12-swing*.2}
+   treeDemo.groundHits=Math.min(3,Math.floor(q/.8)+1);
+  }else{
+   treeDemo.playing=false;treeDemo.mode="idle";treeDemo.trunkPivot.visible=true;treeDemo.trunkPivot.rotation.set(0,0,0);treeDemo.fallProgress=0;treeDemo.shake=0;
+   treeDemo.player.position.x=treeDemo.walkStartX;treeDemo.player.position.z=treeDemo.walkStartZ;treeDemo.player.rotation.set(0,treeDemo.walkStartY,0);
+   for(const a of arms){a.shoulder.rotation.set(0,0,0);a.elbow.rotation.set(0,0,0);a.wrist.rotation.set(0,0,0)}
+   for(const l of legs){l.hip.rotation.set(0,0,0);l.knee.rotation.set(0,0,0)}
+   if(treeDemo.axe)treeDemo.axe.rotation.set(0,0,0);
+   treeSay("Sequência concluída: golpes laterais com rotação do tronco, queda e golpes diagonais na madeira.");
+  }
+ }
+ if(treeDemo.shake>0){treeDemo.shake=Math.max(0,treeDemo.shake-dt);if(treeDemo.mode!=="falling"&&treeDemo.mode!=="sequence")treeDemo.trunkPivot.rotation.z=Math.sin(performance.now()*.11)*treeDemo.shake*.22}
+ if(treeDemo.mode==="falling"&&!treeDemo.playing){treeDemo.fallProgress=Math.min(1,treeDemo.fallProgress+dt*.72);const p=treeDemo.fallProgress;const eased=1-Math.pow(1-p,2.15);const impactBounce=p>.91?Math.sin((p-.91)/.09*Math.PI)*.035:0;treeDemo.trunkPivot.rotation.z=-(eased*Math.PI/2)+impactBounce;if(p>.20&&p<.91){const sway=Math.sin(performance.now()*.006)*.012;for(const leaf of treeDemo.leaves)leaf.rotation.z=sway}if(p>=1){treeDemo.mode="fallen";treeDemo.trunkPivot.rotation.z=-Math.PI/2;treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false;if(!treeDemo.impactDone){treeDemo.impactDone=true;for(let i=0;i<9;i++){const chip=treeMesh(new THREE.TetrahedronGeometry(.055+Math.random()*.045,0),i%2?"#9b7048":"#c0925d",treeDemo.root,[1.55+(Math.random()-.5)*.65,.18+Math.random()*.42,(Math.random()-.5)*.6]);chip.userData.debris=true;chip.userData.vx=(Math.random()-.35)*2.2;chip.userData.vy=1+Math.random()*2.2;chip.userData.vz=(Math.random()-.5)*1.8;treeDemo.debris.push(chip)}treeSay("Impacto! Árvore no chão, lascas espalhadas e toco preservado. Agora teste o corte da madeira.")}}}for(const d of treeDemo.debris||[]){d.userData.vy-=dt*4.8;d.position.x+=d.userData.vx*dt;d.position.y=Math.max(.035,d.position.y+d.userData.vy*dt);d.position.z+=d.userData.vz*dt;d.rotation.x+=dt*4;d.rotation.z+=dt*3;if(d.position.y<=.04){d.userData.vy=0;d.userData.vx*=.88;d.userData.vz*=.88}}
+ if(treeDemo.mode==="fallen"||treeDemo.mode==="groundhit"){treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false}
+ if(treeDemo.mode==="chop"&&treeDemo.arm){treeDemo.arm.rotation.x=Math.min(0,treeDemo.arm.rotation.x+dt*3.6);treeDemo.arm.rotation.z=Math.min(0,treeDemo.arm.rotation.z+dt*3)}
+}
+document.querySelectorAll("[data-tree]").forEach(b=>b.onclick=()=>createTreeDemo(b.dataset.tree));$("treePlay").onclick=treePlay;$("treePause").onclick=()=>{treeDemo.playing=false;treeSay("Animação pausada.")};$("treeReset").onclick=treeReset;$("treeHit").onclick=treeHit;$("treeFall").onclick=treeFall;$("treeGroundHit").onclick=treeGroundHit;$("treeCollect").onclick=treeCollect;
+// A cena inicia vazia: o usuário escolhe quando adicionar o pinheiro e reproduzir a animação.
+
+let renderFault=false;
+function reportRenderFault(err){if(renderFault)return;renderFault=true;console.error("Berofel 3D Create: render protegido",err);animMode="stop";const status=$("status");if(status){status.textContent="A visualização encontrou um erro e foi pausada para evitar tela preta. Recarregue a página; se persistir, use Restaurar visualização.";status.style.background="#7f1d1d";status.style.color="#fff";status.style.padding="10px";status.style.borderRadius="8px"}}
+renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
+window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
+function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=142",{updateViaCache:"none"}).catch(()=>{});
+</script></body></html>
