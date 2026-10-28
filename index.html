@@ -447,11 +447,15 @@ function updateJaguarRig(){
     const cycleAngle=cyclePhase*Math.PI*2;
     const swingFlex=support?0:Math.sin(Math.PI*swingProgress);
     const supportPush=support?Math.sin(Math.PI*stanceProgress):0;
+    // A anca segue a mesma fase da pata: uma extensão suave no apoio
+    // e uma única flexão no balanço. Não somar uma segunda oscilação senoidal.
+    const hipPitch = support
+      ? -.075*supportPush
+      : Math.sin(Math.PI*swingProgress)*(hind?.19:.16);
     leg.hip.rotation.set(
-      (hind ? .24 : .21)*Math.sin(cycleAngle-Math.PI*.15)
-        +(support ? -.035*supportPush : .025*Math.sin(Math.PI*swingProgress)),
-      Math.sin(cycleAngle)*.012*sideSign,
-      Math.sin(cycleAngle+.3)*(hind?.018:.02)*sideSign
+      hipPitch,
+      Math.sin(cycleAngle)*.006*sideSign,
+      Math.sin(cycleAngle+.3)*(hind?.012:.014)*sideSign
     );
     // Joelho recolhe uma vez no balanço e volta a estender antes do contato.
     leg.knee.rotation.x=swingFlex*(hind?.62:.48)
@@ -493,8 +497,10 @@ function updateJaguarRig(){
    const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
    const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.70));
    const spineBend=gather-reachPhase;
-   const spinePulse=Math.sin(cycle*2-.25);
-   r.body.position.y=r.baseY-.001+spinePulse*.002;
+   // O tronco acompanha uma vez por passada; frequência dupla dava
+   // a impressão de dois impactos para cada ciclo das patas.
+   const spinePulse=Math.sin(cycle-.25);
+   r.body.position.y=r.baseY-.001+spinePulse*.003;
    r.body.position.z=0;
    r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.003);
    if(r.spine){
@@ -856,5 +862,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=116",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=117",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
