@@ -354,6 +354,10 @@ function jaguarPreset(){
 function updateJaguarRig(){
  const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
  const t=animClock, rate=gallop?6.1:1.28;
+ const clamp01=v=>Math.max(0,Math.min(1,v));
+ const smooth=v=>{v=clamp01(v);return v*v*(3-2*v)};
+ const pulse=(p,a,b)=>smooth((p-a)/(b-a));
+ const wave=(p,a,b)=>{p=(p-a)/(b-a);return p<0||p>1?0:Math.sin(Math.PI*p)};
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
    for(const leg of r.legs){
@@ -368,150 +372,65 @@ function updateJaguarRig(){
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
   }
-  let foreLoad=0,hindLoad=0,verticalImpulse=0;
+  let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
-   const sideSign=leg.side<0?1:-1;
-   // Four-beat feline walk: the hind paw follows the same-side forepaw track,
-   // with a short delay. Gallop deliberately keeps a separate, wider sequence.
-   const phase=gallop
-    ? (leg.hind?(leg.side<0?.12*Math.PI:.28*Math.PI):(leg.side<0?.92*Math.PI:1.08*Math.PI))
-    : (leg.hind ? (leg.side<0 ? Math.PI*.20 : Math.PI+Math.PI*.20) : (leg.side<0 ? 0 : Math.PI));
-   const p=t*rate+phase;
-   const s=Math.sin(p), c=Math.cos(p);
-   const swingRaw=Math.max(0,Math.sin(p+.10));
-   const swing=swingRaw*swingRaw*(3-2*swingRaw);
-   const stance=Math.max(0,-Math.sin(p+.10));
-   const reach=c;
-   const hind=leg.hind;
-   const stride=gallop?(hind?.20:.25):(hind?.125:.18);
-   const hipSwing=Math.sin(p-.08);
-   const lift=gallop?swing:Math.max(0,Math.sin(p+.04));
-   const recovery=Math.max(0,-Math.sin(p));
-   const flex=gallop?Math.pow(swing,.72):Math.pow(recovery,1.25);
-   const clamp01=v=>Math.max(0,Math.min(1,v));
-   const smooth01=v=>{v=clamp01(v);return v*v*(3-2*v)};
-   // During the backward-to-forward recovery the hind knee stays tucked;
-   // it only opens as the paw reaches the front for the next ground contact.
-   const hindReachExtension=smooth01((Math.cos(p)-.02)/.98)*smooth01((recovery+.08)/.88);
-   if(hind)hindLoad+=stance;else foreLoad+=stance;
-   verticalImpulse+=lift;
+   const hind=leg.hind, side=leg.side;
+   // Four limbs have distinct timing. Walk uses a clear lift/tuck/reach/plant sequence.
+   const offset=gallop
+    ? (hind?(side<0?.10:.30):(side<0?.58:.78))
+    : (hind?(side<0?.00:.50):(side<0?.28:.78));
+   const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
+   const baseH=leg.baseHip, baseK=leg.baseKnee, baseW=leg.baseWrist;
    if(gallop){
-    // Running retains the long reach, strong tuck and brief suspension.
-    leg.hip.position.set(
-     leg.baseHip.x+Math.sin(p+.2)*.035*sideSign,
-     leg.baseHip.y+lift*(hind?.105:.12),
-     leg.baseHip.z+reach*stride
-    );
-    leg.hip.rotation.set(
-     hipSwing*(hind?.72:.64)+(hind?Math.max(0,-Math.sin(p))*.18:0)+stance*(hind?.08:.06),
-     Math.sin(p)*.035*sideSign,
-     Math.sin(p+.3)*(hind?.055:.06)*sideSign
-    );
-    leg.knee.rotation.x=flex*(hind?1.25:1.42)-stance*.16;
-    if(leg.baseKnee)leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+flex*.045,leg.baseKnee.z+lift*.025);
-    if(leg.wrist){
-     leg.wrist.rotation.x=-flex*.46+stance*.12;
-     if(leg.baseWrist)leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*.09,leg.baseWrist.z+lift*.055+Math.max(0,reach)*.035);
-    }
+    const swing=wave(p,0,.56), tuck=wave(p,.06,.42), extend=pulse(p,.30,.55);
+    leg.hip.position.set(baseH.x,baseH.y+swing*.11,baseH.z+Math.sin(p*Math.PI*2)*(hind?.17:.20));
+    leg.hip.rotation.x=(hind?-.90:-.82)*Math.sin(p*Math.PI*2)+(hind?-.20:.06);
+    leg.knee.rotation.x=(hind?1.35:1.55)*tuck-.55*extend;
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+tuck*.06,baseK.z);
+    if(leg.wrist){leg.wrist.rotation.x=-.60*tuck+.30*extend;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+swing*.10,baseW.z+swing*.08);}
+    if(hind)hindLoad+=1-swing;else foreLoad+=1-swing;
+    continue;
+   }
+   const hindLift=wave(p,.02,.48), hindTuck=wave(p,.08,.42), hindOpen=pulse(p,.32,.53);
+   const hindSupport=p>=.53&&p<.98?1:0;
+   const foreLift=wave(p,.00,.46), foreTuck=wave(p,.04,.40), foreReach=pulse(p,.28,.48);
+   const foreSupport=p>=.48&&p<.99?1:0;
+   if(hind){
+    // First rotate the hip forward; fold the hock, then extend the lower leg to land.
+    leg.hip.rotation.x=-.98*hindLift+.48*(1-hindLift)-.12*hindSupport;
+    leg.knee.rotation.x=1.30*hindTuck-.98*hindOpen;
+    if(baseH)leg.hip.position.set(baseH.x,baseH.y+hindLift*.045,baseH.z+hindLift*.13-hindSupport*.035);
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+hindTuck*.045,baseK.z+hindLift*.035);
+    if(leg.wrist){leg.wrist.rotation.x=-.52*hindTuck+.34*hindOpen;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+hindLift*.055,baseW.z+hindLift*.12-hindSupport*.055);}
+    hindLoad+=hindSupport;
    }else{
-    // WALK: visible sagittal pendulum at shoulder/hip, plus lift at the joint.
-    // The paw is actively tucked during recovery and extended before touchdown.
-    const forward=Math.max(0,reach);
-    const backward=Math.max(0,-reach);
-    const tuck=flex;
-    const extension=hind?hindReachExtension:Math.max(0,Math.sin(p+Math.PI*.72));
-    const shoulderVertical=lift*(hind?.045:.012);
-    // Forepaws stay steady through support; the body travels over them.
-    // The foreleg advances during swing, rather than sliding through stance.
-    // Smooth cyclic travel avoids the discontinuity at the stance/swing seam.
-    // Ground contact is suggested by low paw lift and reduced forelimb swing.
-    // Na dianteira, quase não deslocamos o ombro em linha reta:
-    // a rotação do ombro projeta a perna e o joelho recolhido tira a pata do chão.
-    // A traseira conserva um pouco mais de translação para completar o impulso.
-    const hipTravel=leg.baseHip.z+reach*stride*(hind?.92:.05);
-    leg.hip.position.set(
-     leg.baseHip.x+Math.sin(p+.2)*.018*sideSign,
-     leg.baseHip.y+shoulderVertical,
-     hipTravel
-    );
-    // Rotation around X swings the whole limb fore/aft; Y/Z add small 3D
-    // shoulder-girdle motion instead of a single rigid pendulum.
-    // Drive the shoulder/hip primarily by rotation, not by sliding the joint.
-    // A larger sagittal arc swings the limb forward; the hind hip opens farther
-    // during push-off so the rear leg can extend behind the pelvis.
-    const foreSwing=Math.sin(p-.12);
-    const hindPush=Math.max(0,Math.sin(p+Math.PI*.12));
-    // O ombro gira mais na recuperação para lançar a pata à frente.
-    // A perna dianteira dobra bastante no retorno e só abre na aproximação do solo.
-    // Ciclo dianteiro em duas fases claras: apoio contínuo na metade do ciclo;
-    // na outra metade, recolhe o joelho, balança a perna à frente e estende
-    // apenas no final para um único novo contato — sem um segundo toque no meio.
-    // A dianteira faz um arco curto e baixo; não deve levantar em direção ao focinho.
-    // A traseira é quem percorre o chão para trás durante o apoio.
-    const foreTuck=smooth01((recovery-.16)/.76);
-    const foreReachExtension=smooth01((Math.cos(p)+.12)/1.12);
-    leg.hip.rotation.set(
-     hind
-      ? foreSwing*.62-hindPush*.20+stance*.045
-      : foreSwing*.78+stance*.025,
-     Math.sin(p+.12)*.018*sideSign,
-     Math.sin(p+.3)*(hind?.035:.042)*sideSign
-    );
-    // O joelho recolhe a pata durante a volta; a extensão ocorre antes do apoio.
-    leg.knee.rotation.x=hind
-      ? (tuck*1.22-hindReachExtension*.92-stance*.025)
-      : (foreTuck*.82-foreReachExtension*.36-stance*.025);
-    if(leg.baseKnee){
-     leg.knee.position.set(
-      leg.baseKnee.x,
-      leg.baseKnee.y+tuck*.045+lift*.018,
-      leg.baseKnee.z+forward*.025-backward*.018
-     );
-    }
-    if(leg.wrist){
-     // Paw curls up/back in recovery, then reaches forward/down for contact.
-     leg.wrist.rotation.x=hind
-      ? (-tuck*.48+hindReachExtension*.38+stance*.06)
-      : (-foreTuck*.30+foreReachExtension*.16+stance*.02);
-     if(leg.baseWrist){
-      leg.wrist.position.set(
-       leg.baseWrist.x,
-       leg.baseWrist.y+lift*(hind?.075:.012)-(hind?tuck*.018:foreTuck*.004),
-       leg.baseWrist.z+lift*(hind?.075:.006)+(hind?(stance>0?-stance*.025:forward*.018):forward*.004)
-      );
-     }
-    }
+    // Lift the knee toward the belly, swing the shoulder strongly forward,
+    // then unfold the limb down and hold it planted while the pelvis catches up.
+    leg.hip.rotation.x=-.18-1.48*foreLift+.62*foreSupport;
+    leg.knee.rotation.x=1.72*foreTuck-1.02*foreReach;
+    if(baseH)leg.hip.position.set(baseH.x,baseH.y+foreLift*.075,baseH.z+foreLift*.045+foreReach*.075);
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+foreTuck*.065+foreLift*.025,baseK.z+foreLift*.035+foreReach*.035);
+    if(leg.wrist){leg.wrist.rotation.x=-.78*foreTuck+.46*foreReach;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+foreLift*.075,baseW.z+foreLift*.04+foreReach*.10);}
+    foreLoad+=foreSupport;
    }
   }
-  foreLoad/=2;hindLoad/=2;verticalImpulse/=4;
+  foreLoad/=2;hindLoad/=2;
   const cycle=t*rate;
   if(gallop){
    const airborne=Math.max(0,Math.sin(cycle*2+.25));
-   r.body.position.y=r.baseY+.012+airborne*.075+hindLoad*.022;
-   r.body.position.z=Math.sin(cycle+.35)*.03;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;
-   r.body.rotation.z=Math.sin(cycle*.5)*.028;
+   r.body.position.y=r.baseY+.012+airborne*.075;r.body.position.z=Math.sin(cycle+.35)*.03;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;r.body.rotation.z=Math.sin(cycle*.5)*.028;
    if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
   }else{
-   // A dianteira funciona como apoio relativamente estável.
-   // A coluna lombar move a garupa e as patas traseiras: recolhe para trazer
-   // as pernas sob o corpo e estende para projetar a passada para trás/à frente.
-   const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
-   const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.70));
-   const spineBend=gather-reachPhase;
-   const spinePulse=Math.sin(cycle*2-.25);
-   r.body.position.y=r.baseY-.001+spinePulse*.002;
-   r.body.position.z=0;
-   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.003);
-   if(r.spine){
-    // Flexão mais forte na metade traseira; a dianteira não acompanha o pivô.
-    r.spine.rotation.x=spineBend*.14+(hindLoad-foreLoad)*.018;
-    r.spine.position.y=r.baseSpineY+gather*.018-reachPhase*.006;
-    r.spine.position.z=r.baseSpineZ+spineBend*.018;
-   }
+   // The planted foreleg stays relatively extended while the pelvis retracts,
+   // letting the hind paw reach the forepaw's track instead of cycling in place.
+   const catchUp=Math.max(0,Math.sin(cycle-Math.PI*.15)), gather=foreLoad*catchUp;
+   r.body.position.y=r.baseY+Math.sin(cycle*2)*.003;r.body.position.z=0;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.004);
+   if(r.spine){r.spine.rotation.x=-.10*gather+.045*Math.sin(cycle*2);r.spine.position.y=r.baseSpineY+gather*.025;r.spine.position.z=r.baseSpineZ-gather*.075;}
   }
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.028):Math.sin(t*1.35)*.008;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
   r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.26:.14):Math.sin(t*.8)*.035;
   r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
  }
