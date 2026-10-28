@@ -330,8 +330,9 @@ function jaguarPreset(){
    block(hip,"Coxa",[q.side*.34,.84,q.z],[.30,.52,.34],q.hind?GOLD2:GOLD);
    const knee=group(hip,[q.side*.34,.63,q.z],"Pivô joelho");
    block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
-   block(knee,"Pata",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
-   legs.push({hip,knee,phase:q.phase,hind:q.hind,side:q.side});
+   const wrist=group(knee,[q.side*.34,.16,q.z+.055],"Pivô da munheca/pata");
+   block(wrist,"Pata articulada",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
+   legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side});
  }
  // Cauda em três segmentos, ligada ao corpo.
  const tail=group(body,[0,1.48,-.88],"Pivô da cauda");
@@ -349,7 +350,7 @@ function updateJaguarRig(){
  const TAU=Math.PI*2;
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
-   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);}
+   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);if(leg.wrist)leg.wrist.rotation.set(0,0,0);}
    r.body.position.y=r.baseY;r.body.rotation.set(0,0,0);
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
@@ -374,6 +375,7 @@ function updateJaguarRig(){
     leg.hip.rotation.x=stride*(leg.hind?.88:.66);
     leg.knee.rotation.x=liftPhase*(leg.hind?.95:1.05)-(stride<-.25?.10:0);
     leg.hip.rotation.z=Math.sin(p+.3)*(leg.hind?.045:.035)*(leg.side<0?1:-1);
+    if(leg.wrist)leg.wrist.rotation.x=-liftPhase*.18;
    }else{
     // Ombro/anca descreve arco: alcança à frente, baixa durante o alcance,
     // recua no apoio e transmite a impulsão ao tronco.
@@ -385,6 +387,7 @@ function updateJaguarRig(){
     leg.knee.rotation.x=(recovery*(leg.hind?.48:.40))-(Math.max(0,-Math.cos(p+.42))*(leg.hind?.10:.08));
     // Pequena componente lateral para o ombro se mover em mais de um eixo.
     leg.hip.rotation.z=Math.sin(p+.35)*(leg.hind?.035:.045)*(leg.side<0?1:-1);
+    if(leg.wrist)leg.wrist.rotation.x=-recovery*.12+Math.max(0,-stride)*.035;
    }
   }
   const wave=Math.sin(t*rate);
