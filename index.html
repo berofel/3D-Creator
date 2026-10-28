@@ -422,9 +422,9 @@ function updateJaguarRig(){
     const stanceProgress=support?cyclePhase/duty:0;
     const swingProgress=support?0:(cyclePhase-duty)/(1-duty);
     const smooth01=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
-    const lift=support?0:Math.sin(Math.PI*swingProgress);
+    const lift=(support?0:Math.sin(Math.PI*swingProgress))*(+$("gaitLift").value||100)/100;
     const hind=leg.hind;
-    const stride=hind?.145:.17;
+    const stride=(hind?.145:.17)*(+$("gaitStride").value||100)/100;
     // Fase de apoio: a pata recua relativamente ao tronco sem ser levantada.
     // Fase de balanço: trajetória suave para a frente e elevação curta.
     // A trajetória precisa ser contínua no contato:
