@@ -578,10 +578,16 @@ function buildExportBundle(requestedModes){
  exportScene.updateMatrixWorld(true);
  const oldMode=animMode,oldClock=animClock,oldLast=animLast;
  const saved=records.map(r=>({o:r.original,p:r.original.position.clone(),q:r.original.quaternion.clone(),s:r.original.scale.clone()}));
- const fps=24,duration=2,frameCount=Math.round(fps*duration)+1,times=Array.from({length:frameCount},(_,i)=>i/fps);
+ const fps=30;
  const clips=[];
  try{
   for(const mode of (requestedModes&&requestedModes.length?requestedModes:["idle","walk","gallop"])){
+   // Export one complete cycle for locomotion so the first and last keyframes
+   // meet cleanly when the AnimationPlayer loops. Idle keeps a short 2 s loop.
+   const cadence=+$("gaitCadence").value||1;
+   const duration=mode==="walk"?(Math.PI*2/(1.28*cadence)):mode==="gallop"?(Math.PI*2/(6.1*cadence)):2;
+   const frameCount=Math.round(fps*duration)+1;
+   const times=Array.from({length:frameCount},(_,i)=>i===frameCount-1?duration:i/fps);
    const samples=new Map(records.map(r=>[r.name,{p:[],q:[],s:[]}]));
    animMode=mode;
    for(let frame=0;frame<frameCount;frame++){
