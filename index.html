@@ -370,11 +370,11 @@ function jaguarPreset(){
  block(tail,"Faixa escura",[0,-.14,-.60],[.13,.13,.09],DARK);
  block(tail,"Ponta escura",[0,-.16,-.72],[.13,.13,.15],DARK,"taper",[.12,0,0]);
  window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
- select(null);setSkinMode("bones");say("Onça revisada: somente peitoral, tronco-pistão e anca; pata sincronizada ao apoio.");
+ select(null);setSkinMode("bones");say("Onça revisada: passada traseira projetada para a frente, eixo longitudinal corrigido e apoio mais suave.");
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?4.35:1.28;
+ const t=animClock,rate=gallop?3.9:1.12;
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
  const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
  const ramp=(p,a,b)=>smooth((p-a)/(b-a));
@@ -397,15 +397,17 @@ function updateJaguarRig(){
    const swing=arc(p,.02,.43),lift=arc(p,.04,.39),plant=ramp(p,.34,.43),push=ramp(p,.43,.78),release=ramp(p,.78,.98);
    const phase=cycle+leg.phase;
    if(hind){
-    // A anca desloca-se em dois eixos; o membro continua rígido, sem joelho.
-    const hipPitch=gallop?-.19*Math.sin(phase)-.035:.055-.22*swing+.10*push;
-    const hipYaw=.08*Math.sin(phase*.5+side*.5);
-    leg.hip.rotation.set(hipPitch,hipYaw,side*.025*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.035:.012),leg.baseHip.z+.105*Math.sin(phase-.22));
-    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x+(gallop?.10:.075)*lift-(gallop?.055:.035)*push;
-    leg.wrist.rotation.x=(gallop?.18:.14)*lift+(gallop?.24:.20)*arc(p,.30,.48)*(1-plant)-(gallop?.10:.075)*push*(1-release)+.025*release;
-    leg.wrist.rotation.y=.035*Math.sin(phase+.5);
-    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.035:.012),leg.baseWrist.z+.075*Math.sin(phase-.32)-.075*push*(1-release));
+    // A anca projeta a perna traseira para a frente na recuperação e estende-a para trás no impulso.
+    // No eixo Z, +Z aponta para a cabeça; a rotação X negativa leva a coxa para a frente.
+    const hipPitch=gallop?-.48*Math.sin(phase)-.06:(-.10-.58*swing+.22*push);
+    const hipYaw=.025*Math.sin(phase*.5+side*.5);
+    leg.hip.rotation.set(hipPitch,hipYaw,side*.012*Math.sin(phase));
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.045:.012),leg.baseHip.z+.045*Math.sin(phase-.22));
+    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x-(gallop?.16:.12)*lift+(gallop?.10:.075)*push;
+    leg.wrist.rotation.x=-(gallop?.16:.12)*lift-(gallop?.18:.14)*arc(p,.30,.48)*(1-plant)+(gallop?.08:.055)*push*(1-release);
+    leg.wrist.rotation.y=.015*Math.sin(phase+.5);
+    // Durante o apoio a pata desliza para trás; na recuperação alcança a dianteira.
+    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.045:.012),leg.baseWrist.z+.035*Math.sin(phase-.32)-.10*push*(1-release));
     hindLoad+=p>.42?1:0;
    }else{
     // Ombro move a perna para a frente/trás e lateralmente; munheca flexiona a pata.
