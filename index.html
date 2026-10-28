@@ -71,7 +71,7 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandard
 const grid=new THREE.GridHelper(30,30,0x7792a4,0xc1d0da);grid.position.y=-.025;scene.add(grid);
 let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBase=new WeakMap();
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
-function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
+function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
 function clearSkin(){if(appendMode)return;for(const m of skinMeshes){if(m.parent)m.parent.remove(m);m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}skinMeshes=[]}
 function skinPiece(name,pos,scale,color,segments=7){const sides=Math.max(4,Math.min(7,Math.round(segments)));const rings=Math.max(3,Math.min(5,Math.floor(sides*.65)));const geo=new THREE.SphereGeometry(1,sides,rings);const mat=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={skin:true,name};scene.add(m);skinMeshes.push(m);return m}
 function setSkinMode(mode){skinMode=mode;const showSkin=mode==="skin";for(const m of skinMeshes)m.visible=showSkin;for(const p of parts){p.visible=true;p.material.visible=!showSkin}if(showSkin)transform.detach();transformHelper.visible=!showSkin;$("skinStatus").textContent=showSkin?"Pele visível; esqueleto oculto.":"Esqueleto articulado visível; pele ocultada.";say(showSkin?"Camada de pele ativada.":"Esqueleto articulado ativado.")}
@@ -289,66 +289,93 @@ document.querySelectorAll("[data-weapon]").forEach(b=>b.addEventListener("click"
    Animação procedural para pré-visualização; não substitui um rig de deformação. */
 window.__berofelJaguarRigs = window.__berofelJaguarRigs || [];
 function jaguarPreset(){
- const GOLD="#d6a34b", GOLD2="#b97b32", CREAM="#e8d7b5", BLACK="#241c18", PAW="#332a26", EYE="#c6b34d";
- const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
+ const COAT="#a9784e", COAT2="#8c5e3f", COAT3="#c28d5c", CREAM="#d9c9ad",
+       DARK="#30251f", SPOT1="#4a3328", SPOT2="#62432f", PAW="#332a26",
+       EYE="#d4b45a", NOSE="#211b18";
+ const body=new THREE.Group();body.name="Onça | peito e corpo";body.position.set(0,1.36,0);scene.add(body);
  const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
- const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
- // A caixa torácica e o peito ficam estáveis. Só a bacia/anca gira;
- // um pequeno segmento lombar acompanha com arco discreto, sem empurrar o corpo.
- const spine=new THREE.Group();spine.name="Pivô da bacia e coluna lombar";spine.position.set(0,1.40,-.56);body.add(spine);
- const trunk=block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
- const chest=block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
- const belly=block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
- const rump=block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
- spine.attach(rump);
- // Pequeno elo lombar visual entre tronco e bacia; sua inclinação é limitada.
- block(spine,"Coluna lombar flexível",[0,1.40,-.30],[.72,.48,.52],GOLD2);
- // Manchas quadradas em ambos os flancos e no dorso.
+ const block=(parent,name,pos,size,color,type="body",rot=[0,0,0])=>{
+  const m=make(type,pos,size,color,name);m.rotation.set(...rot);if(parent)parent.attach(m);return m;
+ };
+ // Três massas visuais: peito, coluna-pistão e anca. As peças mantêm
+ // volumes simples e facetas planas, evitando a aparência de um bloco único.
+ const spine=new THREE.Group();spine.name="Coluna lombar | pistão";spine.position.set(0,1.47,-.40);body.add(spine);
+ block(body,"Peitoral robusto",[0,1.43,.38],[.88,.77,.76],COAT2);
+ block(body,"Peito inferior claro",[0,1.12,.43],[.68,.22,.64],CREAM);
+ block(body,"Tronco central",[0,1.45,-.08],[.82,.66,.94],COAT);
+ block(spine,"Coluna dorsal elevada",[0,1.57,-.34],[.76,.55,.78],COAT3);
+ block(spine,"Faixa clara do ventre",[0,1.10,-.27],[.64,.18,.70],CREAM);
+ const rump=group(spine,[0,1.48,-.67],"Anca | massa móvel");
+ block(rump,"Quadril angular",[0,1.48,-.54],[.86,.70,.72],COAT2, "body",[0,0,-.025]);
+ block(rump,"Garupa superior",[0,1.79,-.54],[.72,.12,.62],COAT3);
+ block(rump,"Barriga traseira",[0,1.15,-.43],[.62,.17,.60],CREAM);
+ // Padrão de manchas geométricas irregulares, distribuídas pelos flancos e dorso.
+ let spotIndex=0;
  for(const side of [-1,1]){
-   for(const z of [-.58,-.28,.02,.32,.55]){
-     const y=1.57+((Math.round((z+1)*10)%2)*.08);
-     block(body,"Mancha da pelagem",[side*.467,y,z],[.025,.095,.105],BLACK);
-     if(z!==-.58&&z!==.55)block(body,"Mancha menor",[side*.47,y-.16,z+.09],[.022,.055,.06],BLACK);
-   }
-   block(body,"Mancha dorsal",[side*.24,1.80,-.35],[.09,.025,.12],BLACK);
+  const flank=[
+   [-.65,1.56],[-.42,1.72],[-.18,1.57],[.08,1.70],[.31,1.55],[.54,1.68],
+   [-.55,1.34],[-.29,1.42],[-.03,1.34],[.22,1.43],[.48,1.34]
+  ];
+  for(const [z,y] of flank){
+   const parent=z<-.18?spine:body;
+   const zz=z<-.18?z+.40:z;
+   const shade=(spotIndex++%3===0)?SPOT1:SPOT2;
+   const w=(spotIndex%4===0)?.105:.075,h=(spotIndex%3===0)?.085:.065;
+   block(parent,"Mancha lateral "+spotIndex,[side*(z<-.18?.397:.423),y,zz],[.025,h,w],shade,"body",[0,0,(spotIndex%2?.12:-.10)]);
+  }
+  for(const [z,y] of [[-.75,1.89],[-.36,1.88],[.02,1.87],[.36,1.84]]){
+   block(spine,"Mancha dorsal",[side*.22,y,z],[.10,.025,.11],SPOT1);
+  }
  }
- // Pescoço e cabeça articulados.
- const neck=group(body,[0,1.58,.72],"Pivô do pescoço");
- block(neck,"Pescoço",[0,1.66,.75],[.56,.58,.66],GOLD);
- const head=group(neck,[0,1.70,1.04],"Pivô da cabeça");
- block(head,"Crânio",[0,1.72,1.10],[.58,.48,.54],GOLD);
- block(head,"Focinho",[0,1.55,1.38],[.43,.27,.34],CREAM);
- block(head,"Nariz",[0,1.61,1.55],[.18,.12,.10],BLACK);
+ // Pescoço curto e inclinado, cabeça compacta, focinho claro e orelhas pequenas.
+ const neck=group(body,[0,1.56,.68],"Pescoço");
+ block(neck,"Pescoço inclinado",[0,1.63,.78],[.54,.54,.66],COAT2,"body",[-.10,0,0]);
+ const head=group(neck,[0,1.70,1.05],"Cabeça");
+ block(head,"Crânio felino",[0,1.72,1.12],[.54,.43,.52],COAT3);
+ block(head,"Bochecha esquerda",[-.19,1.58,1.27],[.20,.22,.26],COAT);
+ block(head,"Bochecha direita",[.19,1.58,1.27],[.20,.22,.26],COAT);
+ block(head,"Focinho claro",[0,1.53,1.43],[.36,.22,.30],CREAM);
+ block(head,"Nariz",[0,1.59,1.59],[.14,.09,.07],NOSE);
  for(const side of [-1,1]){
-   block(head,"Orelha",[side*.22,1.98,1.02],[.18,.20,.16],GOLD2,"ear");
-   block(head,"Olho",[side*.27,1.79,1.31],[.055,.075,.035],EYE,"eye");
-   block(head,"Mancha facial",[side*.29,1.67,1.20],[.035,.065,.07],BLACK);
+  block(head,"Orelha arredondada",[side*.21,1.99,1.02],[.17,.18,.15],COAT2,"ear",[0,0,side*-.12]);
+  block(head,"Interior da orelha",[side*.21,2.00,1.105],[.085,.09,.025],DARK);
+  block(head,"Olho dourado",[side*.245,1.79,1.34],[.075,.075,.035],EYE,"eye");
+  block(head,"Pupila vertical",[side*.245,1.79,1.365],[.022,.060,.014],NOSE);
+  block(head,"Marca facial",[side*.29,1.66,1.23],[.035,.11,.065],SPOT1);
+  block(head,"Bigode curto",[side*.23,1.53,1.47],[.13,.018,.018],CREAM);
  }
- // Quatro pernas com pivô de ombro/anca, joelho e pata.
+ // Pernas dianteiras: um trapézioide comprido e uma pata curta e larga.
+ // Traseiras: coxa mais volumosa, segmento inferior inclinado e pata.
  const legs=[];
  const specs=[
-  {side:-1,z:.54,phase:0,hind:false},{side:1,z:.54,phase:Math.PI,hind:false},
-  {side:-1,z:-.62,phase:Math.PI,hind:true},{side:1,z:-.62,phase:0,hind:true}
+  {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
+  {side:-1,z:-.78,phase:Math.PI,hind:true},{side:1,z:-.78,phase:0,hind:true}
  ];
  for(const q of specs){
-   const hip=group(body,[q.side*.34,1.16,q.z],"Pivô "+(q.hind?"anca":"ombro")+" "+(q.side<0?"esquerdo":"direito"));
-   const thigh=block(hip,"Coxa",[q.side*.34,.84,q.z],[.30,.52,.34],q.hind?GOLD2:GOLD);
-   // Silhueta felina: a coxa e a canela não formam uma coluna reta.
-   // Pequenas inclinações opostas criam a curva natural da perna.
-   thigh.rotation.x=q.hind?-.16:.10;
-   const knee=group(hip,[q.side*.34,.63,q.z],"Pivô joelho");
-   const shin=block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
-   shin.rotation.x=q.hind?.24:-.12;
-   const wrist=group(knee,[q.side*.34,.16,q.z+.055],"Pivô da munheca/pata");
-   block(wrist,"Pata articulada",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
-   if(q.hind)spine.attach(hip);
-   legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseKnee:knee.position.clone(),baseWrist:wrist.position.clone()});
+  const hip=group(body,[q.side*.30,1.12,q.z],"Pivô "+(q.hind?"anca traseira":"ombro dianteiro")+" "+(q.side<0?"esquerdo":"direito"));
+  if(q.hind){
+   block(hip,"Coxa traseira musculosa",[q.side*.30,.87,q.z],[.30,.53,.36],COAT2,"body",[q.side*.04,0,-q.side*.10]);
+  }else{
+   block(hip,"Perna dianteira trapézioide rígida",[q.side*.30,.57,q.z],[.225,.91,.245],COAT3,"taper",[0,0,q.side*-.025]);
+  }
+  const knee=group(hip,[q.side*.30,.63,q.z],"Pivô joelho discreto");
+  if(q.hind)block(knee,"Perna inferior traseira",[q.side*.30,.38,q.z+.035],[.19,.43,.22],COAT3,"taper",[.04,0,q.side*.04]);
+  const hock=group(knee,[q.side*.30,.25,q.z+.045],"Pivô jarrete/munheca");
+  if(q.hind)block(hock,"Jarrete traseiro inclinado",[q.side*.30,.29,q.z+.05],[.145,.34,.17],COAT2,"taper",[.13,0,0]);
+  const wrist=group(q.hind?hock:hip,[q.side*.30,.13,q.z+.08],"Pivô da pata");
+  block(wrist,"Pata larga geométrica",[q.side*.30,.15,q.z+.08],[.28,.15,.32],PAW,"foot");
+  // Pequenos dedos sugeridos por duas facetas frontais, sem virar uma mão humana.
+  for(const toe of [-1,1])block(wrist,"Dedo da pata",[q.side*.30+toe*.065,.135,q.z+.205],[.085,.07,.10],"#45362e","foot");
+  if(q.hind)spine.attach(hip);
+  legs.push({hip,knee,hock,wrist,phase:q.phase,hind:q.hind,side:q.side,
+   baseHip:hip.position.clone(),baseKnee:knee.position.clone(),baseHock:hock.position.clone(),baseWrist:wrist.position.clone()});
  }
- // Cauda e anca acompanham a metade traseira da coluna.
- const tail=group(body,[0,1.48,-.88],"Pivô da cauda");spine.attach(tail);
- block(tail,"Cauda base",[0,1.38,-1.13],[.16,.16,.48],GOLD2);
- block(tail,"Cauda média",[0,1.23,-1.47],[.13,.13,.36],GOLD);
- block(tail,"Ponta escura da cauda",[0,1.12,-1.72],[.14,.14,.22],BLACK);
+ // Cauda curta, segmentada e com ponta escura/faixas alternadas.
+ const tail=group(rump,[0,1.49,-.91],"Pivô da cauda");
+ block(tail,"Cauda base",[0,1.42,-1.15],[.16,.16,.42],COAT2,"taper",[.05,0,0]);
+ block(tail,"Cauda média",[0,1.34,-1.48],[.14,.14,.34],COAT3,"taper",[.10,0,0]);
+ block(tail,"Faixa escura da cauda",[0,1.30,-1.62],[.145,.145,.10],DARK);
+ block(tail,"Ponta da cauda",[0,1.28,-1.76],[.14,.14,.18],DARK,"taper",[.10,0,0]);
  window.__berofelJaguarRigs.push({body,spine,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z});
 }
 function updateJaguarRig(){
@@ -356,15 +383,17 @@ function updateJaguarRig(){
  const t=animClock, rate=gallop?6.1:1.28;
  const clamp01=v=>Math.max(0,Math.min(1,v));
  const smooth=v=>{v=clamp01(v);return v*v*(3-2*v)};
- const pulse=(p,a,b)=>smooth((p-a)/(b-a));
- const wave=(p,a,b)=>{p=(p-a)/(b-a);return p<0||p>1?0:Math.sin(Math.PI*p)};
+ const phase01=(p,a,b)=>smooth((p-a)/(b-a));
+ const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
    for(const leg of r.legs){
     leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);
+    if(leg.hock)leg.hock.rotation.set(0,0,0);
     if(leg.wrist)leg.wrist.rotation.set(0,0,0);
     if(leg.baseHip)leg.hip.position.copy(leg.baseHip);
     if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);
+    if(leg.baseHock&&leg.hock)leg.hock.position.copy(leg.baseHock);
     if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);
    }
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
@@ -375,43 +404,73 @@ function updateJaguarRig(){
   let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
    const hind=leg.hind, side=leg.side;
-   // Four limbs have distinct timing. Walk uses a clear lift/tuck/reach/plant sequence.
    const offset=gallop
     ? (hind?(side<0?.10:.30):(side<0?.58:.78))
     : (hind?(side<0?.00:.50):(side<0?.28:.78));
    const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
-   const baseH=leg.baseHip, baseK=leg.baseKnee, baseW=leg.baseWrist;
+   const baseH=leg.baseHip, baseK=leg.baseKnee, baseA=leg.baseHock, baseW=leg.baseWrist;
+   const lift=arc(p,.02,.32), reach=phase01(p,.20,.44), support=p>=.44?1:0;
    if(gallop){
-    const swing=wave(p,0,.56), tuck=wave(p,.06,.42), extend=pulse(p,.30,.55);
-    leg.hip.position.set(baseH.x,baseH.y+swing*.11,baseH.z+Math.sin(p*Math.PI*2)*(hind?.17:.20));
-    leg.hip.rotation.x=(hind?-.90:-.82)*Math.sin(p*Math.PI*2)+(hind?-.20:.06);
-    leg.knee.rotation.x=(hind?1.35:1.55)*tuck-.55*extend;
-    if(baseK)leg.knee.position.set(baseK.x,baseK.y+tuck*.06,baseK.z);
-    if(leg.wrist){leg.wrist.rotation.x=-.60*tuck+.30*extend;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+swing*.10,baseW.z+swing*.08);}
-    if(hind)hindLoad+=1-swing;else foreLoad+=1-swing;
+    const tuck=arc(p,.04,.38);
+    leg.hip.rotation.x=(hind?-.78:-.62)*Math.sin(p*Math.PI*2)+(hind?-.12:.02);
+    // Dianteira: joelho rígido também no galope; a munheca faz a flexão.
+    leg.knee.rotation.x=hind?Math.max(0,.32*tuck):0;
+    if(leg.hock)leg.hock.rotation.x=hind?Math.max(0,.25*tuck):0;
+    if(leg.wrist)leg.wrist.rotation.x=hind?Math.max(0,.28*tuck):Math.max(0,.42*tuck)-.28*reach;
+    leg.hip.position.set(baseH.x,baseH.y+lift*(hind?.055:.025),baseH.z+lift*(hind?.22:.15));
+    if(baseK)leg.knee.position.copy(baseK);
+    if(baseA&&leg.hock)leg.hock.position.copy(baseA);
+    if(baseW&&leg.wrist)leg.wrist.position.set(baseW.x,baseW.y+lift*.045,baseW.z+lift*.06);
+    if(hind)hindLoad+=support;else foreLoad+=support;
     continue;
    }
-   const hindLift=wave(p,.02,.48), hindTuck=wave(p,.08,.42), hindOpen=pulse(p,.32,.53);
-   const hindSupport=p>=.53&&p<.98?1:0;
-   const foreLift=wave(p,.00,.46), foreTuck=wave(p,.04,.40), foreReach=pulse(p,.28,.48);
-   const foreSupport=p>=.48&&p<.99?1:0;
    if(hind){
-    // First rotate the hip forward; fold the hock, then extend the lower leg to land.
-    leg.hip.rotation.x=-.98*hindLift+.48*(1-hindLift)-.12*hindSupport;
-    leg.knee.rotation.x=1.30*hindTuck-.98*hindOpen;
-    if(baseH)leg.hip.position.set(baseH.x,baseH.y+hindLift*.045,baseH.z+hindLift*.13-hindSupport*.035);
-    if(baseK)leg.knee.position.set(baseK.x,baseK.y+hindTuck*.045,baseK.z+hindLift*.035);
-    if(leg.wrist){leg.wrist.rotation.x=-.52*hindTuck+.34*hindOpen;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+hindLift*.055,baseW.z+hindLift*.12-hindSupport*.055);}
-    hindLoad+=hindSupport;
+    // Ciclo traseiro em quatro tempos: anca + pata avançam; a pata planta;
+    // a anca recua enquanto a pata plantada fica no lugar; a outra repete.
+    // O lado direito e esquerdo alternam meio ciclo.
+    const swing=arc(p,.00,.32);
+    const stance=phase01(p,.32,.46);
+    const pelvisBack=phase01(p,.46,.98);
+    const hipForward=-.12+.60*phase01(p,0,.32);
+    const hipReturn=.48-.60*pelvisBack;
+    leg.hip.rotation.x=p<.32?hipForward:hipReturn;
+    const stride=.28*swing;
+    // A anca desloca-se para a frente durante o avanço. Na fase plantada,
+    // a pata mantém a posição global enquanto a anca/anca recua.
+    const hipTravel=p<.32?stride:(.28*(1-stance)-.28*pelvisBack);
+    leg.hip.position.set(baseH.x,baseH.y+lift*.025,baseH.z+hipTravel);
+    leg.knee.rotation.x=Math.max(0,.16*arc(p,.02,.24));
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+lift*.012,baseK.z+swing*.025);
+    if(leg.hock)leg.hock.rotation.x=Math.max(0,.20*arc(p,.02,.25));
+    if(baseA&&leg.hock)leg.hock.position.set(baseA.x,baseA.y+lift*.015,baseA.z+swing*.035);
+    if(leg.wrist)leg.wrist.rotation.x=Math.max(0,.24*arc(p,.01,.25)-.12*reach);
+    if(baseW&&leg.wrist){
+     const pawZ=p<.32?baseW.z+swing*.28:(baseW.z+.28*(1-stance));
+     leg.wrist.position.set(baseW.x,baseW.y+lift*.04,pawZ);
+    }
+    hindLoad+=support;
    }else{
-    // Lift the knee toward the belly, swing the shoulder strongly forward,
-    // then unfold the limb down and hold it planted while the pelvis catches up.
-    leg.hip.rotation.x=-.18-1.48*foreLift+.62*foreSupport;
-    leg.knee.rotation.x=1.72*foreTuck-1.02*foreReach;
-    if(baseH)leg.hip.position.set(baseH.x,baseH.y+foreLift*.075,baseH.z+foreLift*.045+foreReach*.075);
-    if(baseK)leg.knee.position.set(baseK.x,baseK.y+foreTuck*.065+foreLift*.025,baseK.z+foreLift*.035+foreReach*.035);
-    if(leg.wrist){leg.wrist.rotation.x=-.78*foreTuck+.46*foreReach;if(baseW)leg.wrist.position.set(baseW.x,baseW.y+foreLift*.075,baseW.z+foreLift*.04+foreReach*.10);}
-    foreLoad+=foreSupport;
+    // Dianteira: joelho/cotovelo e jarrete ficam alinhados, sem flexão.
+    // A munheca recolhe a pata para trás, em direção à perna traseira;
+    // depois gira para estender a pata até o chão à frente do peito.
+    const tuck=arc(p,.02,.24);
+    const plant=phase01(p,.22,.46);
+    const sweep=phase01(p,.46,.98);
+    // Ombro controla o balanço sem lançar a perna contra a cara.
+    const shoulder=p<.24?.10+.08*tuck:(p<.46?.18-.34*plant:-.16+.26*sweep);
+    leg.hip.rotation.x=shoulder;
+    leg.hip.position.set(baseH.x,baseH.y+lift*.008,baseH.z);
+    leg.knee.rotation.set(0,0,0);
+    if(baseK)leg.knee.position.copy(baseK);
+    if(leg.hock)leg.hock.rotation.set(0,0,0);
+    if(baseA&&leg.hock)leg.hock.position.copy(baseA);
+    // Flexão e extensão são feitas somente na munheca.
+    if(leg.wrist)leg.wrist.rotation.x=.62*tuck-.26*plant;
+    if(baseW&&leg.wrist){
+     const pawZ=p<.24?baseW.z-.035*tuck:(p<.46?baseW.z-.035+.13*plant:baseW.z+.095*(1-sweep));
+     leg.wrist.position.set(baseW.x,baseW.y+lift*.012,pawZ);
+    }
+    foreLoad+=support;
    }
   }
   foreLoad/=2;hindLoad/=2;
@@ -422,17 +481,21 @@ function updateJaguarRig(){
    r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;r.body.rotation.z=Math.sin(cycle*.5)*.028;
    if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
   }else{
-   // The planted foreleg stays relatively extended while the pelvis retracts,
-   // letting the hind paw reach the forepaw's track instead of cycling in place.
-   const catchUp=Math.max(0,Math.sin(cycle-Math.PI*.15)), gather=foreLoad*catchUp;
-   r.body.position.y=r.baseY+Math.sin(cycle*2)*.003;r.body.position.z=0;
-   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.004);
-   if(r.spine){r.spine.rotation.x=-.10*gather+.045*Math.sin(cycle*2);r.spine.position.y=r.baseSpineY+gather*.025;r.spine.position.z=r.baseSpineZ-gather*.075;}
+   // Pequena transferência de peso; não empurra a anca para trás enquanto
+   // a pata traseira está na fase de avanço.
+   const weightShift=(hindLoad-foreLoad)*.012;
+   r.body.position.y=r.baseY+Math.sin(cycle*2)*.0015;r.body.position.z=0;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.0015);
+   if(r.spine){
+    r.spine.rotation.x=.018*Math.sin(cycle*2)+weightShift;
+    r.spine.position.y=r.baseSpineY+Math.max(0,weightShift)*.25;
+    r.spine.position.z=r.baseSpineZ+weightShift;
+   }
   }
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.015):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.01):Math.sin(t*1.35)*.008;
   r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.26:.14):Math.sin(t*.8)*.035;
-  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
+  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.055):Math.sin(t*1.1)*.025;
  }
 }
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
@@ -781,5 +844,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=114",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=128",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
