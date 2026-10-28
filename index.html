@@ -371,7 +371,7 @@ function updateJaguarRig(){
    // with a short delay. Gallop deliberately keeps a separate, wider sequence.
    const phase=gallop
     ? (leg.hind?(leg.side<0?.12*Math.PI:.28*Math.PI):(leg.side<0?.92*Math.PI:1.08*Math.PI))
-    : (leg.hind ? (leg.side<0 ? Math.PI+Math.PI*.18 : Math.PI*.18) : (leg.side<0 ? 0 : Math.PI));
+    : (leg.hind ? (leg.side<0 ? Math.PI*.20 : Math.PI+Math.PI*.20) : (leg.side<0 ? 0 : Math.PI));
    const p=t*rate+phase;
    const s=Math.sin(p), c=Math.cos(p);
    const swingRaw=Math.max(0,Math.sin(p+.10));
@@ -439,8 +439,11 @@ function updateJaguarRig(){
     const hindPush=Math.max(0,Math.sin(p+Math.PI*.12));
     // O ombro gira mais na recuperação para lançar a pata à frente.
     // A perna dianteira dobra bastante no retorno e só abre na aproximação do solo.
-    const foreTuck=smooth01((recovery-.04)/.78);
-    const foreReachExtension=smooth01((Math.cos(p)-.05)/.95)*smooth01((recovery+.04)/.82);
+    // Ciclo dianteiro em duas fases claras: apoio contínuo na metade do ciclo;
+    // na outra metade, recolhe o joelho, balança a perna à frente e estende
+    // apenas no final para um único novo contato — sem um segundo toque no meio.
+    const foreTuck=smooth01((recovery-.12)/.72);
+    const foreReachExtension=smooth01((Math.cos(p)+.12)/1.12);
     leg.hip.rotation.set(
      hind
       ? foreSwing*.62-hindPush*.20+stance*.045
@@ -853,5 +856,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=110",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=111",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
