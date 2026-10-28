@@ -291,7 +291,7 @@ window.__berofelJaguarRigs = window.__berofelJaguarRigs || [];
 function jaguarPreset(){
  const GOLD="#d6a34b", GOLD2="#b97b32", CREAM="#e8d7b5", BLACK="#241c18", PAW="#332a26", EYE="#c6b34d";
  const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
- const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g};
+ const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
  const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
  // Corpo, peito e garupa: volumes retangulares facetados já dimensionados.
  block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
