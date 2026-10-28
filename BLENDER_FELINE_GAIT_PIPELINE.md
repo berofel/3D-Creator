@@ -5,40 +5,39 @@
 
 ## Referências técnicas
 - Morphological Animal Design App (ETH Zürich): https://github.com/houskan/morph — referência para anatomia parametrizada e parâmetros de locomoção. Confirmar licença antes de reutilizar código/ativos.
-- Animal Animator: https://extensions.blender.org/add-ons/animal-animator/ — referência de organização de ciclos quadrúpedes; a extensão é GPL-3.0-or-later, mas isso não concede licença para copiar automaticamente outros componentes.
+- Animal Animator: https://extensions.blender.org/add-ons/animal-animator/ — referência de organização de ciclos quadrúpedes; confirmar licença e obrigações antes de reutilizar componentes.
 - Deer Me: https://github.com/mortgoldman/deer_me — referência adicional para fases de marcha e IK; verificar licença e aplicabilidade antes de reutilizar código.
 
-A abordagem deste projeto é reimplementar os conceitos necessários em JavaScript/Three.js. O fato de o Blender ser open source não torna automaticamente livre todo add-on, ativo ou algoritmo de terceiros.
+A abordagem deste projeto é reimplementar os conceitos necessários em JavaScript/Three.js. Não copiar código ou ativos de terceiros sem confirmar as respectivas licenças.
 
-## Etapa atual implementada
-Na branch `feature/feline-gait-blender-pipeline`, a interface agora inclui controles nativos para a marcha:
-- **Cadência:** escala a velocidade do ciclo da onça.
-- **Comprimento do passo:** ajusta a trajetória longitudinal das patas durante a caminhada.
-- **Fase de apoio:** controla a fração normalizada do ciclo em que a pata permanece apoiada.
-- **Elevação da pata:** ajusta a altura do balanço.
-- **Restaurar parâmetros:** retorna aos valores padrão sem editar o código.
-- Cache do service worker atualizado para v118 para evitar que o navegador continue usando a interface antiga.
+## Implementado na branch
+Branch: `feature/feline-gait-blender-pipeline`
 
-Esses controles são ligados ao ciclo procedural existente da onça. Isso é uma primeira etapa incremental; ainda não equivale a um solver completo de IK nem a uma malha deformável com armature/skin.
+- Controles de **cadência**, **comprimento do passo**, **fase de apoio** e **elevação da pata**, com restauração dos padrões.
+- Caminhada e galope com perfis e fases diferentes.
+- Trajetória longitudinal de apoio/balanço, com apoio sem elevação e arco de balanço.
+- Solver procedural de duas juntas: estima o alcance da cadeia, limita a extensão e calcula ângulos de quadril/anca e joelho a partir do alvo da pata.
+- Movimento secundário coordenado do tronco, coluna lombar, pescoço, cabeça e cauda.
+- Reset da pose ao parar a animação.
+- Cache do service worker atualizado para v119.
 
-## Próximas funções planejadas
-1. Rig quadrúpede com juntas nomeadas e pivôs estáveis.
-2. Trajetória contínua de apoio e balanço com controle da posição da pata.
-3. IK simples de duas juntas para manter a pata perto do chão e reduzir deslizamento.
-4. Coordenação de ombros, bacia, coluna, pescoço e cauda com amortecimento secundário.
-5. Perfis separados para caminhada, trote e galope com fases próprias.
-6. Exportação GLB com hierarquia e animação preservadas, seguida de reimportação no próprio editor.
+## Limites conhecidos
+- O rig da onça é formado por volumes modulares e pivôs; ainda não é uma armature com deformação de pele.
+- O solver atual é uma primeira solução geométrica aproximada. O encaixe exato dos eixos, a orientação dos joelhos, a posição do contato e o deslizamento precisam ser observados no navegador.
+- O galope usa uma trajetória própria simplificada; não declarar contato físico ou suspensão perfeita sem teste visual.
+- O trote ainda não é um modo separado na interface.
+- A exportação GLB já existe no editor, mas a preservação correta da nova cinemática precisa de teste de ida e volta.
 
-## Critérios de aceitação
-- Visualizar a onça de frente e de lado no próprio editor.
-- Cada pata completa uma trajetória coerente por ciclo, sem oscilação duplicada.
-- Pata baixa durante o apoio e elevada durante o balanço, com transições contínuas.
-- Sem membros esticados de forma impossível ou vibração evidente.
-- Ciclo fecha sem salto entre o fim e o começo.
-- Exportar e reimportar GLB, confirmando a animação.
-- Preservar os demais presets, ferramentas de edição e exportação.
+## Critérios de aceitação para a rodada de testes
+1. Adicionar a onça e inspecionar a caminhada de frente, de lado e em perspectiva.
+2. Confirmar que cada pata faz uma única trajetória por ciclo, sem tremor ou oscilação duplicada.
+3. Confirmar que a pata fica baixa durante o apoio e sobe no balanço, sem atravessar o chão nem deslizar excessivamente.
+4. Confirmar que a flexão das juntas não causa inversão ou extensão impossível.
+5. Confirmar continuidade do loop, coordenação do tronco/coluna/cauda e diferenças claras entre caminhada e galope.
+6. Exportar GLB e validar a animação reimportando no editor ou na Godot.
+7. Regressão: verificar presets de cavalo, gnu, humanoide, ferramentas e edição modular.
 
 ## Estado de validação
-- Alterações de interface e lógica gravadas no GitHub.
-- Verificação realizada nesta etapa: presença dos quatro controles, ligação dos valores à caminhada e URL de cache v118.
-- **Não foi executado teste visual em navegador nesta etapa.** Não declarar a animação corrigida até observar o ciclo no editor.
+- Código e documentação atualizados no GitHub.
+- Checagens estáticas: a função de marcha contém o cálculo geométrico das duas juntas, os controles continuam presentes, o fluxo de exportação permanece no arquivo e a versão de cache é v119.
+- **Não foi executado teste visual em navegador nem teste de reimportação GLB nesta etapa.** A cinemática está implementada como primeira versão, mas não deve ser chamada de validada até passar pelos testes acima.
