@@ -294,7 +294,7 @@ function jaguarPreset(){
  const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
  const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
  // Pivô de flexão torácica: peito, pescoço e ombros dianteiros acompanham a coluna.
- const spine=new THREE.Group();spine.name="Pivô de flexão da coluna";spine.position.set(0,1.40,.25);body.add(spine);
+ const spine=new THREE.Group();spine.name="Pivô de flexão da coluna";spine.position.set(0,.04,.25);body.add(spine);
  // Corpo, peito e garupa: volumes retangulares facetados já dimensionados.
  block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
  const chest=block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
@@ -397,9 +397,9 @@ function updateJaguarRig(){
      leg.baseHip.z+reach*stride
     );
     leg.hip.rotation.set(
-     hipSwing*(hind?.53:.49)+(stance*(hind?.13:.10)),
-     Math.sin(p)*.045*sideSign,
-     Math.sin(p+.3)*.075*sideSign
+     hipSwing*(hind?.72:.64)+(hind?Math.max(0,-Math.sin(p))*.18:0)+stance*(hind?.08:.06),
+     Math.sin(p)*.035*sideSign,
+     Math.sin(p+.3)*(hind?.055:.06)*sideSign
     );
     leg.knee.rotation.x=flex*(hind?1.25:1.42)-stance*.16;
     if(leg.baseKnee)leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+flex*.045,leg.baseKnee.z+lift*.025);
@@ -427,10 +427,17 @@ function updateJaguarRig(){
     );
     // Rotation around X swings the whole limb fore/aft; Y/Z add small 3D
     // shoulder-girdle motion instead of a single rigid pendulum.
+    // Drive the shoulder/hip primarily by rotation, not by sliding the joint.
+    // A larger sagittal arc swings the limb forward; the hind hip opens farther
+    // during push-off so the rear leg can extend behind the pelvis.
+    const foreSwing=Math.sin(p-.12);
+    const hindPush=Math.max(0,Math.sin(p+Math.PI*.12));
     leg.hip.rotation.set(
-     hipSwing*(hind?.39:.43)+stance*(hind?.085:.065),
-     Math.sin(p+.12)*.032*sideSign,
-     Math.sin(p+.3)*(hind?.055:.065)*sideSign
+     hind
+      ? foreSwing*.62-hindPush*.20+stance*.045
+      : foreSwing*.68+stance*.035,
+     Math.sin(p+.12)*.018*sideSign,
+     Math.sin(p+.3)*(hind?.035:.042)*sideSign
     );
     // Fold on the way up, then progressively open the knee before landing.
     leg.knee.rotation.x=hind
@@ -472,17 +479,20 @@ function updateJaguarRig(){
    // Keep the body roll low: weight transfer, not a repeated hop.
    // The spine pivot bends the chest/shoulders relative to the pelvis.
    // Hind-paw recovery gathers under the body; extension then reaches forward.
-   const gather=Math.max(0,Math.sin(cycle-Math.PI*.35));
-   const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.65));
-   const spineBend=(gather-reachPhase);
-   const spinePulse=Math.sin(cycle*2-.35);
-   r.body.position.y=r.baseY-.004+spinePulse*.006+(foreLoad-hindLoad)*.006;
-   r.body.position.z=(hindLoad-foreLoad)*.008;
-   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.008);
+   // Flexion is now visibly driven through a real chest/shoulder pivot.
+   // Gather the hind feet first (rounding the back), then extend the spine
+   // as the forelegs reach and the chest moves forward.
+   const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
+   const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.70));
+   const spineBend=gather-reachPhase;
+   const spinePulse=Math.sin(cycle*2-.25);
+   r.body.position.y=r.baseY-.003+spinePulse*.004+(foreLoad-hindLoad)*.005;
+   r.body.position.z=(hindLoad-foreLoad)*.006;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.006);
    if(r.spine){
-    r.spine.rotation.x=spineBend*.14+(hindLoad-foreLoad)*.025;
-    r.spine.position.y=r.baseSpineY+gather*.018-reachPhase*.008;
-    r.spine.position.z=r.baseSpineZ+spineBend*.055;
+    r.spine.rotation.x=spineBend*.27+(hindLoad-foreLoad)*.035;
+    r.spine.position.y=r.baseSpineY+gather*.035-reachPhase*.012;
+    r.spine.position.z=r.baseSpineZ+spineBend*.085;
    }
   }
   r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
@@ -837,5 +847,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=106",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=107",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
