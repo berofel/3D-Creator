@@ -417,20 +417,25 @@ function updateJaguarRig(){
     }
     hindLoad+=support;
    }else{
-    // Dianteira rígida do ombro ao carpo: joelho e pivô intermédio não dobram.
-    // Só a munheca recolhe para trás, levanta a pata e depois a estende à frente.
-    const shoulder=p<.44?(-.04-.54*phase01(p,0,.44)):(-.58+.54*phase01(p,.44,1));
+    // Dianteira: joelho/cotovelo e jarrete ficam alinhados, sem flexão.
+    // A munheca recolhe a pata para trás, em direção à perna traseira;
+    // depois gira para estender a pata até o chão à frente do peito.
+    const tuck=arc(p,.02,.24);
+    const plant=phase01(p,.22,.46);
+    const sweep=phase01(p,.46,.98);
+    // Ombro controla o balanço sem lançar a perna contra a cara.
+    const shoulder=p<.24?.10+.08*tuck:(p<.46?.18-.34*plant:-.16+.26*sweep);
     leg.hip.rotation.x=shoulder;
-    leg.hip.position.set(baseH.x,baseH.y+lift*.012,baseH.z);
-    leg.knee.rotation.x=0;
+    leg.hip.position.set(baseH.x,baseH.y+lift*.008,baseH.z);
+    leg.knee.rotation.set(0,0,0);
     if(baseK)leg.knee.position.copy(baseK);
-    if(leg.hock)leg.hock.rotation.x=0;
+    if(leg.hock)leg.hock.rotation.set(0,0,0);
     if(baseA&&leg.hock)leg.hock.position.copy(baseA);
-    const wristBack=arc(p,.01,.22), wristExtend=phase01(p,.18,.43);
-    if(leg.wrist)leg.wrist.rotation.x=Math.max(0,.52*wristBack)-.34*wristExtend;
+    // Flexão e extensão são feitas somente na munheca.
+    if(leg.wrist)leg.wrist.rotation.x=.62*tuck-.26*plant;
     if(baseW&&leg.wrist){
-     const pawZ=p<.44?baseW.z+lift*.035+reach*.14:baseW.z+.14*(1-phase01(p,.44,1));
-     leg.wrist.position.set(baseW.x,baseW.y+lift*.04,pawZ);
+     const pawZ=p<.24?baseW.z-.035*tuck:(p<.46?baseW.z-.035+.13*plant:baseW.z+.095*(1-sweep));
+     leg.wrist.position.set(baseW.x,baseW.y+lift*.012,pawZ);
     }
     foreLoad+=support;
    }
@@ -821,5 +826,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=125",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=126",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
