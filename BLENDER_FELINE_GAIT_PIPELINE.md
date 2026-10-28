@@ -1,38 +1,42 @@
-# Pipeline de caminhada felina — Blender → Berofel 3D Create
+# Motor de locomoção quadrúpede nativo — Berofel 3D Create
 
-## Objetivo
-Substituir a caminhada procedural atual da onça por um ciclo quadrúpede validado no Blender, sem regressões nos demais presets e ferramentas.
+## Regra de execução
+**Não executar Blender nem exigir Blender no fluxo de trabalho.** Toda a criação, ajuste, visualização e exportação deve acontecer no Berofel 3D Create, em HTML/JavaScript/Three.js. O Blender e seus projetos servem somente como referências de pesquisa; nenhuma etapa da pipeline depende dele.
 
-## Referências a avaliar
+## Referências de comportamento e arquitetura
 - Morphological Animal Design App (ETH Zürich): https://github.com/houskan/morph
-  - Usa um esqueleto quadrúpede parametrizado e gera caminhada com parâmetros de locomoção.
-  - Inclui referências de leão, guepardo e lobo; a onça deve ser ajustada ao seu esqueleto, não tratada como cópia literal de outro animal.
-  - Antes de redistribuir qualquer código ou arquivo, verificar a licença diretamente no repositório e no conteúdo do pacote. Não presumir licença apenas por ser público.
+  - Referência para anatomia parametrizada, hierarquia quadrúpede e parâmetros de locomoção. A licença precisa ser confirmada antes de reutilizar código ou ativos.
 - Animal Animator: https://extensions.blender.org/add-ons/animal-animator/
-  - GPL-3.0-or-later; compatível com Blender 4.2+ segundo a página da extensão.
-  - Anima rigs existentes; não cria o rig automaticamente. A página avisa que a versão inicial ainda não foi extensivamente testada.
+  - Referência para organizar ciclos de quadrúpedes e rigs de gato/lobo/cavalo. A extensão é GPL-3.0-or-later, mas isso não autoriza copiar automaticamente qualquer outro componente nem elimina obrigações de licença/atribuição.
+- Deer Me: https://github.com/mortgoldman/deer_me
+  - Referência adicional para fases de marcha, IK e coordenação da coluna; avaliar licença e aplicabilidade antes de qualquer reutilização.
 
-## Contrato de exportação para o editor
-O artefato que o editor precisa receber é um GLB com:
-1. malha/partes da onça;
-2. armature e hierarquia de ossos/pivôs consistente;
-3. ação de caminhada em loop, com duração e frame rate definidos;
-4. patas em contato com o chão durante o apoio e sem deslizamento excessivo;
-5. movimento coordenado de ombros, bacia, coluna, pescoço e cauda;
-6. nomes estáveis para o rig e para a ação, com escala/orientação documentadas.
+A regra é **reimplementar os conceitos necessários em JavaScript/Three.js**. Não copiar código-fonte de terceiros até verificar licença, compatibilidade e obrigações de atribuição. O fato de o Blender ser open source não torna automaticamente livre todo add-on, ativo ou algoritmo publicado em outro projeto.
 
-## Validação antes de integrar
-- Conferir quatro patas em câmera lateral e frontal.
-- Confirmar uma única passada por pata no ciclo e a ordem quadrúpede esperada.
-- Verificar contato no apoio, elevação apenas no balanço e joelhos sem hiperextensão.
-- Confirmar loop sem salto no primeiro/último frame.
-- Reproduzir a ação no Blender antes de exportar.
-- Reimportar o GLB e verificar que a animação está presente e em loop.
+## Funções que o motor HTML deve oferecer
+1. Rig quadrúpede com juntas nomeadas e pivôs estáveis.
+2. Ciclo de pata dividido em apoio e balanço, com curva contínua e elevação controlada.
+3. Parâmetros ajustáveis de comprimento do passo, duração do apoio, altura da pata e frequência.
+4. Coordenação entre pata dianteira/traseira e lado esquerdo/direito, evitando duas oscilações artificiais por ciclo.
+5. Transferência de peso e oscilação vertical/longitudinal do tronco sincronizadas à marcha.
+6. Flexão distribuída da coluna, ajuste de ombros/bacia, cabeça e cauda com movimento secundário amortecido.
+7. IK de patas para manter o contato aproximado com o chão e reduzir deslizamento.
+8. Perfis separados para caminhada, trote e galope; cada perfil deve ter fases e cadência próprias.
+9. Controles no editor para reproduzir, pausar, reiniciar, alterar velocidade e ajustar parâmetros sem editar o código manualmente.
+10. Exportação GLB preservando hierarquia e animação; validar também o pacote ZIP e as funções já existentes.
 
-## Integração no HTML
-O editor atual é Three.js e a onça atual usa pivôs procedurais. A animação do Blender não pode ser aplicada diretamente a esses pivôs sem um mapeamento compatível. A integração deve carregar o GLB e sua ação por `GLTFLoader`/`AnimationMixer`, ou mapear explicitamente a ação para a hierarquia atual. Não remover o preset procedural nem outras funções até que a nova versão passe a validação.
+## Critérios de aceitação
+- Visualizar a onça de frente e de lado no próprio editor.
+- Cada pata completa uma única trajetória coerente por ciclo.
+- A pata fica baixa durante o apoio e levanta durante o balanço; não há salto de posição na transição.
+- Sem joelhos invertidos, membros esticados de forma impossível ou oscilações duplicadas.
+- Tronco, ombros, bacia, cabeça e cauda acompanham o movimento sem vibrar em frequência dupla.
+- O ciclo fecha sem salto entre o último e o primeiro instante.
+- Exportar GLB, reimportar no próprio editor e confirmar a animação.
+- Preservar os presets de cavalo, gnu, humanoide, armas, ambiente, edição de peças e demais funções existentes.
 
-## Estado
-- Branch de trabalho: `feature/feline-gait-blender-pipeline`
-- Não declarar a animação como corrigida até que o GLB exportado seja reproduzido no editor e o ciclo seja verificado visualmente.
-- Não copiar código ou ativos externos para o projeto antes de confirmar licença e atribuição.
+## Estado e honestidade de validação
+- Branch: `feature/feline-gait-blender-pipeline`.
+- O ciclo procedural atual foi ajustado anteriormente, mas ainda não foi validado visualmente em navegador nesta etapa.
+- A interface foi atualizada para descrever o fluxo HTML-first; isso não significa que todos os recursos listados acima já estejam implementados.
+- Não declarar a caminhada corrigida até testar o ciclo no editor e inspecionar o resultado visual.
