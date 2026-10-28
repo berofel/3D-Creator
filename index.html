@@ -353,101 +353,102 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
- const t=animClock, cadence=+$("gaitCadence").value||1;
- // Um ciclo completo dura cerca de 1,25 s na cadência padrão.
- const rate=(Math.PI*2)*(gallop?1.55:.80)*cadence;
- const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
- const smooth=v=>{v=clamp(v,0,1);return v*v*(3-2*v)};
+ const t=animClock, rate=gallop?6.1:1.28;
+ const clamp01=v=>Math.max(0,Math.min(1,v));
+ const smooth=v=>{v=clamp01(v);return v*v*(3-2*v)};
+ const phase01=(p,a,b)=>smooth((p-a)/(b-a));
+ const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
    for(const leg of r.legs){
-    leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);leg.wrist.rotation.set(0,0,0);
-    leg.hip.position.copy(leg.baseHip);leg.knee.position.copy(leg.baseKnee);leg.wrist.position.copy(leg.baseWrist);
+    leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);
+    if(leg.wrist)leg.wrist.rotation.set(0,0,0);
+    if(leg.baseHip)leg.hip.position.copy(leg.baseHip);
+    if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);
+    if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);
    }
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
-   r.spine.rotation.set(0,0,0);r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ;
+   if(r.spine){r.spine.rotation.set(0,0,0);r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ;}
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
   }
-  let foreSupport=0,hindSupport=0,flight=0;
+  let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
    const hind=leg.hind, side=leg.side;
-   // Caminhada de quatro tempos: traseira esquerda, dianteira esquerda,
-   // traseira direita, dianteira direita. Não é uma simples alternância em pares.
-   const phase=gallop
-    ? (hind?(side<0?0:.38*Math.PI):(side<0?.78*Math.PI:1.12*Math.PI))
-    : (hind?(side<0?0:Math.PI):(side<0?.5*Math.PI:1.5*Math.PI));
-   const stride=(gallop?(hind?.235:.205):(hind?.19:.17))*(+$("gaitStride").value||100)/100;
-   const duty=clamp((+$("gaitSupport").value||62)/100,.52,.72);
-   const u=((t*rate+phase)/(Math.PI*2)%1+1)%1;
-   let support,progress,lift,pawTravel,flex,push;
-   if(!gallop){
-    support=u<duty;
-    progress=support?u/duty:(u-duty)/(1-duty);
-    // Na fase de apoio, a pata percorre o chão para trás; na fase aérea,
-    // regressa para a frente com elevação em arco.
-    pawTravel=support?(stride*(1-2*progress)):(stride*(-1+2*smooth(progress)));
-    lift=support?0:Math.sin(Math.PI*progress)*.15*(+$("gaitLift").value||100)/100;
-    flex=support?0:Math.sin(Math.PI*progress);
-    push=support?Math.sin(Math.PI*progress):0;
-    if(hind)hindSupport+=support?1:0;else foreSupport+=support?1:0;
-   }else{
-    const p=t*rate+phase, sn=Math.sin(p), cs=Math.cos(p);
-    support=sn<-.20;
-    progress=(sn+1)*.5;
-    lift=Math.max(0,Math.sin(p+.18))*.19*(+$("gaitLift").value||100)/100;
-    pawTravel=cs*stride;
-    flex=Math.pow(Math.max(0,Math.sin(p+.18)),.8);
-    push=Math.max(0,-sn);
-    if(hind)hindSupport+=support?1:0;else foreSupport+=support?1:0;
-    flight+=Math.max(0,Math.sin(p+.35));
+   // Diagonal/interleaved footfalls. Same-side rear paw follows the front paw's track.
+   const offset=gallop
+    ? (hind?(side<0?.10:.30):(side<0?.58:.78))
+    : (hind?(side<0?.00:.50):(side<0?.28:.78));
+   const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
+   const baseH=leg.baseHip, baseK=leg.baseKnee, baseW=leg.baseWrist;
+   if(gallop){
+    const swing=arc(p,0,.56), tuck=arc(p,.06,.42), extend=phase01(p,.30,.55);
+    const bend=1.35*tuck;
+    leg.hip.position.set(baseH.x,baseH.y+swing*.11,baseH.z+Math.sin(p*Math.PI*2)*(hind?.17:.20));
+    leg.hip.rotation.x=(hind?-.90:-.82)*Math.sin(p*Math.PI*2)+(hind?-.20:.06);
+    // A knee never crosses through zero into a reverse bend.
+    leg.knee.rotation.x=Math.max(0,bend);
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+tuck*.06,baseK.z);
+    if(leg.wrist){leg.wrist.rotation.x=Math.max(0,.42*tuck-.20*extend);if(baseW)leg.wrist.position.set(baseW.x,baseW.y+swing*.10,baseW.z+swing*.08);}
+    if(hind)hindLoad+=1-swing;else foreLoad+=1-swing;
+    continue;
    }
-   // Movimento suficientemente amplo para ser legível no viewport. O alvo é
-   // aplicado à munheca/pata, em vez de apenas guardar footTarget sem o usar.
-   const base=leg.baseHip;
-   leg.hip.position.set(base.x,base.y+lift*.16,base.z+pawTravel*.10);
-   leg.hip.rotation.x=gallop
-    ? clamp((hind?-.22:.18)*Math.sin(t*rate+phase)+ (hind?-.12:.10)*flex,-.65,.65)
-    : clamp((hind?-.18:.15)*Math.sin(t*rate+phase)+ (support?-.08:.10)*push + (support?0:flex*(hind?.20:.16)),-.58,.58);
-   leg.hip.rotation.y=0;
-   leg.hip.rotation.z=Math.sin(t*rate+phase)*.012*(side<0?1:-1);
-   leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+lift*.12,leg.baseKnee.z+pawTravel*.07);
-   leg.knee.rotation.x=gallop
-    ? clamp((hind?-.62:.48)*flex+(hind?.18:-.10)*Math.sin(t*rate+phase),-.95,.95)
-    : clamp((hind?-.42:.34)*flex+(hind?-.12:.10)*push,-.78,.78);
-   leg.wrist.position.set(
-    leg.baseWrist.x,
-    leg.baseWrist.y+lift+(support?0:flex*.018),
-    leg.baseWrist.z+pawTravel*.72
-   );
-   leg.wrist.rotation.x=clamp(-flex*(hind?.30:.22)+push*.06,-.42,.25);
-   leg.footTarget={y:lift,z:pawTravel,planted:support};
+   // Walk cycle phases:
+   // 0-.34 lift and tuck; .34-.54 extend toward the next contact;
+   // .54-1.0 planted support. The paw does not make a second mid-step touch.
+   const lift=arc(p,0,.40);
+   const tuck=arc(p,.04,.34);
+   const reach=phase01(p,.25,.50);
+   const support=p>=.52?1:0;
+   const planted= support ? 1 : 0;
+   if(hind){
+    // Hip initiates the forward swing. Hock flexion is one-direction only
+    // (positive X bends the downward segment toward -Z/back); it opens to zero before contact.
+    const hipSwing= p<.52 ? (-.72+1.18*phase01(p,0,.52)) : (.46-.70*phase01(p,.52,1));
+    const kneeBend=Math.max(0,.95*tuck);
+    leg.hip.rotation.x=hipSwing;
+    leg.knee.rotation.x=kneeBend;
+    if(baseH)leg.hip.position.set(baseH.x,baseH.y+lift*.045,baseH.z+lift*.12-planted*.025);
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+tuck*.035,baseK.z+lift*.025);
+    if(leg.wrist){
+     leg.wrist.rotation.x=Math.max(0,.30*tuck-.18*reach);
+     if(baseW)leg.wrist.position.set(baseW.x,baseW.y+lift*.055,baseW.z+lift*.10-planted*.045);
+    }
+    hindLoad+=support;
+   }else{
+    // Shoulder swings forward while the knee rises toward the belly.
+    // Knee flex is clamped to one side; extension is exactly zero, never negative.
+    const shoulderSwing= p<.52 ? (.12-1.12*phase01(p,0,.52)) : (-1.00+1.12*phase01(p,.52,1));
+    const kneeBend=Math.max(0,1.22*tuck);
+    leg.hip.rotation.x=shoulderSwing;
+    leg.knee.rotation.x=kneeBend;
+    if(baseH)leg.hip.position.set(baseH.x,baseH.y+lift*.065,baseH.z+lift*.035+reach*.045);
+    if(baseK)leg.knee.position.set(baseK.x,baseK.y+tuck*.055+lift*.02,baseK.z+lift*.025);
+    if(leg.wrist){
+     leg.wrist.rotation.x=Math.max(0,.36*tuck-.12*reach);
+     if(baseW)leg.wrist.position.set(baseW.x,baseW.y+lift*.065,baseW.z+lift*.035+reach*.075);
+    }
+    foreLoad+=support;
+   }
   }
-  foreSupport/=2;hindSupport/=2;
+  foreLoad/=2;hindLoad/=2;
   const cycle=t*rate;
   if(gallop){
-   const airborne=clamp(flight/4,0,1);
-   r.body.position.y=r.baseY+.008+airborne*.045;
-   r.body.position.z=Math.sin(cycle+.35)*.025;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.075+(hindSupport-foreSupport)*.025;
-   r.body.rotation.z=Math.sin(cycle*.5)*.014;
-   r.spine.rotation.x=Math.sin(cycle+.3)*.10+(hindSupport-foreSupport)*.03;
-   r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.025;
+   const airborne=Math.max(0,Math.sin(cycle*2+.25));
+   r.body.position.y=r.baseY+.012+airborne*.075;r.body.position.z=Math.sin(cycle+.35)*.03;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;r.body.rotation.z=Math.sin(cycle*.5)*.028;
+   if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
   }else{
-   // Transferência de peso e flexão lombar discretas, sincronizadas com as patas.
-   const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
-   const reach=Math.max(0,Math.sin(cycle+Math.PI*.70));
-   r.body.position.y=r.baseY-.008+Math.sin(cycle*2-.25)*.009;
-   r.body.position.z=Math.sin(cycle)*.012;
-   r.body.rotation.set(Math.sin(cycle)*.012,0,Math.sin(cycle*.5+.4)*.008);
-   r.spine.rotation.x=(gather-reach)*.13+(hindSupport-foreSupport)*.025;
-   r.spine.position.y=r.baseSpineY+gather*.018-reach*.008;
-   r.spine.position.z=r.baseSpineZ+(gather-reach)*.018;
+   // Pelvis and lumbar spring: rear paw catches up to the previous forepaw track.
+   const catchUp=foreLoad*Math.max(0,Math.sin(cycle-Math.PI*.15));
+   r.body.position.y=r.baseY+Math.sin(cycle*2)*.003;r.body.position.z=0;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.004);
+   if(r.spine){r.spine.rotation.x=-.10*catchUp+.035*Math.sin(cycle*2);r.spine.position.y=r.baseSpineY+catchUp*.025;r.spine.position.z=r.baseSpineZ-catchUp*.075;}
   }
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.11:-Math.sin(cycle+.35)*.055):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.065:Math.sin(cycle+.35)*.032):Math.sin(t*1.35)*.008;
-  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.25:.16):Math.sin(t*.8)*.035;
-  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.17:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.26:.14):Math.sin(t*.8)*.035;
+  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
  }
 }
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
