@@ -355,7 +355,7 @@ function jaguarPreset(){
    // Cadeia traseira: anca > coxa > jarrete > boleto.
    block(hip,"Coxa traseira musculosa",[0,-.29,.075],[.35,.62,.33],COAT3,"taper",[-.20,0,q.side*.025]);
    knee=group(hip,[0,-.54,.14],"Articulação do joelho/jarrete traseiro");
-   block(knee,"Volume do jarrete",[0,-.035,.015],[.235,.19,.245],COAT3,"taper",[.10,0,q.side*.02]);
+   block(knee,"Volume do joelho traseiro",[0,-.035,.015],[.235,.19,.245],COAT3,"taper",[.10,0,q.side*.02]);
    block(knee,"Canela traseira estreita",[0,-.245,-.035],[.205,.46,.22],COAT3,"taper",[.22,0,q.side*.02]);
   }else{
    // Cadeia dianteira segmentada: escápula > ombro > braço > cotovelo > antebraço > carpo.
@@ -363,19 +363,25 @@ function jaguarPreset(){
    elbow=group(hip,[0,-.46,0],"Articulação do cotovelo "+(q.side<0?"esquerdo":"direito"));
    block(elbow,"Antebraço dianteiro",[0,-.19,.015],[.205,.39,.22],COAT3,"taper",[.025,0,q.side*.012]);
   }
-  const wrist=group(knee||elbow||hip,[0,q.hind?-.46:(elbow?-.38:-.84),q.hind?-.025:.07],"Pivô do carpo/boleto");
+  const hock=q.hind?group(knee,[0,-.46,-.025],"Jarrete articulado traseiro"):null;
+  const wrist=group(hock||knee||elbow||hip,[0,hock?0:(elbow?-.38:-.84),hock?0:(q.hind?-.46:-.025+.07)],"Pivô do carpo/boleto");
   const paw=group(wrist,[0,0,0],"Articulação dos dedos e apoio da pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
-  legs.push({hip,scapula,elbow,knee,baseKneeRot:knee?knee.rotation.clone():null,baseElbowRot:elbow?elbow.rotation.clone():null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
+  legs.push({hip,scapula,elbow,knee,hock,baseKneeRot:knee?knee.rotation.clone():null,baseHockRot:hock?hock.rotation.clone():null,baseElbowRot:elbow?elbow.rotation.clone():null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
  }
  // Cauda presa à anca, com balanço secundário.
  const tail=group(rump,[0,.02,-.39],"Pivô da cauda");
- block(tail,"Cauda base",[0,-.02,-.19],[.15,.15,.36],COAT2,"taper",[.10,0,0]);
- block(tail,"Cauda média",[0,-.10,-.47],[.13,.13,.30],COAT3,"taper",[.16,0,0]);
- block(tail,"Faixa escura",[0,-.14,-.60],[.13,.13,.09],DARK);
- block(tail,"Ponta escura",[0,-.16,-.72],[.13,.13,.15],DARK,"taper",[.12,0,0]);
- window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
+ const tail1=group(tail,[0,-.02,-.12],"Cauda articulada 1 | base");
+ block(tail1,"Cauda base",[0,0,-.09],[.15,.15,.22],COAT2,"taper",[.10,0,0]);
+ const tail2=group(tail1,[0,-.015,-.19],"Cauda articulada 2");
+ block(tail2,"Cauda média",[0,-.015,-.105],[.13,.13,.22],COAT3,"taper",[.16,0,0]);
+ const tail3=group(tail2,[0,-.025,-.21],"Cauda articulada 3");
+ block(tail3,"Anel escuro da cauda",[0,0,-.045],[.13,.13,.09],DARK);
+ const tail4=group(tail3,[0,-.015,-.09],"Cauda articulada 4 | ponta");
+ block(tail4,"Ponta escura",[0,-.01,-.065],[.13,.13,.13],DARK,"taper",[.12,0,0]);
+ const tailSegments=[tail1,tail2,tail3,tail4];
+ window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,tailSegments,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
  select(null);setSkinMode("bones");say("Onça revisada: passada traseira mais ampla, origem da perna aproximada à lateral da anca e apoio mais suave.");
 }
 function updateJaguarRig(){
@@ -387,7 +393,7 @@ function updateJaguarRig(){
  for(const r of (window.__berofelJaguarRigs||[])){
   const cycle=t*rate;
   if(mode==="stop"){
-   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.paw){leg.paw.position.copy(leg.basePawPos);leg.paw.rotation.copy(leg.basePawRot);}if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);if(leg.elbow)leg.elbow.rotation.copy(leg.baseElbowRot);if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos)}}
+   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.paw){leg.paw.position.copy(leg.basePawPos);leg.paw.rotation.copy(leg.basePawRot);}if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);if(leg.hock)leg.hock.rotation.copy(leg.baseHockRot);if(leg.elbow)leg.elbow.rotation.copy(leg.baseElbowRot);if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos)}}
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
    r.spine.position.set(0,r.baseSpineY,r.baseSpineZ);r.spine.rotation.set(0,0,0);
    r.rump.position.copy(r.baseRumpPos);r.rump.rotation.copy(r.baseRumpRot);
@@ -425,7 +431,8 @@ function updateJaguarRig(){
     }
     // O jarrete dispara junto com a pata; a saída do solo não é uma rotação isolada.
     const hock=stance?(.025+.08*stanceT+.34*pushOff):(.445-.48*recoverySnap-.12*Math.sin(Math.PI*recoveryT));
-    leg.wrist.rotation.set(hock,.012*Math.sin(phase+.5),leg.baseWristRot.z+side*.008*Math.sin(phase));
+    if(leg.hock)leg.hock.rotation.set(hock,.012*Math.sin(phase+.5),side*.008*Math.sin(phase));
+    leg.wrist.rotation.set(.025*Math.sin(phase+.8),0,leg.baseWristRot.z);
     leg.wrist.position.copy(leg.baseWrist);
     // A pata gira rapidamente para pressionar o chão para trás no fim do apoio,
     // depois recolhe cedo na recuperação. Sem deslocamento artificial da pata.
@@ -479,8 +486,19 @@ function updateJaguarRig(){
   r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.055:.025),Math.sin(cycle*.55)*(gallop?.065:.03),Math.sin(cycle+.2)*(gallop?.02:.01));
   r.neck.rotation.x=moving?(gallop?-.11*Math.sin(cycle+.4):-.035*Math.sin(cycle+.35)):Math.sin(t*1.15)*.012;
   r.head.rotation.x=moving?(gallop?.075*Math.sin(cycle+.4):.025*Math.sin(cycle+.35)):Math.sin(t*1.35)*.008;
-  r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.28:.17);
-  r.tail.rotation.x=Math.sin(cycle+.7)*(gallop?.20:.07);
+  r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.22:.13);
+  r.tail.rotation.x=Math.sin(cycle+.7)*(gallop?.16:.06);
+  if(r.tailSegments){
+   const lag=gallop?.38:.24;
+   r.tailSegments[0].rotation.y=Math.sin(cycle-lag)*.16;
+   r.tailSegments[1].rotation.y=Math.sin(cycle-lag*1.8)*.20;
+   r.tailSegments[2].rotation.y=Math.sin(cycle-lag*2.6)*.23;
+   r.tailSegments[3].rotation.y=Math.sin(cycle-lag*3.4)*.28;
+   r.tailSegments[0].rotation.x=.035+Math.sin(cycle-.2)*.06;
+   r.tailSegments[1].rotation.x=.045+Math.sin(cycle-.55)*.075;
+   r.tailSegments[2].rotation.x=.06+Math.sin(cycle-.9)*.09;
+   r.tailSegments[3].rotation.x=.10+Math.max(0,Math.sin(cycle-1.2))*.18;
+  }
  }
 }
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
@@ -829,5 +847,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=142",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=143",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
