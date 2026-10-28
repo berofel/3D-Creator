@@ -353,169 +353,104 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
- const t=animClock, rate=(gallop?6.1:1.28)*(+$("gaitCadence")?.value||1);
+ const t=animClock, cadence=+$("gaitCadence").value||1, rate=(gallop?6.1:1.28)*cadence;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const smooth=v=>{v=clamp(v,0,1);return v*v*(3-2*v)};
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
    for(const leg of r.legs){
-    leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);
-    if(leg.wrist)leg.wrist.rotation.set(0,0,0);
-    if(leg.baseHip)leg.hip.position.copy(leg.baseHip);
-    if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);
-    if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);
+    leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);leg.wrist.rotation.set(0,0,0);
+    leg.hip.position.copy(leg.baseHip);leg.knee.position.copy(leg.baseKnee);leg.wrist.position.copy(leg.baseWrist);
    }
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
-   if(r.spine){r.spine.rotation.set(0,0,0);r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ;}
+   r.spine.rotation.set(0,0,0);r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ;
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
   }
-  let foreLoad=0,hindLoad=0,verticalImpulse=0;
+  let foreLoad=0,hindLoad=0,air=0;
   for(const leg of r.legs){
-   const sideSign=leg.side<0?1:-1;
-   // Four-beat feline walk: the hind paw follows the same-side forepaw track,
-   // with a short delay. Gallop deliberately keeps a separate, wider sequence.
+   const hind=leg.hind, side=leg.side, sideSign=side<0?1:-1;
+   // Walk: lateral pairs are staggered; the hind paw follows its forepaw track.
+   // Gallop uses a compressed rear drive and a delayed forelimb landing.
    const phase=gallop
-    ? (leg.hind?(leg.side<0?.12*Math.PI:.28*Math.PI):(leg.side<0?.92*Math.PI:1.08*Math.PI))
-    : (leg.hind ? (leg.side<0 ? 0 : Math.PI) : (leg.side<0 ? Math.PI*.5 : Math.PI*1.5));
-   const p=t*rate+phase;
-   const s=Math.sin(p), c=Math.cos(p);
-   const swingRaw=Math.max(0,Math.sin(p+.10));
-   const swing=swingRaw*swingRaw*(3-2*swingRaw);
-   const stance=Math.max(0,-Math.sin(p+.10));
-   const reach=c;
-   const hind=leg.hind;
-   const stride=gallop?(hind?.20:.25):(hind?.125:.18);
-   const hipSwing=Math.sin(p-.08);
-   const lift=gallop?swing:Math.max(0,Math.sin(p+.04));
-   const recovery=Math.max(0,-Math.sin(p));
-   const flex=gallop?Math.pow(swing,.72):Math.pow(recovery,1.25);
-   const clamp01=v=>Math.max(0,Math.min(1,v));
-   const smooth01=v=>{v=clamp01(v);return v*v*(3-2*v)};
-   // During the backward-to-forward recovery the hind knee stays tucked;
-   // it only opens as the paw reaches the front for the next ground contact.
-   const hindReachExtension=smooth01((Math.cos(p)-.02)/.98)*smooth01((recovery+.08)/.88);
-   if(hind)hindLoad+=stance;else foreLoad+=stance;
-   verticalImpulse+=lift;
-   if(gallop){
-    // Running retains the long reach, strong tuck and brief suspension.
-    leg.hip.position.set(
-     leg.baseHip.x+Math.sin(p+.2)*.035*sideSign,
-     leg.baseHip.y+lift*(hind?.105:.12),
-     leg.baseHip.z+reach*stride
-    );
-    leg.hip.rotation.set(
-     hipSwing*(hind?.72:.64)+(hind?Math.max(0,-Math.sin(p))*.18:0)+stance*(hind?.08:.06),
-     Math.sin(p)*.035*sideSign,
-     Math.sin(p+.3)*(hind?.055:.06)*sideSign
-    );
-    leg.knee.rotation.x=flex*(hind?1.25:1.42)-stance*.16;
-    if(leg.baseKnee)leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+flex*.045,leg.baseKnee.z+lift*.025);
-    if(leg.wrist){
-     leg.wrist.rotation.x=-flex*.46+stance*.12;
-     if(leg.baseWrist)leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*.09,leg.baseWrist.z+lift*.055+Math.max(0,reach)*.035);
-    }
-   }else{
-    // WALK: ciclo quadrupede por fase normalizada; duty factor 0.65.
-    // A pata recua durante o apoio e sobe apenas no balanço.
-    const cyclePhase=((t*rate+phase)/(Math.PI*2)%1+1)%1;
-    const duty=(+$("gaitSupport")?.value||62)/100;
-    const support=cyclePhase<duty;
-    const stanceProgress=support?cyclePhase/duty:0;
-    const swingProgress=support?0:(cyclePhase-duty)/(1-duty);
-    const smooth01=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
-    const lift=(support?0:Math.sin(Math.PI*swingProgress))*(+$("gaitLift").value||100)/100;
-    const hind=leg.hind;
-    const stride=(hind?.145:.17)*(+$("gaitStride").value||100)/100;
-    // Fase de apoio: a pata recua relativamente ao tronco sem ser levantada.
-    // Fase de balanço: trajetória suave para a frente e elevação curta.
-    // A trajetória precisa ser contínua no contato:
-    // apoio: recua de +stride para -stride;
-    // balanço: avança de -stride para +stride.
-    // Assim há apenas uma ida e uma volta por ciclo, sem inversão duplicada.
-    const pawTravel=support
-      ? (0.5-stanceProgress)*2*stride
-      : (-0.5+smooth01(swingProgress))*2*stride;
-    const flex=support?0:Math.sin(Math.PI*swingProgress);
+    ? (hind?(side<0?.08*Math.PI:.22*Math.PI):(side<0?.88*Math.PI:1.02*Math.PI))
+    : (hind?(side<0?-.72:Math.PI-.72):(side<0?0:Math.PI));
+   const stride=(gallop?(hind?.205:.235):(hind?.145:.17))*(+$("gaitStride").value||100)/100;
+   let support=false, progress=0, lift=0, pawTravel=0, flex=0, supportPush=0;
+   if(!gallop){
+    const u=((t*rate+phase)/(Math.PI*2)%1+1)%1;
+    const duty=clamp((+$("gaitSupport").value||62)/100,.52,.72);
+    support=u<duty;
+    progress=support?u/duty:(u-duty)/(1-duty);
+    const swingProgress=support?0:progress;
+    const shaped=smooth(swingProgress);
+    lift=(support?0:Math.sin(Math.PI*swingProgress))*(+$("gaitLift").value||100)/100;
+    pawTravel=support?(0.5-progress)*2*stride:(-0.5+shaped)*2*stride;
+    flex=support?0:Math.sin(Math.PI*swingProgress);
+    supportPush=support?Math.sin(Math.PI*progress):0;
     if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
-    verticalImpulse+=lift;
-    leg.hip.position.set(
-      leg.baseHip.x+Math.sin(cyclePhase*Math.PI*2)*.006*sideSign,
-      leg.baseHip.y+lift*(hind?.018:.012),
-      leg.baseHip.z+pawTravel*.18
-    );
-    // Um único ciclo articular por passada: apoio estável e uma flexão
-    // contínua durante o balanço. Evita o segundo pico de flexão da traseira.
-    const cycleAngle=cyclePhase*Math.PI*2;
-    const swingFlex=support?0:Math.sin(Math.PI*swingProgress);
-    const supportPush=support?Math.sin(Math.PI*stanceProgress):0;
-    // A anca segue a mesma fase da pata: uma extensão suave no apoio
-    // e uma única flexão no balanço. Não somar uma segunda oscilação senoidal.
-    const hipPitch = support
-      ? -.075*supportPush
-      : Math.sin(Math.PI*swingProgress)*(hind?.19:.16);
-    leg.hip.rotation.set(
-      hipPitch,
-      Math.sin(cycleAngle)*.006*sideSign,
-      Math.sin(cycleAngle+.3)*(hind?.012:.014)*sideSign
-    );
-    // Joelho recolhe uma vez no balanço e volta a estender antes do contato.
-    leg.knee.rotation.x=swingFlex*(hind?.62:.48)
-      -(support ? supportPush*(hind?.045:.035) : 0);
-    if(leg.baseKnee){
-      leg.knee.position.set(
-        leg.baseKnee.x,
-        leg.baseKnee.y+lift*(hind?.025:.018),
-        leg.baseKnee.z+pawTravel*.10
-      );
-    }
-    if(leg.wrist){
-      // Carpo/tarso acompanha a mesma única fase de balanço.
-      leg.wrist.rotation.x=-swingFlex*(hind?.20:.16)
-        +(support ? supportPush*.025 : 0);
-      if(leg.baseWrist){
-        leg.wrist.position.set(
-          leg.baseWrist.x,
-          leg.baseWrist.y+lift*(hind?.035:.025),
-          leg.baseWrist.z+pawTravel*.20
-        );
-      }
-    }
+   }else{
+    const p=t*rate+phase, sn=Math.sin(p), cs=Math.cos(p);
+    // Smooth gallop trajectory with one lift pulse per stride and a short flight phase.
+    const swing=smooth(Math.max(0,Math.sin(p+.12)));
+    support=sn<-.12;
+    lift=swing*(+$("gaitLift").value||100)/100;
+    pawTravel=cs*stride;
+    flex=Math.pow(swing,.78);
+    supportPush=Math.max(0,-sn);
+    if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
+    air+=Math.max(0,Math.sin(p+.25));
    }
+   // Root translations represent the foot target trajectory. The knee and carpus
+   // are then solved as a two-link chain, with lengths clamped to avoid inversion.
+   const base=leg.baseHip;
+   leg.hip.position.set(base.x,base.y+lift*(hind?.025:.018),base.z+pawTravel*.18);
+   const targetY=lift*(hind?.075:.065);
+   const targetZ=pawTravel*.30;
+   const upper=hind?.43:.40, lower=hind?.39:.37;
+   const dy=clamp(-upper*.58+targetY,-upper-lower+.025,upper+lower-.025);
+   const dz=clamp(targetZ,-upper-lower+.025,upper+lower-.025);
+   const distance=clamp(Math.hypot(dy,dz),Math.abs(upper-lower)+.015,upper+lower-.015);
+   const kneeCos=clamp((upper*upper+lower*lower-distance*distance)/(2*upper*lower),-1,1);
+   const kneeBend=Math.PI-Math.acos(kneeCos);
+   const aim=Math.atan2(dz,-dy);
+   const hipCos=clamp((upper*upper+distance*distance-lower*lower)/(2*upper*distance),-1,1);
+   const hipBend=aim-Math.acos(hipCos);
+   const gaitHip= gallop ? Math.sin(t*rate+phase)*(hind?.12:.10) : (support?-.055*supportPush:flex*(hind?.105:.085));
+   leg.hip.rotation.set(clamp(hipBend+gaitHip,-.82,.82),Math.sin(t*rate+phase)*.004*sideSign,Math.sin(t*rate+phase+.3)*.008*sideSign);
+   leg.knee.rotation.x=clamp((hind?-1:1)*kneeBend*(gallop?.66:.55)+flex*(hind?.12:.09)-supportPush*.035,-.9,.9);
+   leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+lift*(hind?.022:.016),leg.baseKnee.z+pawTravel*.10);
+   leg.wrist.rotation.x=clamp(-flex*(hind?.16:.13)+supportPush*.018,-.35,.22);
+   leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(hind?.04:.03),leg.baseWrist.z+pawTravel*.20);
+   leg.footTarget={y:targetY,z:targetZ,planted:support};
   }
-  foreLoad/=2;hindLoad/=2;verticalImpulse/=4;
+  foreLoad/=2;hindLoad/=2;
   const cycle=t*rate;
   if(gallop){
-   const airborne=Math.max(0,Math.sin(cycle*2+.25));
-   r.body.position.y=r.baseY+.012+airborne*.075+hindLoad*.022;
-   r.body.position.z=Math.sin(cycle+.35)*.03;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;
-   r.body.rotation.z=Math.sin(cycle*.5)*.028;
-   if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
+   const flight=clamp(air/4,0,1);
+   r.body.position.y=r.baseY+.006+flight*.035;
+   r.body.position.z=Math.sin(cycle+.35)*.018;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.055+(hindLoad-foreLoad)*.018;
+   r.body.rotation.z=Math.sin(cycle*.5)*.012;
+   r.spine.rotation.x=Math.sin(cycle+.3)*.075+(hindLoad-foreLoad)*.025;
+   r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.02;
   }else{
-   // A dianteira funciona como apoio relativamente estável.
-   // A coluna lombar move a garupa e as patas traseiras: recolhe para trazer
-   // as pernas sob o corpo e estende para projetar a passada para trás/à frente.
    const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
-   const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.70));
-   const spineBend=gather-reachPhase;
-   // O tronco acompanha uma vez por passada; frequência dupla dava
-   // a impressão de dois impactos para cada ciclo das patas.
-   const spinePulse=Math.sin(cycle-.25);
-   r.body.position.y=r.baseY-.001+spinePulse*.003;
-   r.body.position.z=0;
-   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.003);
-   if(r.spine){
-    // Flexão mais forte na metade traseira; a dianteira não acompanha o pivô.
-    r.spine.rotation.x=spineBend*.14+(hindLoad-foreLoad)*.018;
-    r.spine.position.y=r.baseSpineY+gather*.018-reachPhase*.006;
-    r.spine.position.z=r.baseSpineZ+spineBend*.018;
-   }
+   const reach=Math.max(0,Math.sin(cycle+Math.PI*.70));
+   const bend=gather-reach;
+   r.body.position.y=r.baseY-.001+Math.sin(cycle-.25)*.0025;
+   r.body.position.z=0;r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.002);
+   r.spine.rotation.x=bend*.105+(hindLoad-foreLoad)*.012;
+   r.spine.position.y=r.baseSpineY+gather*.012-reach*.004;
+   r.spine.position.z=r.baseSpineZ+bend*.012;
   }
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.028):Math.sin(t*1.35)*.008;
-  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.26:.14):Math.sin(t*.8)*.035;
-  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.085:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.05:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.22:.12):Math.sin(t*.8)*.035;
+  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.14:Math.sin(cycle*.55)*.06):Math.sin(t*1.1)*.025;
  }
 }
+
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
 function humanoidPreset(isOgre=false){
  clear();clearSkin();const skin=isOgre?"#6f9650":"#d6a27d",cloth=isOgre?"#42533a":"#344f78",leather="#49352c",metal=isOgre?"#6b735b":"#b18a4b";
