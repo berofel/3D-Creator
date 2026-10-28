@@ -293,13 +293,16 @@ function jaguarPreset(){
  const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
  const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
  const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
- // Pivô de flexão torácica: peito, pescoço e ombros dianteiros acompanham a coluna.
- const spine=new THREE.Group();spine.name="Pivô de flexão da coluna";spine.position.set(0,.04,.25);body.add(spine);
- // Corpo, peito e garupa: volumes retangulares facetados já dimensionados.
- block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
+ // Pivô lombossacro: a dianteira fica estável; a garupa e as patas traseiras
+ // são puxadas pela coluna, arredondando e estendendo o dorso como num felino.
+ const spine=new THREE.Group();spine.name="Pivô lombossacro — coluna traseira";spine.position.set(0,1.40,-.10);body.add(spine);
+ // O tronco posterior e a garupa ficam no grupo móvel. Peito e pescoço
+ // permanecem presos à dianteira para que ela sirva de apoio durante a passada.
+ const trunk=block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
  const chest=block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
- block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
- block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
+ const belly=block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
+ const rump=block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
+ spine.attach(trunk);spine.attach(belly);spine.attach(rump);
  // Manchas quadradas em ambos os flancos e no dorso.
  for(const side of [-1,1]){
    for(const z of [-.58,-.28,.02,.32,.55]){
@@ -311,7 +314,6 @@ function jaguarPreset(){
  }
  // Pescoço e cabeça articulados.
  const neck=group(body,[0,1.58,.72],"Pivô do pescoço");
- spine.attach(chest);spine.attach(neck);
  block(neck,"Pescoço",[0,1.66,.75],[.56,.58,.66],GOLD);
  const head=group(neck,[0,1.70,1.04],"Pivô da cabeça");
  block(head,"Crânio",[0,1.72,1.10],[.58,.48,.54],GOLD);
@@ -335,11 +337,11 @@ function jaguarPreset(){
    block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
    const wrist=group(knee,[q.side*.34,.16,q.z+.055],"Pivô da munheca/pata");
    block(wrist,"Pata articulada",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
-   if(!q.hind)spine.attach(hip);
+   if(q.hind)spine.attach(hip);
    legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseKnee:knee.position.clone(),baseWrist:wrist.position.clone()});
  }
- // Cauda em três segmentos, ligada ao corpo.
- const tail=group(body,[0,1.48,-.88],"Pivô da cauda");
+ // Cauda e anca acompanham a metade traseira da coluna.
+ const tail=group(body,[0,1.48,-.88],"Pivô da cauda");spine.attach(tail);
  block(tail,"Cauda base",[0,1.38,-1.13],[.16,.16,.48],GOLD2);
  block(tail,"Cauda média",[0,1.23,-1.47],[.13,.13,.36],GOLD);
  block(tail,"Ponta escura da cauda",[0,1.12,-1.72],[.14,.14,.22],BLACK);
@@ -475,24 +477,21 @@ function updateJaguarRig(){
    r.body.rotation.z=Math.sin(cycle*.5)*.028;
    if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
   }else{
-   // The chest visibly rises as the forelimbs recover, then settles into support.
-   // Keep the body roll low: weight transfer, not a repeated hop.
-   // The spine pivot bends the chest/shoulders relative to the pelvis.
-   // Hind-paw recovery gathers under the body; extension then reaches forward.
-   // Flexion is now visibly driven through a real chest/shoulder pivot.
-   // Gather the hind feet first (rounding the back), then extend the spine
-   // as the forelegs reach and the chest moves forward.
+   // A dianteira funciona como apoio relativamente estável.
+   // A coluna lombar move a garupa e as patas traseiras: recolhe para trazer
+   // as pernas sob o corpo e estende para projetar a passada para trás/à frente.
    const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
    const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.70));
    const spineBend=gather-reachPhase;
    const spinePulse=Math.sin(cycle*2-.25);
-   r.body.position.y=r.baseY-.003+spinePulse*.004+(foreLoad-hindLoad)*.005;
-   r.body.position.z=(hindLoad-foreLoad)*.006;
-   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.006);
+   r.body.position.y=r.baseY-.001+spinePulse*.002;
+   r.body.position.z=0;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.003);
    if(r.spine){
-    r.spine.rotation.x=spineBend*.27+(hindLoad-foreLoad)*.035;
-    r.spine.position.y=r.baseSpineY+gather*.035-reachPhase*.012;
-    r.spine.position.z=r.baseSpineZ+spineBend*.085;
+    // Flexão mais forte na metade traseira; a dianteira não acompanha o pivô.
+    r.spine.rotation.x=spineBend*.42+(hindLoad-foreLoad)*.045;
+    r.spine.position.y=r.baseSpineY+gather*.055-reachPhase*.018;
+    r.spine.position.z=r.baseSpineZ+spineBend*.12;
    }
   }
   r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
