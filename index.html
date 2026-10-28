@@ -338,8 +338,7 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
- // Pernas sem joelhos. Cada membro é um bloco rígido no pivô do ombro/anca;
- // só a munheca/boleto gira para absorver o contacto da pata com o chão.
+ // Membros articulados. Na traseira, a silhueta reproduz a onça do vídeo: coxa volumosa ligada à anca, jarrete marcado, segmento inferior mais estreito e pata compacta.
  const legs=[];
  const specs=[
   {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
@@ -354,9 +353,10 @@ function jaguarPreset(){
   let knee=null,elbow=null;
   if(q.hind){
    // Cadeia traseira: anca > coxa > jarrete > boleto.
-   block(hip,"Coxa traseira alongada",[0,-.27,.055],[.29,.59,.29],COAT3,"taper",[-.14,0,q.side*.025]);
-   knee=group(hip,[0,-.51,.115],"Dobra do jarrete traseiro");
-   block(knee,"Canela traseira recuada",[0,-.22,-.025],[.22,.50,.235],COAT3,"taper",[.18,0,q.side*.02]);
+   block(hip,"Coxa traseira musculosa",[0,-.29,.075],[.35,.62,.33],COAT3,"taper",[-.20,0,q.side*.025]);
+   knee=group(hip,[0,-.54,.14],"Articulação do joelho/jarrete traseiro");
+   block(knee,"Volume do jarrete",[0,-.035,.015],[.235,.19,.245],COAT3,"taper",[.10,0,q.side*.02]);
+   block(knee,"Canela traseira estreita",[0,-.245,-.035],[.205,.46,.22],COAT3,"taper",[.22,0,q.side*.02]);
   }else{
    // Cadeia dianteira segmentada: escápula > ombro > braço > cotovelo > antebraço > carpo.
    block(hip,"Braço dianteiro superior",[0,-.235,0],[.235,.48,.245],COAT3,"taper",[0,0,q.side*-.018]);
@@ -379,7 +379,7 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?5.2:2.05;
+ const t=animClock,rate=gallop?6.0:3.25;
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
  const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
  const ramp=(p,a,b)=>smooth((p-a)/(b-a));
@@ -411,15 +411,15 @@ function updateJaguarRig(){
    const pawTravel=stance?stride-(2*stride)*stanceT:(-stride+(2*stride)*recover);
    const pawLift=stance?0:Math.sin(Math.PI*recoveryT)*(gallop?.11:.075);
    if(hind){
-    const hipPitch=stance?(-.24+.62*stanceT):(.38-.76*recover);
+    const hipPitch=stance?(-.30+.56*stanceT):(.26-.56*recover);
     const hipYaw=.018*Math.sin(phase*.5+side*.5);
     leg.hip.rotation.set(gallop?hipPitch*1.12:hipPitch,hipYaw,side*.012*Math.sin(phase));
     leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+pawLift*.24+Math.max(0,Math.sin(phase*2))*(gallop?.018:.004),leg.baseHip.z+.018*Math.sin(phase-.22));
     // Flexiona na recuperação, estende progressivamente no apoio.
-    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x+(stance?.06+.13*stanceT:-.10-.20*Math.sin(Math.PI*recoveryT));
+    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x+(stance?.025+.12*stanceT:-.12-.34*Math.sin(Math.PI*recoveryT));
     // A pata permanece ligada ao jarrete: não deslocamos o pivô distal à parte.
     // O alcance vem da anca, da flexão do jarrete e da orientação do boleto.
-    leg.wrist.rotation.x=stance?(.025+.10*stanceT):(-.20*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.x=stance?(.015+.09*stanceT):(-.12-.24*Math.sin(Math.PI*recoveryT));
     leg.wrist.rotation.y=.012*Math.sin(phase+.5);
     leg.wrist.position.copy(leg.baseWrist);
     hindLoad+=stance?1:0;
@@ -817,5 +817,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=138",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=139",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
