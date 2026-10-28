@@ -416,16 +416,16 @@ function updateJaguarRig(){
     leg.hip.position.copy(leg.baseHip);
     // O joelho/jarrete comprime a perna na recuperação e estende a cadeia no impulso.
     if(leg.knee){
-     const kneeFlex=stance?(-.015-.16*stanceT):(-.16-.42*Math.sin(Math.PI*recoveryT));
+     const kneeFlex=stance?(-.015-.16*stanceT):(-.175+.16*recover-.30*Math.sin(Math.PI*recoveryT));
      leg.knee.rotation.set(leg.baseKneeRot.x+kneeFlex,leg.baseKneeRot.y,leg.baseKneeRot.z);
     }
     // O boleto transmite a extensão. No fim do apoio, prepara a saída do solo.
-    const hock=stance?(.025+.20*stanceT):(-.12-.30*Math.sin(Math.PI*recoveryT));
+    const hock=stance?(.025+.20*stanceT):(.225-.20*recover-.30*Math.sin(Math.PI*recoveryT));
     leg.wrist.rotation.set(hock,.012*Math.sin(phase+.5),leg.baseWristRot.z+side*.008*Math.sin(phase));
     leg.wrist.position.copy(leg.baseWrist);
     // Rotação real da pata: dedos apontam para baixo no impulso, depois flexionam
     // para liberar o chão. A rotação está no pivô da pata, não num deslocamento falso.
-    const toePush=stance?(-.10+.48*stanceT):(.38-.62*Math.sin(Math.PI*recoveryT));
+    const toePush=stance?(-.10+.48*stanceT):(.38-.48*recover-.20*Math.sin(Math.PI*recoveryT));
     if(leg.paw){
      leg.paw.position.copy(leg.basePawPos);
      leg.paw.rotation.set(leg.basePawRot.x+toePush,leg.basePawRot.y,leg.basePawRot.z);
