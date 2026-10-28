@@ -332,7 +332,7 @@ function jaguarPreset(){
    block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
    const wrist=group(knee,[q.side*.34,.16,q.z+.055],"Pivô da munheca/pata");
    block(wrist,"Pata articulada",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
-   legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side});
+   legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseKnee:knee.position.clone(),baseWrist:wrist.position.clone()});
  }
  // Cauda em três segmentos, ligada ao corpo.
  const tail=group(body,[0,1.48,-.88],"Pivô da cauda");
@@ -350,7 +350,7 @@ function updateJaguarRig(){
  const TAU=Math.PI*2;
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
-   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);if(leg.wrist)leg.wrist.rotation.set(0,0,0);}
+   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);if(leg.wrist)leg.wrist.rotation.set(0,0,0);if(leg.baseHip)leg.hip.position.copy(leg.baseHip);if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);}
    r.body.position.y=r.baseY;r.body.rotation.set(0,0,0);
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
@@ -382,7 +382,16 @@ function updateJaguarRig(){
     const reach=Math.cos(p);
     const stancePush=Math.max(0,-stride);
     const recovery=liftPhase;
-    leg.hip.rotation.x=reach*(leg.hind?.205:.235)+(stancePush*(leg.hind?.075:.055));
+    // A raiz do ombro/anca percorre uma trajetória 3D, não um pêndulo:
+    // avanço/recuo, elevação e deslocamento lateral da escápula.
+    const shoulderSide=Math.sin(p+.25)*(leg.hind?.025:.035)*(leg.side<0?1:-1);
+    const shoulderLift=Math.max(0,Math.sin(p+.55))*(leg.hind?.075:.095);
+    leg.hip.position.set(leg.baseHip.x+shoulderSide,leg.baseHip.y+shoulderLift,leg.baseHip.z+reach*(leg.hind?.12:.15));
+    leg.hip.rotation.set(
+      reach*(leg.hind?.12:.14)+stancePush*(leg.hind?.045:.035),
+      Math.sin(p)*.035*(leg.side<0?1:-1),
+      Math.sin(p+.35)*(leg.hind?.045:.055)*(leg.side<0?1:-1)
+    );
     // Flexiona para recolher a pata; estende antes do contato com o solo.
     leg.knee.rotation.x=(recovery*(leg.hind?.48:.40))-(Math.max(0,-Math.cos(p+.42))*(leg.hind?.10:.08));
     // Pequena componente lateral para o ombro se mover em mais de um eixo.
@@ -759,5 +768,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=98",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=99",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
