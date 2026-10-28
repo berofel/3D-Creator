@@ -71,7 +71,7 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandard
 const grid=new THREE.GridHelper(30,30,0x7792a4,0xc1d0da);grid.position.y=-.025;scene.add(grid);
 let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBase=new WeakMap();
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
-function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
+function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
 function clearSkin(){if(appendMode)return;for(const m of skinMeshes){if(m.parent)m.parent.remove(m);m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}skinMeshes=[]}
 function skinPiece(name,pos,scale,color,segments=7){const sides=Math.max(4,Math.min(7,Math.round(segments)));const rings=Math.max(3,Math.min(5,Math.floor(sides*.65)));const geo=new THREE.SphereGeometry(1,sides,rings);const mat=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={skin:true,name};scene.add(m);skinMeshes.push(m);return m}
 function setSkinMode(mode){skinMode=mode;const showSkin=mode==="skin";for(const m of skinMeshes)m.visible=showSkin;for(const p of parts){p.visible=true;p.material.visible=!showSkin}if(showSkin)transform.detach();transformHelper.visible=!showSkin;$("skinStatus").textContent=showSkin?"Pele visível; esqueleto oculto.":"Esqueleto articulado visível; pele ocultada.";say(showSkin?"Camada de pele ativada.":"Esqueleto articulado ativado.")}
@@ -356,12 +356,12 @@ function jaguarPreset(){
   if(q.hind){
    block(hip,"Coxa traseira musculosa",[q.side*.30,.87,q.z],[.30,.53,.36],COAT2,"body",[q.side*.04,0,-q.side*.10]);
   }else{
-   block(hip,"Perna dianteira trapézioide rígida",[q.side*.30,.57,q.z],[.225,.91,.245],COAT3,"facet",[0,0,q.side*-.025]);
+   block(hip,"Perna dianteira trapézioide rígida",[q.side*.30,.57,q.z],[.225,.91,.245],COAT3,"taper",[0,0,q.side*-.025]);
   }
   const knee=group(hip,[q.side*.30,.63,q.z],"Pivô joelho discreto");
-  if(q.hind)block(knee,"Perna inferior traseira",[q.side*.30,.38,q.z+.035],[.19,.43,.22],COAT3,"facet",[.04,0,q.side*.04]);
+  if(q.hind)block(knee,"Perna inferior traseira",[q.side*.30,.38,q.z+.035],[.19,.43,.22],COAT3,"taper",[.04,0,q.side*.04]);
   const hock=group(knee,[q.side*.30,.25,q.z+.045],"Pivô jarrete/munheca");
-  if(q.hind)block(hock,"Jarrete traseiro inclinado",[q.side*.30,.29,q.z+.05],[.145,.34,.17],COAT2,"facet",[.13,0,0]);
+  if(q.hind)block(hock,"Jarrete traseiro inclinado",[q.side*.30,.29,q.z+.05],[.145,.34,.17],COAT2,"taper",[.13,0,0]);
   const wrist=group(q.hind?hock:hip,[q.side*.30,.13,q.z+.08],"Pivô da pata");
   block(wrist,"Pata larga geométrica",[q.side*.30,.15,q.z+.08],[.28,.15,.32],PAW,"foot");
   // Pequenos dedos sugeridos por duas facetas frontais, sem virar uma mão humana.
@@ -372,10 +372,10 @@ function jaguarPreset(){
  }
  // Cauda curta, segmentada e com ponta escura/faixas alternadas.
  const tail=group(rump,[0,1.49,-.91],"Pivô da cauda");
- block(tail,"Cauda base",[0,1.42,-1.15],[.16,.16,.42],COAT2,"facet",[.05,0,0]);
- block(tail,"Cauda média",[0,1.34,-1.48],[.14,.14,.34],COAT3,"facet",[.10,0,0]);
+ block(tail,"Cauda base",[0,1.42,-1.15],[.16,.16,.42],COAT2,"taper",[.05,0,0]);
+ block(tail,"Cauda média",[0,1.34,-1.48],[.14,.14,.34],COAT3,"taper",[.10,0,0]);
  block(tail,"Faixa escura da cauda",[0,1.30,-1.62],[.145,.145,.10],DARK);
- block(tail,"Ponta da cauda",[0,1.28,-1.76],[.14,.14,.18],DARK,"facet",[.10,0,0]);
+ block(tail,"Ponta da cauda",[0,1.28,-1.76],[.14,.14,.18],DARK,"taper",[.10,0,0]);
  window.__berofelJaguarRigs.push({body,spine,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z});
 }
 function updateJaguarRig(){
@@ -859,5 +859,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=127",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=128",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
