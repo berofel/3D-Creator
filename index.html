@@ -293,16 +293,16 @@ function jaguarPreset(){
  const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
  const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
  const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
- // Pivô lombossacro: a dianteira fica estável; a garupa e as patas traseiras
- // são puxadas pela coluna, arredondando e estendendo o dorso como num felino.
- const spine=new THREE.Group();spine.name="Pivô lombossacro — coluna traseira";spine.position.set(0,1.40,-.10);body.add(spine);
- // O tronco posterior e a garupa ficam no grupo móvel. Peito e pescoço
- // permanecem presos à dianteira para que ela sirva de apoio durante a passada.
+ // A caixa torácica e o peito ficam estáveis. Só a bacia/anca gira;
+ // um pequeno segmento lombar acompanha com arco discreto, sem empurrar o corpo.
+ const spine=new THREE.Group();spine.name="Pivô da bacia e coluna lombar";spine.position.set(0,1.40,-.56);body.add(spine);
  const trunk=block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
  const chest=block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
  const belly=block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
  const rump=block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
- spine.attach(trunk);spine.attach(belly);spine.attach(rump);
+ spine.attach(rump);
+ // Pequeno elo lombar visual entre tronco e bacia; sua inclinação é limitada.
+ block(spine,"Coluna lombar flexível",[0,1.40,-.30],[.72,.48,.52],GOLD2);
  // Manchas quadradas em ambos os flancos e no dorso.
  for(const side of [-1,1]){
    for(const z of [-.58,-.28,.02,.32,.55]){
@@ -379,7 +379,7 @@ function updateJaguarRig(){
    const stance=Math.max(0,-Math.sin(p+.10));
    const reach=c;
    const hind=leg.hind;
-   const stride=gallop?(hind?.255:.29):(hind?.205:.225);
+   const stride=gallop?(hind?.20:.25):(hind?.125:.18);
    const hipSwing=Math.sin(p-.08);
    const lift=gallop?swing:Math.max(0,Math.sin(p+.04));
    const recovery=Math.max(0,-Math.sin(p));
@@ -489,9 +489,9 @@ function updateJaguarRig(){
    r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.003);
    if(r.spine){
     // Flexão mais forte na metade traseira; a dianteira não acompanha o pivô.
-    r.spine.rotation.x=spineBend*.42+(hindLoad-foreLoad)*.045;
-    r.spine.position.y=r.baseSpineY+gather*.055-reachPhase*.018;
-    r.spine.position.z=r.baseSpineZ+spineBend*.12;
+    r.spine.rotation.x=spineBend*.14+(hindLoad-foreLoad)*.018;
+    r.spine.position.y=r.baseSpineY+gather*.018-reachPhase*.006;
+    r.spine.position.z=r.baseSpineZ+spineBend*.018;
    }
   }
   r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
