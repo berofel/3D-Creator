@@ -348,20 +348,25 @@ function jaguarPreset(){
  for(const q of specs){
   const parent=q.hind?rump:body;
   const pivotPos=q.hind?[q.side*.29,-.22,q.z]:[q.side*.30,1.14,q.z];
-  const hip=group(parent,pivotPos,(q.hind?"Pivô da anca traseira ":"Pivô do ombro dianteiro ")+(q.side<0?"esquerdo":"direito"));
-  let knee=null;
+  const pivotName=(q.hind?"Pivô da anca traseira ":"Pivô escapular dianteiro ")+(q.side<0?"esquerdo":"direito");
+  const scapula=q.hind?null:group(parent,pivotPos,pivotName);
+  const hip=q.hind?group(parent,pivotPos,pivotName):group(scapula,[0,-.025,0],"Articulação do ombro "+(q.side<0?"esquerdo":"direito"));
+  let knee=null,elbow=null;
   if(q.hind){
-   // Curvatura felina fixa: coxa ligeiramente projetada e jarrete recuado.
+   // Cadeia traseira: anca > coxa > jarrete > boleto.
    block(hip,"Coxa traseira alongada",[0,-.27,.055],[.29,.59,.29],COAT3,"taper",[-.14,0,q.side*.025]);
    knee=group(hip,[0,-.51,.115],"Dobra do jarrete traseiro");
    block(knee,"Canela traseira recuada",[0,-.22,-.025],[.22,.50,.235],COAT3,"taper",[.18,0,q.side*.02]);
   }else{
-   block(hip,"Perna dianteira rígida",[0,-.43,0],[.22,.84,.235],COAT3,"taper",[0,0,q.side*-.018]);
+   // Cadeia dianteira segmentada: escápula > ombro > braço > cotovelo > antebraço > carpo.
+   block(hip,"Braço dianteiro superior",[0,-.235,0],[.235,.48,.245],COAT3,"taper",[0,0,q.side*-.018]);
+   elbow=group(hip,[0,-.46,0],"Articulação do cotovelo "+(q.side<0?"esquerdo":"direito"));
+   block(elbow,"Antebraço dianteiro",[0,-.19,.015],[.205,.39,.22],COAT3,"taper",[.025,0,q.side*.012]);
   }
-  const wrist=group(knee||hip,[0,q.hind?-.46:-.84,q.hind?-.025:.07],"Pivô da munheca/boleto");
+  const wrist=group(knee||elbow||hip,[0,q.hind?-.46:(elbow?-.38:-.84),q.hind?-.025:.07],"Pivô do carpo/boleto");
   block(wrist,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(wrist,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
-  legs.push({hip,knee,baseKneeRot:knee?knee.rotation.clone():null,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
+  legs.push({hip,scapula,elbow,knee,baseKneeRot:knee?knee.rotation.clone():null,baseElbowRot:elbow?elbow.rotation.clone():null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
  }
  // Cauda presa à anca, com balanço secundário.
  const tail=group(rump,[0,.02,-.39],"Pivô da cauda");
@@ -381,7 +386,7 @@ function updateJaguarRig(){
  for(const r of (window.__berofelJaguarRigs||[])){
   const cycle=t*rate;
   if(mode==="stop"){
-   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot)}
+   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);if(leg.elbow)leg.elbow.rotation.copy(leg.baseElbowRot);if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos)}}
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
    r.spine.position.set(0,r.baseSpineY,r.baseSpineZ);r.spine.rotation.set(0,0,0);
    r.rump.position.copy(r.baseRumpPos);r.rump.rotation.copy(r.baseRumpRot);
@@ -417,12 +422,22 @@ function updateJaguarRig(){
     leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+pawLift,leg.baseWrist.z+pawTravel);
     hindLoad+=stance?1:0;
    }else{
-    // A pata dianteira também desliza horizontalmente: não depende só do balanço do ombro.
-    const shoulder=stance?(-.18+.42*stanceT):(.24-.48*recover);
-    leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.06*Math.sin(phase*.5+side*.4),side*.025*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+pawLift*.35+lift*(gallop?.012:.003),leg.baseHip.z+.015*Math.sin(phase-.3));
-    leg.wrist.rotation.x=stance?(-.015-.09*stanceT):(.17*Math.sin(Math.PI*recoveryT));
-    leg.wrist.rotation.y=.025*Math.sin(phase+.4);
+    // Dianteira articulada: escápula desliza, ombro conduz, cotovelo recolhe,
+    // carpo ajusta a pata. A trajetória continua sincronizada com apoio/recuperação.
+    const shoulder=stance?(-.16+.34*stanceT):(.18-.40*recover);
+    const scapulaGlide=stance?(-.035+.07*stanceT):(.035-.07*recover);
+    if(leg.scapula){
+     leg.scapula.rotation.set(scapulaGlide+(gallop?.025:0),.018*Math.sin(phase*.5+side*.3),side*.012*Math.sin(phase));
+     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y+pawLift*.12,leg.baseScapulaPos.z+scapulaGlide*.45);
+    }
+    leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.035*Math.sin(phase*.5+side*.4),side*.018*Math.sin(phase));
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+pawLift*.20+lift*(gallop?.012:.003),leg.baseHip.z);
+    if(leg.elbow){
+     const elbowFlex=stance?(.035+.10*stanceT):(-.12-.48*Math.sin(Math.PI*recoveryT));
+     leg.elbow.rotation.set(gallop?elbowFlex*1.12:elbowFlex,.012*Math.sin(phase+side*.2),side*.012*Math.sin(phase+.3));
+    }
+    leg.wrist.rotation.x=stance?(-.015-.075*stanceT):(.14*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.y=.018*Math.sin(phase+.4);
     leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+pawLift,leg.baseWrist.z+pawTravel);
     foreLoad+=stance?1:0;
    }
@@ -798,5 +813,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=136",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=137",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
