@@ -397,18 +397,25 @@ function updateJaguarRig(){
    const swing=arc(p,.02,.43),lift=arc(p,.04,.39),plant=ramp(p,.34,.43),push=ramp(p,.43,.78),release=ramp(p,.78,.98);
    const phase=cycle+leg.phase;
    if(hind){
-    // A anca projeta a perna traseira para a frente na recuperação e estende-a para trás no impulso.
-    // No eixo Z, +Z aponta para a cabeça; a rotação X negativa leva a coxa para a frente.
-    const hipPitch=gallop?-.60*Math.sin(phase)-.07:(-.12-.74*swing+.28*push);
+    // Ciclo de passada da pata traseira: 62% de apoio no chão, 38% de recuperação.
+    // +Z aponta para a cabeça. A trajetória da pata guia a rotação da coxa e do jarrete.
+    const stance=p<.62;
+    const stanceT=stance?p/.62:1;
+    const recoveryT=stance?0:(p-.62)/.38;
+    const recover=smooth(recoveryT);
+    const pawTravel=stance?.19-.38*stanceT:(-.19+.38*recover);
+    const pawLift=stance?0:Math.sin(Math.PI*recoveryT)*(gallop?.105:.075);
+    const hipPitch=stance?(-.30+.76*stanceT):(.46-.92*recover);
     const hipYaw=.018*Math.sin(phase*.5+side*.5);
-    leg.hip.rotation.set(hipPitch,hipYaw,side*.012*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.055:.016),leg.baseHip.z+.055*Math.sin(phase-.22));
-    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x-(gallop?.20:.15)*lift+(gallop?.12:.09)*push;
-    leg.wrist.rotation.x=-(gallop?.20:.15)*lift-(gallop?.22:.17)*arc(p,.30,.48)*(1-plant)+(gallop?.10:.07)*push*(1-release);
+    leg.hip.rotation.set(gallop?hipPitch*1.16:hipPitch,hipYaw,side*.012*Math.sin(phase));
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+pawLift*.30+Math.max(0,Math.sin(phase*2))*(gallop?.018:.004),leg.baseHip.z+.025*Math.sin(phase-.22));
+    // O jarrete fecha na recuperação e abre durante o impulso; o boleto compensa a pata.
+    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x+(stance?.10+.17*stanceT:-.12-.24*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.x=-(stance?(.04+.13*stanceT):(.20*Math.sin(Math.PI*recoveryT)))+(stance?.06:0);
     leg.wrist.rotation.y=.015*Math.sin(phase+.5);
-    // Durante o apoio a pata desliza para trás; na recuperação alcança a dianteira.
-    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.055:.016),leg.baseWrist.z+.045*Math.sin(phase-.32)-.14*push*(1-release));
-    hindLoad+=p>.42?1:0;
+    // Deslocamento longitudinal explícito: a pata avança no ar e recua enquanto sustenta o corpo.
+    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+pawLift,leg.baseWrist.z+pawTravel);
+    hindLoad+=stance?1:0;
    }else{
     // Ombro move a perna para a frente/trás e lateralmente; munheca flexiona a pata.
     const shoulder=gallop?.40*Math.sin(phase):(.25*Math.sin(phase)-.025);
@@ -791,5 +798,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=134",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=135",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
