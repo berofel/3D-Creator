@@ -442,19 +442,21 @@ function updateJaguarRig(){
     // Ciclo dianteiro em duas fases claras: apoio contínuo na metade do ciclo;
     // na outra metade, recolhe o joelho, balança a perna à frente e estende
     // apenas no final para um único novo contato — sem um segundo toque no meio.
-    const foreTuck=smooth01((recovery-.12)/.72);
+    // A dianteira faz um arco curto e baixo; não deve levantar em direção ao focinho.
+    // A traseira é quem percorre o chão para trás durante o apoio.
+    const foreTuck=smooth01((recovery-.16)/.76);
     const foreReachExtension=smooth01((Math.cos(p)+.12)/1.12);
     leg.hip.rotation.set(
      hind
       ? foreSwing*.62-hindPush*.20+stance*.045
-      : foreSwing*.96+stance*.035,
+      : foreSwing*.42+stance*.018,
      Math.sin(p+.12)*.018*sideSign,
      Math.sin(p+.3)*(hind?.035:.042)*sideSign
     );
     // O joelho recolhe a pata durante a volta; a extensão ocorre antes do apoio.
     leg.knee.rotation.x=hind
       ? (tuck*1.22-hindReachExtension*.92-stance*.025)
-      : (foreTuck*1.62-foreReachExtension*.78-stance*.045);
+      : (foreTuck*.58-foreReachExtension*.24-stance*.02);
     if(leg.baseKnee){
      leg.knee.position.set(
       leg.baseKnee.x,
@@ -466,12 +468,12 @@ function updateJaguarRig(){
      // Paw curls up/back in recovery, then reaches forward/down for contact.
      leg.wrist.rotation.x=hind
       ? (-tuck*.48+hindReachExtension*.38+stance*.06)
-      : (-foreTuck*.72+foreReachExtension*.42+stance*.045);
+      : (-foreTuck*.22+foreReachExtension*.12+stance*.018);
      if(leg.baseWrist){
       leg.wrist.position.set(
        leg.baseWrist.x,
-       leg.baseWrist.y+lift*.115-tuck*.018,
-       leg.baseWrist.z+lift*.075+forward*.018-backward*.012
+       leg.baseWrist.y+lift*(hind?.115:.045)-tuck*(hind?.018:.006),
+       leg.baseWrist.z+lift*(hind?.075:.025)+forward*.008-backward*.008
       );
      }
     }
@@ -856,5 +858,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=111",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=112",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
