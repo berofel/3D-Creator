@@ -342,106 +342,79 @@ function jaguarPreset(){
  window.__berofelJaguarRigs.push({body,neck,head,tail,legs,baseY:body.position.y});
 }
 function updateJaguarRig(){
- const mode=animMode;
- const moving=mode==="walk"||mode==="gallop";
- const gallop=mode==="gallop";
- const t=animClock;
- const rate=gallop?6.1:2.15;
+ const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
+ const t=animClock, rate=gallop?6.1:1.45;
  for(const r of (window.__berofelJaguarRigs||[])){
   if(mode==="stop"){
-   for(const leg of r.legs){
-    leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);
-    if(leg.wrist)leg.wrist.rotation.set(0,0,0);
-    if(leg.baseHip)leg.hip.position.copy(leg.baseHip);
-    if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);
-    if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);
-   }
-   r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
-   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
-   continue;
+   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);if(leg.wrist)leg.wrist.rotation.set(0,0,0);if(leg.baseHip)leg.hip.position.copy(leg.baseHip);if(leg.baseKnee)leg.knee.position.copy(leg.baseKnee);if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);}
+   r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);continue;
   }
-  let frontDrive=0, rearDrive=0, bodySupport=0;
+  let foreSupport=0,hindSupport=0;
   for(const leg of r.legs){
-   let phase;
-   if(gallop){
-    phase=leg.hind?(leg.side<0?Math.PI*.10:Math.PI*.26):(leg.side<0?Math.PI*.92:Math.PI*1.12);
-   }else{
-    const sidePhase=leg.side<0?0:Math.PI;
-    phase=sidePhase+(leg.hind?0.62:0);
-   }
-   const p=t*rate+phase;
-   const stride=Math.sin(p);
-   const reach=Math.cos(p);
-   const lift=Math.max(0,Math.sin(p+.12));
-   const recovery=Math.pow(lift,1.25);
-   const flex=Math.max(0,Math.sin(p+.52));
-   const push=Math.max(0,-stride);
    const sideSign=leg.side<0?1:-1;
-   if(leg.hind)rearDrive+=push;else frontDrive+=push;
-   bodySupport+=push;
+   // Walk: hind paws follow the same forepaw track with a small delay,
+   // producing short, alternating steps instead of a wide, horse-like stride.
+   let phase;
+   if(gallop) phase=leg.hind?(leg.side<0?.12*Math.PI:.28*Math.PI):(leg.side<0?.92*Math.PI:1.08*Math.PI);
+   else phase=(leg.side<0?0:Math.PI)+(leg.hind?.22:0);
+   const p=t*rate+phase, stride=Math.sin(p), reach=Math.cos(p);
+   const swing=Math.max(0,Math.sin(p+.08));
+   const lift=swing*swing*(3-2*swing);
+   const flex=Math.max(0,Math.sin(p+.42));
+   const push=Math.max(0,-stride);
+   if(leg.hind)hindSupport+=push;else foreSupport+=push;
    if(gallop){
-    // Galope: passada ampla e recolhimento forte dos joelhos.
-    leg.hip.position.set(leg.baseHip.x+Math.sin(p+.2)*.025*sideSign,leg.baseHip.y+lift*.035,leg.baseHip.z+reach*(leg.hind?.20:.24));
-    leg.hip.rotation.set(reach*(leg.hind?.38:.34)+push*(leg.hind?.12:.08),Math.sin(p)*.035*sideSign,Math.sin(p+.3)*.065*sideSign);
-    leg.knee.rotation.x=recovery*(leg.hind?1.12:1.28)-push*.14;
-    if(leg.wrist)leg.wrist.rotation.x=-recovery*.34+push*.08;
+    leg.hip.position.set(leg.baseHip.x+Math.sin(p+.2)*.025*sideSign,leg.baseHip.y+lift*.045,leg.baseHip.z+reach*(leg.hind?.20:.24));
+    leg.hip.rotation.set(reach*(leg.hind?.40:.36)+push*(leg.hind?.12:.08),Math.sin(p)*.035*sideSign,Math.sin(p+.3)*.06*sideSign);
+    leg.knee.rotation.x=lift*(leg.hind?1.16:1.28)-push*.12;
+    if(leg.wrist)leg.wrist.rotation.x=-lift*.32+push*.08;
    }else{
-    // Ombro e escápula: inclinação visível para alcançar à frente,
-    // seguida por recuo e elevação da pata na fase de recuperação.
-    const forwardReach=Math.max(0,reach);
-    const backwardDrive=Math.max(0,-reach);
-    const shoulderSide=Math.sin(p+.25)*(leg.hind?.035:.045)*sideSign;
-    const shoulderLift=lift*(leg.hind?.055:.075);
+    // Smaller, smoother walking arc with an unmistakable vertical lift.
+    // Shoulder/hip root advances; knee folds; paw lifts and then reaches down.
+    const frontReach=Math.max(0,reach), backReach=Math.max(0,-reach);
     leg.hip.position.set(
-     leg.baseHip.x+shoulderSide,
-     leg.baseHip.y+shoulderLift,
-     leg.baseHip.z+reach*(leg.hind?.19:.25)
+      leg.baseHip.x+Math.sin(p+.2)*.026*sideSign,
+      leg.baseHip.y+lift*(leg.hind?.075:.095),
+      leg.baseHip.z+reach*(leg.hind?.145:.17)
     );
     leg.hip.rotation.set(
-     reach*(leg.hind?.34:.42)+push*(leg.hind?.13:.09),
-     Math.sin(p)*.055*sideSign,
-     Math.sin(p+.35)*(leg.hind?.065:.085)*sideSign
+      reach*(leg.hind?.27:.32)+push*(leg.hind?.07:.055),
+      Math.sin(p)*.025*sideSign,
+      Math.sin(p+.3)*(leg.hind?.045:.055)*sideSign
     );
-    // Joelho recolhe claramente para trás/para cima na recuperação;
-    // estende gradualmente antes do contato com o solo.
-    leg.knee.rotation.x=
-     recovery*(leg.hind?1.02:1.18)
-     -Math.max(0,-Math.cos(p+.25))*(leg.hind?.16:.12)
-     -push*(leg.hind?.10:.06);
-    if(leg.knee.position&&leg.baseKnee){
-     leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+recovery*.035,leg.baseKnee.z+forwardReach*.035-backwardDrive*.025);
-    }
+    // Strong but eased knee bend. Extend toward contact rather than snapping.
+    leg.knee.rotation.x=lift*(leg.hind?.78:.92)-push*(leg.hind?.055:.035);
+    if(leg.baseKnee)leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+lift*.025,leg.baseKnee.z+frontReach*.018-backReach*.012);
     if(leg.wrist){
-     leg.wrist.rotation.x=-recovery*.28+push*.10;
-     if(leg.baseWrist)leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+recovery*.045,leg.baseWrist.z+forwardReach*.035);
+     leg.wrist.rotation.x=-lift*.20+push*.035;
+     if(leg.baseWrist)leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*.055,leg.baseWrist.z+frontReach*.025);
     }
    }
   }
-  frontDrive/=2;rearDrive/=2;bodySupport/=4;
+  foreSupport/=2;hindSupport/=2;
   const cycle=t*rate;
-  const wave=Math.sin(cycle);
-  const rebound=Math.max(0,Math.sin(cycle*2+.45));
   if(gallop){
-   // O tronco absorve a aterrissagem e sobe na impulsão traseira.
-   r.body.position.y=r.baseY+.025+rebound*.14+rearDrive*.035;
-   r.body.position.z=Math.sin(cycle+.35)*.035;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.105+rearDrive*.035;
-   r.body.rotation.z=Math.sin(cycle*.5)*.035;
+   const airborne=Math.max(0,Math.sin(cycle*2+.25));
+   r.body.position.y=r.baseY+.012+airborne*.075+hindSupport*.025;
+   r.body.position.z=Math.sin(cycle+.35)*.025;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.085+(hindSupport-foreSupport)*.025;
+   r.body.rotation.z=Math.sin(cycle*.5)*.025;
   }else{
-   // O corpo deixa de ser estático: desce na carga, sobe na impulsão,
-   // inclina o peito e transfere o peso entre ombros e ancas.
-   const load=Math.max(0,Math.sin(cycle+.15));
-   const liftBody=Math.max(0,Math.sin(cycle*2-.55));
-   r.body.position.y=r.baseY-.035+liftBody*.085+bodySupport*.025;
-   r.body.position.z=Math.sin(cycle+.2)*.045+(rearDrive-frontDrive)*.018;
-   r.body.rotation.x=-.045+Math.sin(cycle+.35)*.055+(rearDrive-frontDrive)*.025;
-   r.body.rotation.z=Math.sin(cycle*.5+.4)*.028;
+   // Feline walk is a rolling transfer of weight, not repeated jumps:
+   // very low torso bob, vertical shoulder/chest action and smooth pitch.
+   const load=.5+.5*Math.sin(cycle+.2);
+   const spineWave=Math.sin(cycle*2-.35);
+   r.body.position.y=r.baseY-.012+spineWave*.018+(foreSupport-hindSupport)*.006;
+   r.body.position.z=Math.sin(cycle+.15)*.025+(hindSupport-foreSupport)*.008;
+   r.body.rotation.x=-.018+Math.sin(cycle+.35)*.026+(hindSupport-foreSupport)*.012;
+   r.body.rotation.z=Math.sin(cycle*.5+.4)*.012;
+   // Additional shoulder girdle dip/lift transmitted through chest rotation.
+   r.body.rotation.x+=Math.sin(cycle+.55)*.012;
   }
-  // Cabeça/pescoço compensam o movimento do tronco; cauda equilibra o impulso.
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.13:-Math.sin(cycle+.35)*.065):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.075:Math.sin(cycle+.35)*.04):Math.sin(t*1.35)*.008;
-  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.27:.15):Math.sin(t*.8)*.035;
-  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.20:Math.sin(cycle*.55)*.09):Math.sin(t*1.1)*.025;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.26:.12):Math.sin(t*.8)*.035;
+  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.18:Math.sin(cycle*.55)*.065):Math.sin(t*1.1)*.025;
  }
 }
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
@@ -790,5 +763,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=100",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=101",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
