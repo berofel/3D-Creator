@@ -341,18 +341,46 @@ function jaguarPreset(){
  window.__berofelJaguarRigs.push({body,neck,head,tail,legs,baseY:body.position.y});
 }
 function updateJaguarRig(){
- const t=animClock,walking=animMode==="walk"||animMode==="gallop",gallop=animMode==="gallop",rate=gallop?7.2:4.0;
+ const mode=animMode;
+ const moving=mode==="walk"||mode==="gallop";
+ const gallop=mode==="gallop";
+ const t=animClock;
+ const rate=gallop?6.1:2.65;
  for(const r of (window.__berofelJaguarRigs||[])){
-  for(const leg of r.legs){
-   const phase=t*rate+leg.phase+(gallop?.25:0);
-   leg.hip.rotation.x=walking?Math.sin(phase)*(gallop?.62:.30):0;
-   leg.knee.rotation.x=walking?Math.max(0,Math.sin(phase+1.05))*(gallop?.85:.42):0;
+  if(mode==="stop"){
+   for(const leg of r.legs){leg.hip.rotation.set(0,0,0);leg.knee.rotation.set(0,0,0);}
+   r.body.position.y=r.baseY;r.body.rotation.set(0,0,0);
+   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
+   continue;
   }
-  r.body.position.y=r.baseY+(gallop?Math.pow(Math.max(0,Math.sin(t*rate*2)),2)*.085:walking?Math.abs(Math.sin(t*rate*2))*.025:Math.sin(t*1.8)*.008);
-  r.body.rotation.x=walking?Math.sin(t*rate)* (gallop?.035:.018):0;
-  r.neck.rotation.x=walking?Math.sin(t*rate+Math.PI)*.055:Math.sin(t*1.2)*.018;
-  r.head.rotation.x=walking?Math.sin(t*rate+Math.PI)*.04:Math.sin(t*1.3)*.012;
-  r.tail.rotation.y=Math.sin(t*(walking?rate:1.5))*(gallop?.30:walking?.18:.07);
+  // Gait felina: caminhada em quatro tempos, com apoio alternado e passos baixos.
+  // O galope agrupa a impulsão traseira e a recepção dianteira, sem reutilizar o ciclo equino.
+  for(const leg of r.legs){
+   let phase;
+   if(gallop){
+    phase=leg.hind?(leg.side<0?Math.PI*.10:Math.PI*.26):(leg.side<0?Math.PI*.92:Math.PI*1.12);
+   }else{
+    phase=leg.hind?(leg.side<0?Math.PI*1.05:Math.PI*.12):(leg.side<0?0:Math.PI*.92);
+   }
+   const p=t*rate+phase;
+   const swing=Math.sin(p);
+   const lift=Math.max(0,Math.sin(p+0.30));
+   leg.hip.rotation.x=moving?swing*(gallop?(leg.hind?.88:.66):(leg.hind?.25:.30)):0;
+   // A pata dobra durante a recuperação e estende perto do apoio, típico de felino.
+   leg.knee.rotation.x=moving?(gallop?lift*(leg.hind?.95:1.05):lift*(leg.hind?.30:.40)):0;
+   leg.knee.rotation.x-=moving&&swing<-.25?(gallop?.10:.045):0;
+  }
+  const wave=Math.sin(t*rate);
+  const gather=Math.pow(Math.max(0,Math.sin(t*rate*2+Math.PI*.20)),2);
+  // Em caminhada o tronco fica baixo e estável; no galope comprime e se estende.
+  r.body.position.y=r.baseY+(gallop?gather*.105: moving?Math.abs(wave)*.012:Math.sin(t*1.45)*.006);
+  r.body.rotation.x=moving?(gallop?Math.sin(t*rate+Math.PI*.45)*.075:Math.sin(t*rate)*.022):0;
+  r.body.rotation.z=moving?(gallop?Math.sin(t*rate*.5)*.025:Math.sin(t*rate*.5)*.012):0;
+  // Cabeça e pescoço compensam a oscilação do dorso para manter o olhar estável.
+  r.neck.rotation.x=moving?(gallop?-Math.sin(t*rate+Math.PI*.45)*.09:-Math.sin(t*rate)*.035):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(t*rate+Math.PI*.45)*.045:Math.sin(t*rate)*.018):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.22:.105):Math.sin(t*.8)*.035;
+  r.tail.rotation.x=moving?(gallop?Math.sin(t*rate+.7)*.16:Math.sin(t*rate*.55)*.06):Math.sin(t*1.1)*.025;
  }
 }
 
