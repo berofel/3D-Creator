@@ -8,7 +8,9 @@ Branch: `feature/feline-gait-blender-pipeline`
 
 - Controles de cadência, comprimento do passo, fase de apoio e elevação da pata.
 - Perfis procedurais separados para caminhada e galope.
-- Solver geométrico aproximado de duas juntas, com alcance limitado e ângulos de quadril/anca e joelho calculados.
+- Ciclo de caminhada atualizado para sequência quadrúpede de quatro tempos, com cadência padrão mais legível e trajetória de avanço/apoio aplicada diretamente à posição local da munheca/pata.
+- Flexão de quadril/anca, joelho, munheca, tronco e coluna sincronizada com apoio e fase aérea; caminhada e galope mantêm perfis separados.
+- A caminhada usa duração de exportação alinhada ao novo ciclo de 0,8 ciclos/s na cadência padrão.
 - Coordenação secundária de tronco, coluna lombar, pescoço, cabeça e cauda.
 - Exportação de clipes amostrando também o rig específico da onça; anteriormente o bake chamava apenas o atualizador dos outros rigs.
 - Duração de exportação da caminhada e do galope calculada para abranger um ciclo inteiro na cadência selecionada, com frame final no tempo exato de fim do ciclo.
@@ -31,6 +33,6 @@ Branch: `feature/feline-gait-blender-pipeline`
 8. Regressão: testar cavalo, gnu, humanoide, edição modular e pacote ZIP.
 
 ## Estado de validação
-- Código e documentação atualizados no GitHub.
-- Checagens estáticas confirmaram a presença dos controles, o solver geométrico, a chamada de atualização do rig da onça durante o bake e o cache v121.
-- **Não foi possível executar um navegador gráfico nesta sessão.** Não foi feita inspeção visual, exportação GLB real nem reimportação. Portanto, a implementação está preparada para a rodada de validação, mas os critérios visuais e de exportação não podem ser marcados como aprovados até o teste no editor.
+- Branch atualizada com uma segunda rodada de correção: ciclo de quatro tempos, cadência mais rápida, trajetória aplicada à pata e movimentos de articulação/corpo mais legíveis.
+- Cache do service worker atualizado para v122.
+- **Não foi possível executar um navegador gráfico nesta sessão.** Não foi feita inspeção visual, exportação GLB real nem reimportação. A alteração de código está publicada, mas a caminhada ainda precisa ser conferida no viewport; não se declara correção visual aprovada sem esse teste.
