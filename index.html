@@ -293,9 +293,11 @@ function jaguarPreset(){
  const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
  const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);scene.add(g);if(parent)parent.attach(g);return g};
  const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
+ // Pivô de flexão torácica: peito, pescoço e ombros dianteiros acompanham a coluna.
+ const spine=new THREE.Group();spine.name="Pivô de flexão da coluna";spine.position.set(0,1.40,.25);body.add(spine);
  // Corpo, peito e garupa: volumes retangulares facetados já dimensionados.
  block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
- block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
+ const chest=block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
  block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
  block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
  // Manchas quadradas em ambos os flancos e no dorso.
@@ -309,6 +311,7 @@ function jaguarPreset(){
  }
  // Pescoço e cabeça articulados.
  const neck=group(body,[0,1.58,.72],"Pivô do pescoço");
+ spine.attach(chest);spine.attach(neck);
  block(neck,"Pescoço",[0,1.66,.75],[.56,.58,.66],GOLD);
  const head=group(neck,[0,1.70,1.04],"Pivô da cabeça");
  block(head,"Crânio",[0,1.72,1.10],[.58,.48,.54],GOLD);
@@ -332,6 +335,7 @@ function jaguarPreset(){
    block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
    const wrist=group(knee,[q.side*.34,.16,q.z+.055],"Pivô da munheca/pata");
    block(wrist,"Pata articulada",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
+   if(!q.hind)spine.attach(hip);
    legs.push({hip,knee,wrist,phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseKnee:knee.position.clone(),baseWrist:wrist.position.clone()});
  }
  // Cauda em três segmentos, ligada ao corpo.
@@ -339,7 +343,7 @@ function jaguarPreset(){
  block(tail,"Cauda base",[0,1.38,-1.13],[.16,.16,.48],GOLD2);
  block(tail,"Cauda média",[0,1.23,-1.47],[.13,.13,.36],GOLD);
  block(tail,"Ponta escura da cauda",[0,1.12,-1.72],[.14,.14,.22],BLACK);
- window.__berofelJaguarRigs.push({body,neck,head,tail,legs,baseY:body.position.y});
+ window.__berofelJaguarRigs.push({body,spine,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z});
 }
 function updateJaguarRig(){
  const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
@@ -354,6 +358,7 @@ function updateJaguarRig(){
     if(leg.baseWrist&&leg.wrist)leg.wrist.position.copy(leg.baseWrist);
    }
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
+   if(r.spine){r.spine.rotation.set(0,0,0);r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ;}
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
   }
@@ -412,14 +417,9 @@ function updateJaguarRig(){
     const shoulderVertical=lift*(hind?.105:.13);
     // Forepaws stay steady through support; the body travels over them.
     // The foreleg advances during swing, rather than sliding through stance.
-    const walkPhase=((p%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
-    const foreStanceZ=leg.baseHip.z-stride*.78;
-    const foreSwingZ=leg.baseHip.z+stride*.92;
-    const hipTravel=hind
-      ? leg.baseHip.z+reach*stride
-      : (walkPhase<Math.PI
-          ? foreSwingZ+(foreStanceZ-foreSwingZ)*smooth01(walkPhase/Math.PI)
-          : foreStanceZ);
+    // Smooth cyclic travel avoids the discontinuity at the stance/swing seam.
+    // Ground contact is suggested by low paw lift and reduced forelimb swing.
+    const hipTravel=leg.baseHip.z+reach*stride*(hind?1:.78);
     leg.hip.position.set(
      leg.baseHip.x+Math.sin(p+.2)*.032*sideSign,
      leg.baseHip.y+shoulderVertical,
@@ -466,19 +466,24 @@ function updateJaguarRig(){
    r.body.position.z=Math.sin(cycle+.35)*.03;
    r.body.rotation.x=-Math.sin(cycle+.4)*.09+(hindLoad-foreLoad)*.03;
    r.body.rotation.z=Math.sin(cycle*.5)*.028;
+   if(r.spine){r.spine.rotation.x=Math.sin(cycle+.3)*.12+(hindLoad-foreLoad)*.035;r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;}
   }else{
    // The chest visibly rises as the forelimbs recover, then settles into support.
    // Keep the body roll low: weight transfer, not a repeated hop.
-   const chestLift=Math.max(0,Math.sin(cycle+.15));
-   // Flex the feline spine as the hind paws gather forward, then extend as
-   // the forepaws reach and establish the next support.
-   const spineFlex=(1-Math.cos(cycle))*0.5;
-   const spineExtend=(1-Math.cos(cycle+Math.PI))*0.5;
-   const spineWave=Math.sin(cycle*2-.35);
-   r.body.position.y=r.baseY-.008+spineWave*.018+(foreLoad-hindLoad)*.009+chestLift*.008+spineFlex*.012;
-   r.body.position.z=Math.sin(cycle+.15)*.018+(hindLoad-foreLoad)*.012+(spineFlex-spineExtend)*.025;
-   r.body.rotation.x=-.022+spineFlex*.075-spineExtend*.055+Math.sin(cycle+.35)*.012+(hindLoad-foreLoad)*.018;
-   r.body.rotation.z=Math.sin(cycle*.5+.4)*.016;
+   // The spine pivot bends the chest/shoulders relative to the pelvis.
+   // Hind-paw recovery gathers under the body; extension then reaches forward.
+   const gather=Math.max(0,Math.sin(cycle-Math.PI*.35));
+   const reachPhase=Math.max(0,Math.sin(cycle+Math.PI*.65));
+   const spineBend=(gather-reachPhase);
+   const spinePulse=Math.sin(cycle*2-.35);
+   r.body.position.y=r.baseY-.004+spinePulse*.006+(foreLoad-hindLoad)*.006;
+   r.body.position.z=(hindLoad-foreLoad)*.008;
+   r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.008);
+   if(r.spine){
+    r.spine.rotation.x=spineBend*.14+(hindLoad-foreLoad)*.025;
+    r.spine.position.y=r.baseSpineY+gather*.018-reachPhase*.008;
+    r.spine.position.z=r.baseSpineZ+spineBend*.055;
+   }
   }
   r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.12:-Math.sin(cycle+.35)*.045):Math.sin(t*1.15)*.012;
   r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.07:Math.sin(cycle+.35)*.028):Math.sin(t*1.35)*.008;
@@ -832,5 +837,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=105",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=106",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
