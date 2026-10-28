@@ -343,7 +343,7 @@ function jaguarPreset(){
  const legs=[];
  const specs=[
   {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
-  {side:-1,z:-.24,phase:Math.PI,hind:true},{side:1,z:-.24,phase:0,hind:true}
+  {side:-1,z:-.12,phase:Math.PI,hind:true},{side:1,z:-.12,phase:0,hind:true}
  ];
  for(const q of specs){
   const parent=q.hind?rump:body;
@@ -370,7 +370,7 @@ function jaguarPreset(){
  block(tail,"Faixa escura",[0,-.14,-.60],[.13,.13,.09],DARK);
  block(tail,"Ponta escura",[0,-.16,-.72],[.13,.13,.15],DARK,"taper",[.12,0,0]);
  window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
- select(null);setSkinMode("bones");say("Onça revisada: passada traseira projetada para a frente, eixo longitudinal corrigido e apoio mais suave.");
+ select(null);setSkinMode("bones");say("Onça revisada: passada traseira mais ampla, origem da perna aproximada à lateral da anca e apoio mais suave.");
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
@@ -399,15 +399,15 @@ function updateJaguarRig(){
    if(hind){
     // A anca projeta a perna traseira para a frente na recuperação e estende-a para trás no impulso.
     // No eixo Z, +Z aponta para a cabeça; a rotação X negativa leva a coxa para a frente.
-    const hipPitch=gallop?-.48*Math.sin(phase)-.06:(-.10-.58*swing+.22*push);
-    const hipYaw=.025*Math.sin(phase*.5+side*.5);
+    const hipPitch=gallop?-.60*Math.sin(phase)-.07:(-.12-.74*swing+.28*push);
+    const hipYaw=.018*Math.sin(phase*.5+side*.5);
     leg.hip.rotation.set(hipPitch,hipYaw,side*.012*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.045:.012),leg.baseHip.z+.045*Math.sin(phase-.22));
-    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x-(gallop?.16:.12)*lift+(gallop?.10:.075)*push;
-    leg.wrist.rotation.x=-(gallop?.16:.12)*lift-(gallop?.18:.14)*arc(p,.30,.48)*(1-plant)+(gallop?.08:.055)*push*(1-release);
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.055:.016),leg.baseHip.z+.055*Math.sin(phase-.22));
+    if(leg.knee)leg.knee.rotation.x=leg.baseKneeRot.x-(gallop?.20:.15)*lift+(gallop?.12:.09)*push;
+    leg.wrist.rotation.x=-(gallop?.20:.15)*lift-(gallop?.22:.17)*arc(p,.30,.48)*(1-plant)+(gallop?.10:.07)*push*(1-release);
     leg.wrist.rotation.y=.015*Math.sin(phase+.5);
     // Durante o apoio a pata desliza para trás; na recuperação alcança a dianteira.
-    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.045:.012),leg.baseWrist.z+.035*Math.sin(phase-.32)-.10*push*(1-release));
+    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.055:.016),leg.baseWrist.z+.045*Math.sin(phase-.32)-.14*push*(1-release));
     hindLoad+=p>.42?1:0;
    }else{
     // Ombro move a perna para a frente/trás e lateralmente; munheca flexiona a pata.
