@@ -397,7 +397,7 @@ function updateJaguarRig(){
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
    r.spine.position.set(0,r.baseSpineY,r.baseSpineZ);r.spine.rotation.set(0,0,0);
    r.rump.position.copy(r.baseRumpPos);r.rump.rotation.copy(r.baseRumpRot);
-   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
+   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);if(r.tailSegments)for(const seg of r.tailSegments)seg.rotation.set(0,0,0);
    continue;
   }
   let foreLoad=0,hindLoad=0;
