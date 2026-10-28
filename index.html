@@ -406,11 +406,20 @@ function updateJaguarRig(){
   let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
    const hind=leg.hind,side=leg.side;
-   // Passadas alternadas; no galope, pares diagonais se aproximam de sincronia.
-   const offset=gallop?(hind?(side<0?.04:.20):(side<0?.52:.68)):(hind?(side<0?0:.50):(side<0?.25:.75));
+   // Espelhamento real entre os lados: cada par usa a mesma mecânica,
+   // mas entra na fase oposta. A dianteira e a traseira mantêm defasagem
+   // própria para formar a sequência felina de quatro apoios.
+   // Lado esquerdo: dianteira .25 / traseira 0. Lado direito: +.50 ciclo.
+   // No galope, as fases convergem em pares diagonais, sem copiar o cavalo.
+   const sidePhase=side<0?0:.5;
+   const walkBase=hind?0:.25;
+   const offset=gallop
+    ? (hind?(side<0?.04:.20):(side<0?.52:.68))
+    : (walkBase+sidePhase)%1;
    const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
    const swing=arc(p,.02,.43),lift=arc(p,.04,.39),plant=ramp(p,.34,.43),push=ramp(p,.43,.78),release=ramp(p,.78,.98);
-   const phase=cycle+leg.phase;
+   // A fase local também espelha pequenas oscilações laterais e articulares.
+   const phase=cycle+leg.phase+(side>0?Math.PI:0);
    const stance=p<.62;
    const stanceT=stance?p/.62:1;
    const recoveryT=stance?0:(p-.62)/.38;
