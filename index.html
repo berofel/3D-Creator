@@ -371,7 +371,7 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?5.3:1.75;
+ const t=animClock,rate=gallop?4.7:1.45;
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
  const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
  const ramp=(p,a,b)=>smooth((p-a)/(b-a));
@@ -391,48 +391,48 @@ function updateJaguarRig(){
    // Passadas alternadas; no galope, pares diagonais se aproximam de sincronia.
    const offset=gallop?(hind?(side<0?.04:.20):(side<0?.52:.68)):(hind?(side<0?0:.50):(side<0?.25:.75));
    const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
-   const swing=arc(p,.02,.42),lift=arc(p,.02,.34),plant=ramp(p,.34,.48),push=ramp(p,.50,.96);
+   const swing=arc(p,.02,.48),lift=arc(p,.04,.42),plant=ramp(p,.28,.48),push=ramp(p,.52,.98);
    const phase=cycle+leg.phase;
    if(hind){
     // A anca desloca-se em dois eixos; o membro continua rígido, sem joelho.
-    const hipPitch=gallop?-.30*Math.sin(phase)-.12:.18-.48*swing+.22*push;
+    const hipPitch=gallop?-.22*Math.sin(phase)-.06:.10-.30*swing+.13*push;
     const hipYaw=.08*Math.sin(phase*.5+side*.5);
     leg.hip.rotation.set(hipPitch,hipYaw,side*.025*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.10:.055),leg.baseHip.z+(p<.42?.24*swing:-.11*push));
-    leg.wrist.rotation.x=(gallop?.42:.30)*lift-.30*plant+.08*push;
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.045:.018),leg.baseHip.z+.13*Math.sin(phase-.25));
+    leg.wrist.rotation.x=(gallop?.30:.20)*lift-.20*plant+.045*push;
     leg.wrist.rotation.y=.035*Math.sin(phase+.5);
-    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.09:.045),leg.baseWrist.z+(p<.42?.18*swing:.08*(1-plant)-.07*push));
+    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.045:.018),leg.baseWrist.z+.085*Math.sin(phase-.35));
     hindLoad+=p>.42?1:0;
    }else{
     // Ombro move a perna para a frente/trás e lateralmente; munheca flexiona a pata.
-    const shoulder=gallop?.58*Math.sin(phase):(.34*Math.sin(phase)-.04);
+    const shoulder=gallop?.40*Math.sin(phase):(.25*Math.sin(phase)-.025);
     leg.hip.rotation.set(shoulder,.10*Math.sin(phase*.5+side*.4),side*.035*Math.sin(phase));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.075:.025),leg.baseHip.z+(p<.42?.22*swing:-.13*push));
-    leg.wrist.rotation.x=(gallop?.50:.38)*lift-.34*plant+.10*push;
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+lift*(gallop?.035:.008),leg.baseHip.z+.12*Math.sin(phase-.3));
+    leg.wrist.rotation.x=(gallop?.34:.24)*lift-.24*plant+.055*push;
     leg.wrist.rotation.y=.035*Math.sin(phase+.4);
-    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.075:.025),leg.baseWrist.z+(p<.42?.16*swing:.07*(1-plant)-.06*push));
+    leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(gallop?.035:.008),leg.baseWrist.z+.075*Math.sin(phase-.4));
     foreLoad+=p>.42?1:0;
    }
   }
   foreLoad/=2;hindLoad/=2;
   if(gallop){
    const airborne=Math.max(0,Math.sin(cycle*2+.25));
-   r.body.position.y=r.baseY+.015+airborne*.065;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.07+(hindLoad-foreLoad)*.025;
-   r.spine.position.y=r.baseSpineY+Math.sin(cycle+.3)*.035;
-   r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.075;
-   r.spine.rotation.x=Math.sin(cycle+.3)*.075+(hindLoad-foreLoad)*.025;
+   r.body.position.y=r.baseY+.004+airborne*.018;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.035+(hindLoad-foreLoad)*.012;
+   r.spine.position.y=r.baseSpineY+Math.sin(cycle+.3)*.012;
+   r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.045;
+   r.spine.rotation.x=Math.sin(cycle+.3)*.035+(hindLoad-foreLoad)*.012;
   }else{
-   r.body.position.y=r.baseY+Math.sin(cycle*2)*.012;
-   r.body.rotation.x=Math.sin(cycle+.3)*.012;
+   r.body.position.y=r.baseY+Math.sin(cycle*2)*.0035;
+   r.body.rotation.x=Math.sin(cycle+.3)*.006;
    // Pistão desliza longitudinalmente, mas permanece visualmente dentro da anca.
-   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.025;
-   r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*.055;
-   r.spine.rotation.x=.035*Math.sin(cycle*2)+(hindLoad-foreLoad)*.018;
+   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.009;
+   r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*.032;
+   r.spine.rotation.x=.018*Math.sin(cycle*2)+(hindLoad-foreLoad)*.008;
   }
   // A anca faz pequena rotação vertical e horizontal independente do pistão.
-  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.065:.025),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.07:.025));
-  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.10:.045),Math.sin(cycle*.55)*(gallop?.12:.055),Math.sin(cycle+.2)*(gallop?.035:.018));
+  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.018:.008),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.045:.018));
+  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.055:.025),Math.sin(cycle*.55)*(gallop?.065:.03),Math.sin(cycle+.2)*(gallop?.02:.01));
   r.neck.rotation.x=moving?(gallop?-.11*Math.sin(cycle+.4):-.035*Math.sin(cycle+.35)):Math.sin(t*1.15)*.012;
   r.head.rotation.x=moving?(gallop?.075*Math.sin(cycle+.4):.025*Math.sin(cycle+.35)):Math.sin(t*1.35)*.008;
   r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.28:.17);
@@ -785,5 +785,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=130",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=131",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
