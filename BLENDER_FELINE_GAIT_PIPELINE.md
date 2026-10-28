@@ -1,43 +1,36 @@
 # Motor de locomoção quadrúpede nativo — Berofel 3D Create
 
 ## Regra de execução
-**Não executar Blender nem exigir Blender no fluxo de trabalho.** Toda a criação, ajuste, visualização e exportação deve acontecer no Berofel 3D Create, em HTML/JavaScript/Three.js. Projetos externos servem apenas como referências de pesquisa.
-
-## Referências técnicas
-- Morphological Animal Design App (ETH Zürich): https://github.com/houskan/morph — referência para anatomia parametrizada e parâmetros de locomoção. Confirmar licença antes de reutilizar código/ativos.
-- Animal Animator: https://extensions.blender.org/add-ons/animal-animator/ — referência de organização de ciclos quadrúpedes; confirmar licença e obrigações antes de reutilizar componentes.
-- Deer Me: https://github.com/mortgoldman/deer_me — referência adicional para fases de marcha e IK; verificar licença e aplicabilidade antes de reutilizar código.
-
-A abordagem deste projeto é reimplementar os conceitos necessários em JavaScript/Three.js. Não copiar código ou ativos de terceiros sem confirmar as respectivas licenças.
+**Não executar Blender nem exigir Blender no fluxo de trabalho.** Toda a criação, ajuste, visualização e exportação deve acontecer no Berofel 3D Create, em HTML/JavaScript/Three.js.
 
 ## Implementado na branch
 Branch: `feature/feline-gait-blender-pipeline`
 
-- Controles de **cadência**, **comprimento do passo**, **fase de apoio** e **elevação da pata**, com restauração dos padrões.
-- Caminhada e galope com perfis e fases diferentes.
-- Trajetória longitudinal de apoio/balanço, com apoio sem elevação e arco de balanço.
-- Solver procedural de duas juntas: estima o alcance da cadeia, limita a extensão e calcula ângulos de quadril/anca e joelho a partir do alvo da pata.
-- Movimento secundário coordenado do tronco, coluna lombar, pescoço, cabeça e cauda.
-- Reset da pose ao parar a animação.
-- Cache do service worker atualizado para v119.
+- Controles de cadência, comprimento do passo, fase de apoio e elevação da pata.
+- Perfis procedurais separados para caminhada e galope.
+- Solver geométrico aproximado de duas juntas, com alcance limitado e ângulos de quadril/anca e joelho calculados.
+- Coordenação secundária de tronco, coluna lombar, pescoço, cabeça e cauda.
+- Exportação de clipes amostrando também o rig específico da onça; anteriormente o bake chamava apenas o atualizador dos outros rigs.
+- Duração de exportação da caminhada e do galope calculada para abranger um ciclo inteiro na cadência selecionada, com frame final no tempo exato de fim do ciclo.
+- Cache do service worker atualizado para v121.
 
 ## Limites conhecidos
-- O rig da onça é formado por volumes modulares e pivôs; ainda não é uma armature com deformação de pele.
-- O solver atual é uma primeira solução geométrica aproximada. O encaixe exato dos eixos, a orientação dos joelhos, a posição do contato e o deslizamento precisam ser observados no navegador.
-- O galope usa uma trajetória própria simplificada; não declarar contato físico ou suspensão perfeita sem teste visual.
-- O trote ainda não é um modo separado na interface.
-- A exportação GLB já existe no editor, mas a preservação correta da nova cinemática precisa de teste de ida e volta.
+- O rig é formado por volumes modulares e pivôs, não por malha deformável/armature.
+- O IK é uma aproximação sobre o sistema de coordenadas atual; não foi possível verificar visualmente o eixo efetivo dos joelhos ou o contato exato das patas neste ambiente.
+- A exportação agora inclui amostras do atualizador da onça, mas nenhum arquivo GLB real foi gerado ou reimportado durante esta etapa. O fluxo depende da execução do editor no navegador e do modelo presente na cena.
+- Não há perfil de trote independente na interface; o escopo atual mantém caminhada e galope.
 
-## Critérios de aceitação para a rodada de testes
-1. Adicionar a onça e inspecionar a caminhada de frente, de lado e em perspectiva.
-2. Confirmar que cada pata faz uma única trajetória por ciclo, sem tremor ou oscilação duplicada.
-3. Confirmar que a pata fica baixa durante o apoio e sobe no balanço, sem atravessar o chão nem deslizar excessivamente.
-4. Confirmar que a flexão das juntas não causa inversão ou extensão impossível.
-5. Confirmar continuidade do loop, coordenação do tronco/coluna/cauda e diferenças claras entre caminhada e galope.
-6. Exportar GLB e validar a animação reimportando no editor ou na Godot.
-7. Regressão: verificar presets de cavalo, gnu, humanoide, ferramentas e edição modular.
+## Checklist de validação pendente antes dos testes gerais
+1. Abrir a branch no navegador, criar uma onça e inspecionar a caminhada de frente, de lado e em perspectiva.
+2. Confirmar apoio das patas sem elevação e balanço com elevação, sem atravessar o chão nem deslizar excessivamente.
+3. Conferir os eixos dos joelhos, alcance e ausência de inversões ou extensões impossíveis.
+4. Confirmar que o loop não salta ao reiniciar e que a caminhada difere do galope.
+5. Selecionar Walk e exportar GLB; confirmar que a exportação termina, tem tamanho não nulo e contém canais de animação.
+6. Reimportar o GLB no editor ou Godot e verificar reprodução e continuidade.
+7. Repetir a exportação para Gallop e verificar que o clipe correto foi selecionado.
+8. Regressão: testar cavalo, gnu, humanoide, edição modular e pacote ZIP.
 
 ## Estado de validação
 - Código e documentação atualizados no GitHub.
-- Checagens estáticas: a função de marcha contém o cálculo geométrico das duas juntas, os controles continuam presentes, o fluxo de exportação permanece no arquivo e a versão de cache é v119.
-- **Não foi executado teste visual em navegador nem teste de reimportação GLB nesta etapa.** A cinemática está implementada como primeira versão, mas não deve ser chamada de validada até passar pelos testes acima.
+- Checagens estáticas confirmaram a presença dos controles, o solver geométrico, a chamada de atualização do rig da onça durante o bake e o cache v121.
+- **Não foi possível executar um navegador gráfico nesta sessão.** Não foi feita inspeção visual, exportação GLB real nem reimportação. Portanto, a implementação está preparada para a rodada de validação, mas os critérios visuais e de exportação não podem ser marcados como aprovados até o teste no editor.
