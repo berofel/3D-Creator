@@ -331,7 +331,7 @@ function jaguarPreset(){
    const knee=group(hip,[q.side*.34,.63,q.z],"Pivô joelho");
    block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
    block(knee,"Pata",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
-   legs.push({hip,knee,phase:q.phase,hind:q.hind});
+   legs.push({hip,knee,phase:q.phase,hind:q.hind,side:q.side});
  }
  // Cauda em três segmentos, ligada ao corpo.
  const tail=group(body,[0,1.48,-.88],"Pivô da cauda");
@@ -756,5 +756,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=96",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=97",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
