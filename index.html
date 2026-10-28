@@ -46,8 +46,8 @@ details.add-group .group-content button{margin-top:6px}
 </div></main><aside class="side">
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
-<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details>
-<details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
+<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details>
+<details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
 <details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
 <details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
@@ -284,7 +284,79 @@ let pressStart=null;renderer.domElement.style.touchAction="none";renderer.domEle
 let twistLastAngle=null;function touchAngle(touches){return Math.atan2(touches[1].clientY-touches[0].clientY,touches[1].clientX-touches[0].clientX)}renderer.domElement.addEventListener("touchstart",e=>{if(e.touches.length===2&&selected){twistLastAngle=touchAngle(e.touches);e.preventDefault()}},{passive:false});renderer.domElement.addEventListener("touchmove",e=>{if(e.touches.length===2&&selected&&twistLastAngle!==null){const a=touchAngle(e.touches);let delta=a-twistLastAngle;if(delta>Math.PI)delta-=Math.PI*2;if(delta< -Math.PI)delta+=Math.PI*2;const axis=new THREE.Vector3();camera.getWorldDirection(axis).normalize();selected.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,-delta));selected.updateMatrixWorld();twistLastAngle=a;syncFields();say("Peça girada com dois dedos.");e.preventDefault()}},{passive:false});function endTwist(e){if(e.touches.length<2)twistLastAngle=null}renderer.domElement.addEventListener("touchend",endTwist,{passive:false});renderer.domElement.addEventListener("touchcancel",endTwist,{passive:false});
 document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>add(b.dataset.add)));
 document.querySelectorAll("[data-weapon]").forEach(b=>b.addEventListener("click",()=>addWeaponPart(b.dataset.weapon)));$("axePreset").onclick=()=>addElement(axePreset,"Machado de batalha");
-$("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
+
+/* Preset modular de onça-pintada: geometria em blocos pré-configurados.
+   Animação procedural para pré-visualização; não substitui um rig de deformação. */
+window.__berofelJaguarRigs = window.__berofelJaguarRigs || [];
+function jaguarPreset(){
+ const GOLD="#d6a34b", GOLD2="#b97b32", CREAM="#e8d7b5", BLACK="#241c18", PAW="#332a26", EYE="#c6b34d";
+ const body=new THREE.Group(); body.name="Onça | tronco articulado"; body.position.set(0,1.36,0); scene.add(body);
+ const group=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g};
+ const block=(parent,name,pos,size,color,type="body")=>{const m=make(type,pos,size,color,name);parent.attach(m);return m};
+ // Corpo, peito e garupa: volumes retangulares facetados já dimensionados.
+ block(body,"Tronco principal",[0,1.40,-.05],[.92,.78,1.55],GOLD);
+ block(body,"Peito",[0,1.48,.57],[.98,.86,.68],GOLD2);
+ block(body,"Barriga clara",[0,1.08,.05],[.72,.20,1.10],CREAM);
+ block(body,"Garupa",[0,1.43,-.62],[.96,.78,.62],GOLD);
+ // Manchas quadradas em ambos os flancos e no dorso.
+ for(const side of [-1,1]){
+   for(const z of [-.58,-.28,.02,.32,.55]){
+     const y=1.57+((Math.round((z+1)*10)%2)*.08);
+     block(body,"Mancha da pelagem",[side*.467,y,z],[.025,.095,.105],BLACK);
+     if(z!==-.58&&z!==.55)block(body,"Mancha menor",[side*.47,y-.16,z+.09],[.022,.055,.06],BLACK);
+   }
+   block(body,"Mancha dorsal",[side*.24,1.80,-.35],[.09,.025,.12],BLACK);
+ }
+ // Pescoço e cabeça articulados.
+ const neck=group(body,[0,1.58,.72],"Pivô do pescoço");
+ block(neck,"Pescoço",[0,1.66,.75],[.56,.58,.66],GOLD);
+ const head=group(neck,[0,1.70,1.04],"Pivô da cabeça");
+ block(head,"Crânio",[0,1.72,1.10],[.58,.48,.54],GOLD);
+ block(head,"Focinho",[0,1.55,1.38],[.43,.27,.34],CREAM);
+ block(head,"Nariz",[0,1.61,1.55],[.18,.12,.10],BLACK);
+ for(const side of [-1,1]){
+   block(head,"Orelha",[side*.22,1.98,1.02],[.18,.20,.16],GOLD2,"ear");
+   block(head,"Olho",[side*.27,1.79,1.31],[.055,.075,.035],EYE,"eye");
+   block(head,"Mancha facial",[side*.29,1.67,1.20],[.035,.065,.07],BLACK);
+ }
+ // Quatro pernas com pivô de ombro/anca, joelho e pata.
+ const legs=[];
+ const specs=[
+  {side:-1,z:.54,phase:0,hind:false},{side:1,z:.54,phase:Math.PI,hind:false},
+  {side:-1,z:-.62,phase:Math.PI,hind:true},{side:1,z:-.62,phase:0,hind:true}
+ ];
+ for(const q of specs){
+   const hip=group(body,[q.side*.34,1.16,q.z],"Pivô "+(q.hind?"anca":"ombro")+" "+(q.side<0?"esquerdo":"direito"));
+   block(hip,"Coxa",[q.side*.34,.84,q.z],[.30,.52,.34],q.hind?GOLD2:GOLD);
+   const knee=group(hip,[q.side*.34,.63,q.z],"Pivô joelho");
+   block(knee,"Canela",[q.side*.34,.40,q.z],[.22,.46,.24],GOLD);
+   block(knee,"Pata",[q.side*.34,.16,q.z+.055],[.30,.16,.34],PAW,"foot");
+   legs.push({hip,knee,phase:q.phase,hind:q.hind});
+ }
+ // Cauda em três segmentos, ligada ao corpo.
+ const tail=group(body,[0,1.48,-.88],"Pivô da cauda");
+ block(tail,"Cauda base",[0,1.38,-1.13],[.16,.16,.48],GOLD2);
+ block(tail,"Cauda média",[0,1.23,-1.47],[.13,.13,.36],GOLD);
+ block(tail,"Ponta escura da cauda",[0,1.12,-1.72],[.14,.14,.22],BLACK);
+ window.__berofelJaguarRigs.push({body,neck,head,tail,legs,baseY:body.position.y});
+}
+function updateJaguarRig(){
+ const t=animClock,walking=animMode==="walk"||animMode==="gallop",gallop=animMode==="gallop",rate=gallop?7.2:4.0;
+ for(const r of (window.__berofelJaguarRigs||[])){
+  for(const leg of r.legs){
+   const phase=t*rate+leg.phase+(gallop?.25:0);
+   leg.hip.rotation.x=walking?Math.sin(phase)*(gallop?.62:.30):0;
+   leg.knee.rotation.x=walking?Math.max(0,Math.sin(phase+1.05))*(gallop?.85:.42):0;
+  }
+  r.body.position.y=r.baseY+(gallop?Math.pow(Math.max(0,Math.sin(t*rate*2)),2)*.085:walking?Math.abs(Math.sin(t*rate*2))*.025:Math.sin(t*1.8)*.008);
+  r.body.rotation.x=walking?Math.sin(t*rate)* (gallop?.035:.018):0;
+  r.neck.rotation.x=walking?Math.sin(t*rate+Math.PI)*.055:Math.sin(t*1.2)*.018;
+  r.head.rotation.x=walking?Math.sin(t*rate+Math.PI)*.04:Math.sin(t*1.3)*.012;
+  r.tail.rotation.y=Math.sin(t*(walking?rate:1.5))*(gallop?.30:walking?.18:.07);
+ }
+}
+
+$("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
 function humanoidPreset(isOgre=false){
  clear();clearSkin();const skin=isOgre?"#6f9650":"#d6a27d",cloth=isOgre?"#42533a":"#344f78",leather="#49352c",metal=isOgre?"#6b735b":"#b18a4b";
  const pivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g};
@@ -372,7 +444,7 @@ function resetScene(){
  appendMode=false;moveWholeElement=false;$("moveElement").textContent="Mover elemento: OFF";transform.detach();
  for(const root of elementRoots)if(root.parent)root.parent.remove(root);
  elementRoots=[];
- clear();clearSkin();window.__berofelHumanoidRig=null;window.__berofelHorseRig=null;window.__berofelHumanoidRigs=[];window.__berofelHorseRigs=[];horseRoot=null;horseJoints=[];
+ clear();clearSkin();window.__berofelHumanoidRig=null;window.__berofelHorseRig=null;window.__berofelHumanoidRigs=[];window.__berofelHorseRigs=[];window.__berofelJaguarRigs=[];horseRoot=null;horseJoints=[];
  appendMode=true;$("name").value="Cena_01";select(null);fit();say("Cena nova e vazia. Os próximos elementos serão adicionados sem apagar os anteriores.");
 }
 $("moveElement").onclick=()=>{moveWholeElement=!moveWholeElement;$("moveElement").textContent=moveWholeElement?"Mover tudo: ON":"Mover tudo: OFF";$("moveElement").classList.toggle("active-tool",moveWholeElement);say(moveWholeElement?"Modo mover elemento inteiro: clique numa peça do modelo para mover o conjunto.":"Modo mover peça: clique numa peça para editar somente ela.")};
@@ -629,6 +701,6 @@ let renderFault=false;
 function reportRenderFault(err){if(renderFault)return;renderFault=true;console.error("Berofel 3D Create: render protegido",err);animMode="stop";const status=$("status");if(status){status.textContent="A visualização encontrou um erro e foi pausada para evitar tela preta. Recarregue a página; se persistir, use Restaurar visualização.";status.style.background="#7f1d1d";status.style.color="#fff";status.style.padding="10px";status.style.borderRadius="8px"}}
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
-function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=94",{updateViaCache:"none"}).catch(()=>{});
+function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=95",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
