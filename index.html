@@ -375,7 +375,7 @@ function updateJaguarRig(){
    // with a short delay. Gallop deliberately keeps a separate, wider sequence.
    const phase=gallop
     ? (leg.hind?(leg.side<0?.12*Math.PI:.28*Math.PI):(leg.side<0?.92*Math.PI:1.08*Math.PI))
-    : (leg.hind ? (leg.side<0 ? Math.PI*.20 : Math.PI+Math.PI*.20) : (leg.side<0 ? 0 : Math.PI));
+    : (leg.hind ? (leg.side<0 ? 0 : Math.PI) : (leg.side<0 ? Math.PI*.5 : Math.PI*1.5));
    const p=t*rate+phase;
    const s=Math.sin(p), c=Math.cos(p);
    const swingRaw=Math.max(0,Math.sin(p+.10));
@@ -414,73 +414,72 @@ function updateJaguarRig(){
      if(leg.baseWrist)leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*.09,leg.baseWrist.z+lift*.055+Math.max(0,reach)*.035);
     }
    }else{
-    // WALK: visible sagittal pendulum at shoulder/hip, plus lift at the joint.
-    // The paw is actively tucked during recovery and extended before touchdown.
-    const forward=Math.max(0,reach);
-    const backward=Math.max(0,-reach);
-    const tuck=flex;
-    const extension=hind?hindReachExtension:Math.max(0,Math.sin(p+Math.PI*.72));
-    const shoulderVertical=lift*(hind?.045:.012);
-    // Forepaws stay steady through support; the body travels over them.
-    // The foreleg advances during swing, rather than sliding through stance.
-    // Smooth cyclic travel avoids the discontinuity at the stance/swing seam.
-    // Ground contact is suggested by low paw lift and reduced forelimb swing.
-    // Na dianteira, quase não deslocamos o ombro em linha reta:
-    // a rotação do ombro projeta a perna e o joelho recolhido tira a pata do chão.
-    // A traseira conserva um pouco mais de translação para completar o impulso.
-    const hipTravel=leg.baseHip.z+reach*stride*(hind?.92:.05);
+    // WALK: ciclo quadrupede por fase normalizada; duty factor 0.65.
+    // A pata recua durante o apoio e sobe apenas no balanço.
+    const cyclePhase=((t*rate+phase)/(Math.PI*2)%1+1)%1;
+    const duty=.65;
+    const support=cyclePhase<duty;
+    const stanceProgress=support?cyclePhase/duty:0;
+    const swingProgress=support?0:(cyclePhase-duty)/(1-duty);
+    const smooth01=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
+    const lift=support?0:Math.sin(Math.PI*swingProgress);
+    const hind=leg.hind;
+    const stride=hind?.145:.17;
+    // Fase de apoio: a pata recua relativamente ao tronco sem ser levantada.
+    // Fase de balanço: trajetória suave para a frente e elevação curta.
+    const pawTravel=support
+      ? (stanceProgress-.5)*2*stride
+      : (0.5-smooth01(swingProgress))*2*stride;
+    const flex=support?0:Math.sin(Math.PI*swingProgress);
+    if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
+    verticalImpulse+=lift;
     leg.hip.position.set(
-     leg.baseHip.x+Math.sin(p+.2)*.018*sideSign,
-     leg.baseHip.y+shoulderVertical,
-     hipTravel
+      leg.baseHip.x+Math.sin(cyclePhase*Math.PI*2)*.006*sideSign,
+      leg.baseHip.y+lift*(hind?.018:.012),
+      leg.baseHip.z+pawTravel*.18
     );
-    // Rotation around X swings the whole limb fore/aft; Y/Z add small 3D
-    // shoulder-girdle motion instead of a single rigid pendulum.
-    // Drive the shoulder/hip primarily by rotation, not by sliding the joint.
-    // A larger sagittal arc swings the limb forward; the hind hip opens farther
-    // during push-off so the rear leg can extend behind the pelvis.
-    const foreSwing=Math.sin(p-.12);
-    const hindPush=Math.max(0,Math.sin(p+Math.PI*.12));
-    // O ombro gira mais na recuperação para lançar a pata à frente.
-    // A perna dianteira dobra bastante no retorno e só abre na aproximação do solo.
-    // Ciclo dianteiro em duas fases claras: apoio contínuo na metade do ciclo;
-    // na outra metade, recolhe o joelho, balança a perna à frente e estende
-    // apenas no final para um único novo contato — sem um segundo toque no meio.
-    // A dianteira faz um arco curto e baixo; não deve levantar em direção ao focinho.
-    // A traseira é quem percorre o chão para trás durante o apoio.
-    const foreTuck=smooth01((recovery-.16)/.76);
-    const foreReachExtension=smooth01((Math.cos(p)+.12)/1.12);
+    // Interpolação dos keyframes do JSON em graus, convertidos para radianos.
+    const sample=(keys,u)=>{
+      for(let i=0;i<keys.length-1;i++){
+        const a=keys[i],b=keys[i+1];
+        if(u>=a[0]&&u<=b[0]){
+          const k=(u-a[0])/(b[0]-a[0]);
+          return (a[1]+(b[1]-a[1])*k)*Math.PI/180;
+        }
+      }
+      return keys[keys.length-1][1]*Math.PI/180;
+    };
+    const hipKeys=hind?[[0,35],[.4,-15],[.7,20],[1,35]]:[[0,25],[.4,-20],[.7,10],[1,25]];
+    const kneeKeys=hind?[[0,60],[.4,110],[.7,90],[1,60]]:[[0,80],[.4,150],[.7,100],[1,80]];
+    const hipAngle=sample(hipKeys,cyclePhase);
+    const kneeAngle=sample(kneeKeys,cyclePhase);
+    // Amplitude suavizada para caber no rig simplificado sem mudar a malha.
     leg.hip.rotation.set(
-     hind
-      ? foreSwing*.62-hindPush*.20+stance*.045
-      : foreSwing*.78+stance*.025,
-     Math.sin(p+.12)*.018*sideSign,
-     Math.sin(p+.3)*(hind?.035:.042)*sideSign
+      hipAngle*.42+(support?-.025:.035*Math.sin(Math.PI*swingProgress)),
+      Math.sin(cyclePhase*Math.PI*2)*.012*sideSign,
+      Math.sin(cyclePhase*Math.PI*2+.3)*(hind?.018:.02)*sideSign
     );
-    // O joelho recolhe a pata durante a volta; a extensão ocorre antes do apoio.
-    leg.knee.rotation.x=hind
-      ? (tuck*1.22-hindReachExtension*.92-stance*.025)
-      : (foreTuck*.82-foreReachExtension*.36-stance*.025);
+    leg.knee.rotation.x=(kneeAngle-(hind?60:80))*Math.PI/180*.38+flex*(hind?.34:.28);
     if(leg.baseKnee){
-     leg.knee.position.set(
-      leg.baseKnee.x,
-      leg.baseKnee.y+tuck*.045+lift*.018,
-      leg.baseKnee.z+forward*.025-backward*.018
-     );
+      leg.knee.position.set(
+        leg.baseKnee.x,
+        leg.baseKnee.y+lift*(hind?.025:.018),
+        leg.baseKnee.z+pawTravel*.10
+      );
     }
     if(leg.wrist){
-     // Paw curls up/back in recovery, then reaches forward/down for contact.
-     leg.wrist.rotation.x=hind
-      ? (-tuck*.48+hindReachExtension*.38+stance*.06)
-      : (-foreTuck*.30+foreReachExtension*.16+stance*.02);
-     if(leg.baseWrist){
-      leg.wrist.position.set(
-       leg.baseWrist.x,
-       leg.baseWrist.y+lift*(hind?.075:.012)-(hind?tuck*.018:foreTuck*.004),
-       leg.baseWrist.z+lift*(hind?.075:.006)+(hind?(stance>0?-stance*.025:forward*.018):forward*.004)
-      );
-     }
+      const ankleKeys=hind?[[0,50],[.4,130],[.7,80],[1,50]]:[[0,80],[.4,150],[.7,100],[1,80]];
+      const ankleAngle=sample(ankleKeys,cyclePhase);
+      leg.wrist.rotation.x=(ankleAngle-(hind?50:80))*Math.PI/180*.22-flex*.12;
+      if(leg.baseWrist){
+        leg.wrist.position.set(
+          leg.baseWrist.x,
+          leg.baseWrist.y+lift*(hind?.035:.025),
+          leg.baseWrist.z+pawTravel*.20
+        );
+      }
     }
+   }
    }
   }
   foreLoad/=2;hindLoad/=2;verticalImpulse/=4;
@@ -862,5 +861,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=113",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=114",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
