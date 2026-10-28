@@ -375,7 +375,13 @@ function updateJaguarRig(){
    const stride=gallop?(hind?.255:.29):(hind?.205:.225);
    const hipSwing=Math.sin(p-.08);
    const lift=gallop?swing:Math.max(0,Math.sin(p+.04));
-   const flex=gallop?Math.pow(swing,.72):Math.pow(Math.max(0,Math.sin(p+.28)),1.25);
+   const recovery=Math.max(0,-Math.sin(p));
+   const flex=gallop?Math.pow(swing,.72):Math.pow(recovery,1.25);
+   const clamp01=v=>Math.max(0,Math.min(1,v));
+   const smooth01=v=>{v=clamp01(v);return v*v*(3-2*v)};
+   // During the backward-to-forward recovery the hind knee stays tucked;
+   // it only opens as the paw reaches the front for the next ground contact.
+   const hindReachExtension=smooth01((Math.cos(p)-.02)/.98)*smooth01((recovery+.08)/.88);
    if(hind)hindLoad+=stance;else foreLoad+=stance;
    verticalImpulse+=lift;
    if(gallop){
@@ -402,7 +408,7 @@ function updateJaguarRig(){
     const forward=Math.max(0,reach);
     const backward=Math.max(0,-reach);
     const tuck=flex;
-    const extension=Math.max(0,Math.sin(p+Math.PI*.72));
+    const extension=hind?hindReachExtension:Math.max(0,Math.sin(p+Math.PI*.72));
     const shoulderVertical=lift*(hind?.105:.13);
     leg.hip.position.set(
      leg.baseHip.x+Math.sin(p+.2)*.032*sideSign,
@@ -417,7 +423,9 @@ function updateJaguarRig(){
      Math.sin(p+.3)*(hind?.055:.065)*sideSign
     );
     // Fold on the way up, then progressively open the knee before landing.
-    leg.knee.rotation.x=tuck*(hind?1.00:1.12)-extension*(hind?.13:.16)-stance*.045;
+    leg.knee.rotation.x=hind
+      ? (tuck*1.22-hindReachExtension*.92-stance*.025)
+      : (tuck*1.12-extension*.16-stance*.045);
     if(leg.baseKnee){
      leg.knee.position.set(
       leg.baseKnee.x,
@@ -427,7 +435,9 @@ function updateJaguarRig(){
     }
     if(leg.wrist){
      // Paw curls up/back in recovery, then reaches forward/down for contact.
-     leg.wrist.rotation.x=-tuck*.36+extension*.24+stance*.045;
+     leg.wrist.rotation.x=hind
+      ? (-tuck*.48+hindReachExtension*.38+stance*.06)
+      : (-tuck*.36+extension*.24+stance*.045);
      if(leg.baseWrist){
       leg.wrist.position.set(
        leg.baseWrist.x,
@@ -808,5 +818,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=102",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=103",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
