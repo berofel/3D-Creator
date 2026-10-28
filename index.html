@@ -421,9 +421,12 @@ function updateJaguarRig(){
     // The foreleg advances during swing, rather than sliding through stance.
     // Smooth cyclic travel avoids the discontinuity at the stance/swing seam.
     // Ground contact is suggested by low paw lift and reduced forelimb swing.
-    const hipTravel=leg.baseHip.z+reach*stride*(hind?1:.78);
+    // Na dianteira, quase não deslocamos o ombro em linha reta:
+    // a rotação do ombro projeta a perna e o joelho recolhido tira a pata do chão.
+    // A traseira conserva um pouco mais de translação para completar o impulso.
+    const hipTravel=leg.baseHip.z+reach*stride*(hind?.72:.16);
     leg.hip.position.set(
-     leg.baseHip.x+Math.sin(p+.2)*.032*sideSign,
+     leg.baseHip.x+Math.sin(p+.2)*.018*sideSign,
      leg.baseHip.y+shoulderVertical,
      hipTravel
     );
@@ -434,17 +437,21 @@ function updateJaguarRig(){
     // during push-off so the rear leg can extend behind the pelvis.
     const foreSwing=Math.sin(p-.12);
     const hindPush=Math.max(0,Math.sin(p+Math.PI*.12));
+    // O ombro gira mais na recuperação para lançar a pata à frente.
+    // A perna dianteira dobra bastante no retorno e só abre na aproximação do solo.
+    const foreTuck=smooth01((recovery-.04)/.78);
+    const foreReachExtension=smooth01((Math.cos(p)-.05)/.95)*smooth01((recovery+.04)/.82);
     leg.hip.rotation.set(
      hind
       ? foreSwing*.62-hindPush*.20+stance*.045
-      : foreSwing*.68+stance*.035,
+      : foreSwing*.96+stance*.035,
      Math.sin(p+.12)*.018*sideSign,
      Math.sin(p+.3)*(hind?.035:.042)*sideSign
     );
-    // Fold on the way up, then progressively open the knee before landing.
+    // O joelho recolhe a pata durante a volta; a extensão ocorre antes do apoio.
     leg.knee.rotation.x=hind
       ? (tuck*1.22-hindReachExtension*.92-stance*.025)
-      : (tuck*1.12-extension*.16-stance*.045);
+      : (foreTuck*1.62-foreReachExtension*.78-stance*.045);
     if(leg.baseKnee){
      leg.knee.position.set(
       leg.baseKnee.x,
@@ -456,12 +463,12 @@ function updateJaguarRig(){
      // Paw curls up/back in recovery, then reaches forward/down for contact.
      leg.wrist.rotation.x=hind
       ? (-tuck*.48+hindReachExtension*.38+stance*.06)
-      : (-tuck*.36+extension*.24+stance*.045);
+      : (-foreTuck*.72+foreReachExtension*.42+stance*.045);
      if(leg.baseWrist){
       leg.wrist.position.set(
        leg.baseWrist.x,
        leg.baseWrist.y+lift*.115-tuck*.018,
-       leg.baseWrist.z+lift*.045+forward*.045-backward*.025
+       leg.baseWrist.z+lift*.075+forward*.018-backward*.012
       );
      }
     }
@@ -846,5 +853,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=109",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=110",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
