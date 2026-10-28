@@ -353,7 +353,9 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode, moving=mode==="walk"||mode==="gallop", gallop=mode==="gallop";
- const t=animClock, cadence=+$("gaitCadence").value||1, rate=(gallop?6.1:1.28)*cadence;
+ const t=animClock, cadence=+$("gaitCadence").value||1;
+ // Um ciclo completo dura cerca de 1,25 s na cadência padrão.
+ const rate=(Math.PI*2)*(gallop?1.55:.80)*cadence;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const smooth=v=>{v=clamp(v,0,1);return v*v*(3-2*v)};
  for(const r of (window.__berofelJaguarRigs||[])){
@@ -367,90 +369,87 @@ function updateJaguarRig(){
    r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
    continue;
   }
-  let foreLoad=0,hindLoad=0,air=0;
+  let foreSupport=0,hindSupport=0,flight=0;
   for(const leg of r.legs){
-   const hind=leg.hind, side=leg.side, sideSign=side<0?1:-1;
-   // Walk: lateral pairs are staggered; the hind paw follows its forepaw track.
-   // Gallop uses a compressed rear drive and a delayed forelimb landing.
+   const hind=leg.hind, side=leg.side;
+   // Caminhada de quatro tempos: traseira esquerda, dianteira esquerda,
+   // traseira direita, dianteira direita. Não é uma simples alternância em pares.
    const phase=gallop
-    ? (hind?(side<0?.08*Math.PI:.22*Math.PI):(side<0?.88*Math.PI:1.02*Math.PI))
-    : (hind?(side<0?-.72:Math.PI-.72):(side<0?0:Math.PI));
-   const stride=(gallop?(hind?.205:.235):(hind?.145:.17))*(+$("gaitStride").value||100)/100;
-   let support=false, progress=0, lift=0, pawTravel=0, flex=0, supportPush=0;
+    ? (hind?(side<0?0:.38*Math.PI):(side<0?.78*Math.PI:1.12*Math.PI))
+    : (hind?(side<0?0:Math.PI):(side<0?.5*Math.PI:1.5*Math.PI));
+   const stride=(gallop?(hind?.235:.205):(hind?.19:.17))*(+$("gaitStride").value||100)/100;
+   const duty=clamp((+$("gaitSupport").value||62)/100,.52,.72);
+   const u=((t*rate+phase)/(Math.PI*2)%1+1)%1;
+   let support,progress,lift,pawTravel,flex,push;
    if(!gallop){
-    const u=((t*rate+phase)/(Math.PI*2)%1+1)%1;
-    const duty=clamp((+$("gaitSupport").value||62)/100,.52,.72);
     support=u<duty;
     progress=support?u/duty:(u-duty)/(1-duty);
-    const swingProgress=support?0:progress;
-    const shaped=smooth(swingProgress);
-    lift=(support?0:Math.sin(Math.PI*swingProgress))*(+$("gaitLift").value||100)/100;
-    pawTravel=support?(0.5-progress)*2*stride:(-0.5+shaped)*2*stride;
-    flex=support?0:Math.sin(Math.PI*swingProgress);
-    supportPush=support?Math.sin(Math.PI*progress):0;
-    if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
+    // Na fase de apoio, a pata percorre o chão para trás; na fase aérea,
+    // regressa para a frente com elevação em arco.
+    pawTravel=support?(stride*(1-2*progress)):(stride*(-1+2*smooth(progress)));
+    lift=support?0:Math.sin(Math.PI*progress)*.15*(+$("gaitLift").value||100)/100;
+    flex=support?0:Math.sin(Math.PI*progress);
+    push=support?Math.sin(Math.PI*progress):0;
+    if(hind)hindSupport+=support?1:0;else foreSupport+=support?1:0;
    }else{
     const p=t*rate+phase, sn=Math.sin(p), cs=Math.cos(p);
-    // Smooth gallop trajectory with one lift pulse per stride and a short flight phase.
-    const swing=smooth(Math.max(0,Math.sin(p+.12)));
-    support=sn<-.12;
-    lift=swing*(+$("gaitLift").value||100)/100;
+    support=sn<-.20;
+    progress=(sn+1)*.5;
+    lift=Math.max(0,Math.sin(p+.18))*.19*(+$("gaitLift").value||100)/100;
     pawTravel=cs*stride;
-    flex=Math.pow(swing,.78);
-    supportPush=Math.max(0,-sn);
-    if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
-    air+=Math.max(0,Math.sin(p+.25));
+    flex=Math.pow(Math.max(0,Math.sin(p+.18)),.8);
+    push=Math.max(0,-sn);
+    if(hind)hindSupport+=support?1:0;else foreSupport+=support?1:0;
+    flight+=Math.max(0,Math.sin(p+.35));
    }
-   // Root translations represent the foot target trajectory. The knee and carpus
-   // are then solved as a two-link chain, with lengths clamped to avoid inversion.
+   // Movimento suficientemente amplo para ser legível no viewport. O alvo é
+   // aplicado à munheca/pata, em vez de apenas guardar footTarget sem o usar.
    const base=leg.baseHip;
-   leg.hip.position.set(base.x,base.y+lift*(hind?.025:.018),base.z+pawTravel*.18);
-   const targetY=lift*(hind?.075:.065);
-   const targetZ=pawTravel*.30;
-   const upper=hind?.43:.40, lower=hind?.39:.37;
-   const dy=clamp(-upper*.58+targetY,-upper-lower+.025,upper+lower-.025);
-   const dz=clamp(targetZ,-upper-lower+.025,upper+lower-.025);
-   const distance=clamp(Math.hypot(dy,dz),Math.abs(upper-lower)+.015,upper+lower-.015);
-   const kneeCos=clamp((upper*upper+lower*lower-distance*distance)/(2*upper*lower),-1,1);
-   const kneeBend=Math.PI-Math.acos(kneeCos);
-   const aim=Math.atan2(dz,-dy);
-   const hipCos=clamp((upper*upper+distance*distance-lower*lower)/(2*upper*distance),-1,1);
-   const hipBend=aim-Math.acos(hipCos);
-   const gaitHip= gallop ? Math.sin(t*rate+phase)*(hind?.12:.10) : (support?-.055*supportPush:flex*(hind?.105:.085));
-   leg.hip.rotation.set(clamp(hipBend+gaitHip,-.82,.82),Math.sin(t*rate+phase)*.004*sideSign,Math.sin(t*rate+phase+.3)*.008*sideSign);
-   leg.knee.rotation.x=clamp((hind?-1:1)*kneeBend*(gallop?.66:.55)+flex*(hind?.12:.09)-supportPush*.035,-.9,.9);
-   leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+lift*(hind?.022:.016),leg.baseKnee.z+pawTravel*.10);
-   leg.wrist.rotation.x=clamp(-flex*(hind?.16:.13)+supportPush*.018,-.35,.22);
-   leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y+lift*(hind?.04:.03),leg.baseWrist.z+pawTravel*.20);
-   leg.footTarget={y:targetY,z:targetZ,planted:support};
+   leg.hip.position.set(base.x,base.y+lift*.16,base.z+pawTravel*.10);
+   leg.hip.rotation.x=gallop
+    ? clamp((hind?-.22:.18)*Math.sin(t*rate+phase)+ (hind?-.12:.10)*flex,-.65,.65)
+    : clamp((hind?-.18:.15)*Math.sin(t*rate+phase)+ (support?-.08:.10)*push + (support?0:flex*(hind?.20:.16)),-.58,.58);
+   leg.hip.rotation.y=0;
+   leg.hip.rotation.z=Math.sin(t*rate+phase)*.012*(side<0?1:-1);
+   leg.knee.position.set(leg.baseKnee.x,leg.baseKnee.y+lift*.12,leg.baseKnee.z+pawTravel*.07);
+   leg.knee.rotation.x=gallop
+    ? clamp((hind?-.62:.48)*flex+(hind?.18:-.10)*Math.sin(t*rate+phase),-.95,.95)
+    : clamp((hind?-.42:.34)*flex+(hind?-.12:.10)*push,-.78,.78);
+   leg.wrist.position.set(
+    leg.baseWrist.x,
+    leg.baseWrist.y+lift+(support?0:flex*.018),
+    leg.baseWrist.z+pawTravel*.72
+   );
+   leg.wrist.rotation.x=clamp(-flex*(hind?.30:.22)+push*.06,-.42,.25);
+   leg.footTarget={y:lift,z:pawTravel,planted:support};
   }
-  foreLoad/=2;hindLoad/=2;
+  foreSupport/=2;hindSupport/=2;
   const cycle=t*rate;
   if(gallop){
-   const flight=clamp(air/4,0,1);
-   r.body.position.y=r.baseY+.006+flight*.035;
-   r.body.position.z=Math.sin(cycle+.35)*.018;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.055+(hindLoad-foreLoad)*.018;
-   r.body.rotation.z=Math.sin(cycle*.5)*.012;
-   r.spine.rotation.x=Math.sin(cycle+.3)*.075+(hindLoad-foreLoad)*.025;
-   r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.02;
+   const airborne=clamp(flight/4,0,1);
+   r.body.position.y=r.baseY+.008+airborne*.045;
+   r.body.position.z=Math.sin(cycle+.35)*.025;
+   r.body.rotation.x=-Math.sin(cycle+.4)*.075+(hindSupport-foreSupport)*.025;
+   r.body.rotation.z=Math.sin(cycle*.5)*.014;
+   r.spine.rotation.x=Math.sin(cycle+.3)*.10+(hindSupport-foreSupport)*.03;
+   r.spine.position.y=r.baseSpineY;r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.025;
   }else{
+   // Transferência de peso e flexão lombar discretas, sincronizadas com as patas.
    const gather=Math.max(0,Math.sin(cycle-Math.PI*.30));
    const reach=Math.max(0,Math.sin(cycle+Math.PI*.70));
-   const bend=gather-reach;
-   r.body.position.y=r.baseY-.001+Math.sin(cycle-.25)*.0025;
-   r.body.position.z=0;r.body.rotation.set(0,0,Math.sin(cycle*.5+.4)*.002);
-   r.spine.rotation.x=bend*.105+(hindLoad-foreLoad)*.012;
-   r.spine.position.y=r.baseSpineY+gather*.012-reach*.004;
-   r.spine.position.z=r.baseSpineZ+bend*.012;
+   r.body.position.y=r.baseY-.008+Math.sin(cycle*2-.25)*.009;
+   r.body.position.z=Math.sin(cycle)*.012;
+   r.body.rotation.set(Math.sin(cycle)*.012,0,Math.sin(cycle*.5+.4)*.008);
+   r.spine.rotation.x=(gather-reach)*.13+(hindSupport-foreSupport)*.025;
+   r.spine.position.y=r.baseSpineY+gather*.018-reach*.008;
+   r.spine.position.z=r.baseSpineZ+(gather-reach)*.018;
   }
-  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.085:-Math.sin(cycle+.35)*.035):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.05:Math.sin(cycle+.35)*.022):Math.sin(t*1.35)*.008;
-  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.22:.12):Math.sin(t*.8)*.035;
-  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.14:Math.sin(cycle*.55)*.06):Math.sin(t*1.1)*.025;
+  r.neck.rotation.x=moving?(gallop?-Math.sin(cycle+.4)*.11:-Math.sin(cycle+.35)*.055):Math.sin(t*1.15)*.012;
+  r.head.rotation.x=moving?(gallop?Math.sin(cycle+.4)*.065:Math.sin(cycle+.35)*.032):Math.sin(t*1.35)*.008;
+  r.tail.rotation.y=moving?Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.25:.16):Math.sin(t*.8)*.035;
+  r.tail.rotation.x=moving?(gallop?Math.sin(cycle+.7)*.17:Math.sin(cycle*.55)*.075):Math.sin(t*1.1)*.025;
  }
 }
-
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
 function humanoidPreset(isOgre=false){
  clear();clearSkin();const skin=isOgre?"#6f9650":"#d6a27d",cloth=isOgre?"#42533a":"#344f78",leather="#49352c",metal=isOgre?"#6b735b":"#b18a4b";
@@ -585,7 +584,7 @@ function buildExportBundle(requestedModes){
    // Export one complete cycle for locomotion so the first and last keyframes
    // meet cleanly when the AnimationPlayer loops. Idle keeps a short 2 s loop.
    const cadence=+$("gaitCadence").value||1;
-   const duration=mode==="walk"?(Math.PI*2/(1.28*cadence)):mode==="gallop"?(Math.PI*2/(6.1*cadence)):2;
+   const duration=mode==="walk"?(1/(.80*cadence)):mode==="gallop"?(1/(1.55*cadence)):2;
    const frameCount=Math.round(fps*duration)+1;
    const times=Array.from({length:frameCount},(_,i)=>i===frameCount-1?duration:i/fps);
    const samples=new Map(records.map(r=>[r.name,{p:[],q:[],s:[]}]));
