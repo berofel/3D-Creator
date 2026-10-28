@@ -457,32 +457,34 @@ function updateJaguarRig(){
     }
     hindLoad+=stance?1:0;
    }else{
-    // Dianteira articulada: escápula desliza, ombro conduz, cotovelo recolhe,
-    // carpo ajusta a pata. A trajetória continua sincronizada com apoio/recuperação.
-    // Ombro-pistão avança em direção à cabeça durante o apoio e recua na recuperação.
-    const shoulder=stance?(-.06+.34*stanceT):(.28-.58*recover);
-    const scapulaGlide=stance?(.015+.13*stanceT):(.145-.27*recover);
-    if(leg.scapula){
-     leg.scapula.rotation.set(.025*Math.sin(phase*.5+side*.3),.012*Math.sin(phase*.5+side*.3),side*.008*Math.sin(phase));
-     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+scapulaGlide);
-    }
-    // Braço alonga para tocar primeiro com a ponta da pata; depois puxa o corpo.
-    leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.018*Math.sin(phase*.5+side*.4),side*.012*Math.sin(phase));
-    leg.hip.position.copy(leg.baseHip);
-    if(leg.elbow){
-     const elbowFlex=stance?(.02+.025*stanceT):(-.12-.48*Math.sin(Math.PI*recoveryT));
-     leg.elbow.rotation.set(gallop?elbowFlex*1.10:elbowFlex,.008*Math.sin(phase+side*.2),side*.008*Math.sin(phase+.3));
-    }
-    // Ponta toca primeiro; a pata assenta e desliza para trás durante o apoio.
-    const frontToe=stance?(.30-.28*plant-.08*push):(-.18+.42*smooth(Math.min(1,recoveryT/.30)));
-    if(leg.paw){
-     leg.paw.position.copy(leg.basePawPos);
-     leg.paw.rotation.set(frontToe,leg.basePawRot.y,leg.basePawRot.z);
-    }
-    leg.wrist.rotation.x=stance?(-.02-.035*stanceT):(.20*Math.sin(Math.PI*recoveryT));
-    leg.wrist.rotation.y=.012*Math.sin(phase+.4);
-    // Importante: a pata fica no seu pivô hierárquico. Não é animada por translação independente.
-    foreLoad+=stance?1:0;
+     // Dianteira: a pata pousa à frente e desliza para trás até a região
+     // central da barriga, ultrapassando a posição neutra. Depois recolhe,
+     // levanta e volta à frente para iniciar o próximo ciclo.
+     const shoulder=stance?(.26-.46*stanceT):(-.20+.50*recover);
+     const scapulaGlide=stance?(.22-.52*stanceT):(-.30+.52*recover);
+     if(leg.scapula){
+      leg.scapula.rotation.set(.025*Math.sin(phase*.5+side*.3),.012*Math.sin(phase*.5+side*.3),side*.008*Math.sin(phase));
+      // Z positivo aponta para a cabeça; Z negativo conduz a pata para o centro
+      // do corpo durante o arrasto apoiado no chão.
+      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+scapulaGlide);
+     }
+     // O ombro alcança à frente na recuperação e puxa o braço durante o arrasto.
+     leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.018*Math.sin(phase*.5+side*.4),side*.012*Math.sin(phase));
+     leg.hip.position.copy(leg.baseHip);
+     if(leg.elbow){
+      const elbowFlex=stance?(.02+.025*stanceT):(-.18-.48*Math.sin(Math.PI*recoveryT));
+      leg.elbow.rotation.set(gallop?elbowFlex*1.10:elbowFlex,.008*Math.sin(phase+side*.2),side*.008*Math.sin(phase+.3));
+     }
+     // Pata baixa durante o arrasto; recolhe para trás quando sai do chão.
+     const frontToe=stance?(.22-.25*stanceT):(-.18+.52*smooth(Math.min(1,recoveryT/.34)));
+     if(leg.paw){
+      leg.paw.position.copy(leg.basePawPos);
+      leg.paw.rotation.set(frontToe,leg.basePawRot.y,leg.basePawRot.z);
+     }
+     // O carpo levanta no meio da recuperação e volta a estender antes do pouso.
+     leg.wrist.rotation.x=stance?(-.015-.025*stanceT):(.32*Math.sin(Math.PI*recoveryT));
+     leg.wrist.rotation.y=.012*Math.sin(phase+.4);
+     foreLoad+=stance?1:0;
    }
   }
   foreLoad/=2;hindLoad/=2;
