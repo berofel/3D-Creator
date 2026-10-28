@@ -427,9 +427,13 @@ function updateJaguarRig(){
     const stride=hind?.145:.17;
     // Fase de apoio: a pata recua relativamente ao tronco sem ser levantada.
     // Fase de balanço: trajetória suave para a frente e elevação curta.
+    // A trajetória precisa ser contínua no contato:
+    // apoio: recua de +stride para -stride;
+    // balanço: avança de -stride para +stride.
+    // Assim há apenas uma ida e uma volta por ciclo, sem inversão duplicada.
     const pawTravel=support
-      ? (stanceProgress-.5)*2*stride
-      : (0.5-smooth01(swingProgress))*2*stride;
+      ? (0.5-stanceProgress)*2*stride
+      : (-0.5+smooth01(swingProgress))*2*stride;
     const flex=support?0:Math.sin(Math.PI*swingProgress);
     if(hind)hindLoad+=support?1:0;else foreLoad+=support?1:0;
     verticalImpulse+=lift;
@@ -852,5 +856,5 @@ function reportRenderFault(err){if(renderFault)return;renderFault=true;console.e
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();reportRenderFault(new Error("WebGL context lost"))},false);
 window.addEventListener("error",e=>{console.error("Berofel 3D Create: erro JavaScript",e.error||e.message);reportRenderFault(e.error||new Error(e.message||"Erro JavaScript não identificado"))});window.addEventListener("unhandledrejection",e=>{console.error("Berofel 3D Create: promessa rejeitada",e.reason);reportRenderFault(e.reason instanceof Error?e.reason:new Error(String(e.reason||"Promessa rejeitada")))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=115",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=116",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
