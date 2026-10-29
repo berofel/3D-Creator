@@ -441,20 +441,20 @@ function updateJaguarRig(){
      const m0=slope(i),m1=slope(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
      return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
-    // O quadril avança e recua sem parar nas junções .24, .44, .54 e .72.
-    const hipAngle=sampleTrack([[0,BACK_ANGLE],[.24,FRONT_ANGLE],[.44,-.44],[.54,-.08],[.72,BACK_ANGLE],[1,BACK_ANGLE]],phase);
-    const lowerAngle=sampleTrack([[0,0],[.24,.10],[.44,.10],[.54,0],[.72,0],[1,0]],phase);
-    const axisSlide=sampleTrack([[0,-.012],[.24,.055],[.44,.055],[.54,.055],[.72,-.012],[1,-.012]],phase);
-    const axisLift=sampleTrack([[0,0],[.24,.022],[.44,0],[.54,0],[.72,0],[1,0]],phase);
+    // O quadril avança e recua sem parar nas junções .23, .42, .52 e .69.
+    const hipAngle=sampleTrack([[0,BACK_ANGLE],[.23,FRONT_ANGLE],[.42,-.42],[.52,-.08],[.69,BACK_ANGLE],[1,BACK_ANGLE]],phase);
+    const lowerAngle=sampleTrack([[0,0],[.23,.10],[.42,.10],[.52,0],[.69,0],[1,0]],phase);
+    const axisSlide=sampleTrack([[0,-.012],[.23,.055],[.42,.055],[.52,.055],[.69,-.012],[1,-.012]],phase);
+    const axisLift=sampleTrack([[0,0],[.23,.022],[.42,0],[.52,0],[.69,0],[1,0]],phase);
     // A pata mantém a ordem anatômica: toca o chão, nivela e só então recua.
     // A inclinação final chega a 45° antes do próximo avanço do fêmur.
     let pawWorldAngle=DEG45;
-    if(phase<.44){
+    if(phase<.42){
      pawWorldAngle=DEG45;
-    }else if(phase<.54){
-     const u=Math.max(0,Math.min(1,(phase-.44)/.10));
+    }else if(phase<.52){
+     const u=Math.max(0,Math.min(1,(phase-.42)/.10));
      pawWorldAngle=DEG45*(1-(u*u*(3-2*u)));
-    }else if(phase<.72){
+    }else if(phase<.69){
      pawWorldAngle=FLAT;
     }else{
      const u=Math.max(0,Math.min(1,(phase-.72)/.28));
@@ -912,5 +912,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=181",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=182",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
