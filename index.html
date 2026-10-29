@@ -578,11 +578,18 @@ function updateJaguarRig(){
   r.body.position.y=r.baseY+Math.sin(cycle*2)* (gallop? .006:.0015)*bodyReact;
   if(gallop){const runPhase=((cycle/(Math.PI*2))%1+1)%1;const runTravel=runPhase<.23?runPhase/.23:runPhase<.48?1:runPhase<.69?1-(runPhase-.48)/.21:0;const eased=runTravel*runTravel*(3-2*runTravel);r.body.position.z=(r.baseBodyZ??0)+eased*.055;}else{r.body.position.z=r.baseBodyZ??0;}
   r.body.rotation.x=(Math.sin(cycle+.3)*(gallop? .012:.003)+(hindLoad-foreLoad)*.006)*bodyReact;
+  // Corrida felina: quando as patas traseiras recolhem/avançam, a coluna
+  // fecha um pouco o vão entre peitoral e quadril; o quadril acompanha com
+  // uma inclinação descendente discreta. Caminhada mantém a curva anterior.
+  const runPhase=((cycle/(Math.PI*2))%1+1)%1;
+  const hindDrive=gallop?Math.pow(Math.max(0,Math.sin((runPhase-.50)*Math.PI*2)),1.25):0;
+  const spineTuck=gallop?hindDrive*.075:0;
+  const hipDip=gallop?hindDrive*.035:0;
   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.003*bodyReact;
-  r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop? .018:.006)*bodyReact;
-  r.spine.rotation.x=(Math.sin(cycle+.3)*(gallop? .014:.004)+(hindLoad-foreLoad)*.004)*bodyReact;
-  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop? .006:.002)*bodyReact,r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop? .015:.004)*bodyReact);
-  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop? .018:.005)*bodyReact,Math.sin(cycle*.55)*(gallop? .02:.006)*bodyReact,Math.sin(cycle+.2)*(gallop? .008:.003)*bodyReact);
+  r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop?.018:.006)*bodyReact+(gallop?spineTuck:0);
+  r.spine.rotation.x=(Math.sin(cycle+.3)*(gallop?.014:.004)+(hindLoad-foreLoad)*.004)*bodyReact+(gallop?hindDrive*.045:0);
+  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.006:.002)*bodyReact,r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.015:.004)*bodyReact+(gallop?spineTuck*.32:0));
+  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.018:.005)*bodyReact+(gallop?hipDip:0),Math.sin(cycle*.55)*(gallop?.02:.006)*bodyReact,Math.sin(cycle+.2)*(gallop?.008:.003)*bodyReact);
   r.neck.rotation.x=moving?(gallop?-.08*Math.sin(cycle+.4):-.025*Math.sin(cycle+.35)):0;
   r.head.rotation.x=moving?(gallop? .05*Math.sin(cycle+.4):.018*Math.sin(cycle+.35)):0;
   r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop? .22:.13);
@@ -971,5 +978,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=203",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=204",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
