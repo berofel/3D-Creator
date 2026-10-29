@@ -433,10 +433,11 @@ function updateJaguarRig(){
      // só até uma altura moderada, enquanto a perna começa a avançar.
      const u=smoothStep(.28,.56,phase);
      hipAngle=.36-.88*u;
-     lowerAngle=.045*Math.sin(Math.PI*u);
+     // Flexão contínua: evita o salto do joelho no fim do avanço.
+     lowerAngle=.10*smoothStep(0,1,u);
      pawWorldAngle=DEG45;
      hipSlide=-.012+.067*u;
-     hipLift=.018+.017*u; // termina exatamente na altura usada pela fase de descida
+     hipLift=.018+.017*u; // liga suavemente à descida, sem mudança de altura
     }else if(phase<.70){
      // 3) No alcance dianteiro, a perna baixa até a ponta tocar o chão.
      // A pata permanece nos 45° durante essa descida: não começa a girar no ar.
@@ -492,17 +493,12 @@ function updateJaguarRig(){
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
      if(!pawBounds.isEmpty()){
       const correction=floorY-pawBounds.min.y;
-      // Durante o levantamento inicial, não desloca a perna para compensar:
-      // a pata precisa iniciar o movimento sozinha, sem a anca antecipar.
-      if(phase<.28)break;
-      if(phase>=.56){
-       leg.hip.position.y+=correction*contactWeight;
-       if(Math.abs(correction*contactWeight)<0.0001)break;
-      }else if(planted && correction>0.0001){
-       leg.hip.position.y+=correction;
-      }else if(correction>0.0001){
-       leg.hip.position.y+=correction;
-      }else break;
+      // Não corrigir a altura com saltos durante o levantamento/avanço.
+      // A compensação começa com peso zero e cresce suavemente na aproximação
+      // ao chão; depois do contato, mantém a pata apoiada sem puxar a anca de repente.
+      if(phase<.56)break;
+      leg.hip.position.y+=correction*contactWeight;
+      if(Math.abs(correction*contactWeight)<0.0001)break;
      }
     }
 
@@ -932,5 +928,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=173",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=174",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
