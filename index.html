@@ -419,31 +419,33 @@ function updateJaguarRig(){
     let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012,hipLift=0;
 
     if(phase<.22){
-     // 1) PRIMEIRO SÓ A PATA: subida mais lenta, progressiva e sem antecipar o fêmur.
+     // 1) A pata gira lentamente; a cadeia acompanha como uma alavanca.
+     // O contato da ponta com o chão será corrigido após atualizar a pose mundial.
      const u=smoothStep(0,.22,phase);
-     hipAngle=.36;
-     lowerAngle=0;
+     hipAngle=.36-.16*u;
+     lowerAngle=.07*u;
      pawWorldAngle=DEG45*u;
      hipSlide=-.012;
      hipLift=0;
     }else if(phase<.56){
-     // 2) Com a pata a 45°, o fêmur avança gradualmente e mantém a orientação da pata.
+     // 2) Com a pata a 45°, fêmur e segmento inferior avançam em conjunto.
      const u=smoothStep(.22,.56,phase);
-     hipAngle=.36-.44*u;
-     lowerAngle=.015*Math.sin(Math.PI*u);
+     hipAngle=.20-.72*u;
+     lowerAngle=.07+.045*Math.sin(Math.PI*u);
      pawWorldAngle=DEG45;
      hipSlide=-.012+.067*u;
      hipLift=.035*u;
     }else if(phase<.70){
-     // 3) A perna desce com calma; a pata só retorna de 45° a 0° nesta etapa.
+     // 3) A perna desce suavemente e a pata volta gradualmente ao plano.
      const u=smoothStep(.56,.70,phase);
-     hipAngle=-.08;
-     lowerAngle=.10*u;
+     hipAngle=-.52+.44*u;
+     lowerAngle=.07+.03*u;
      pawWorldAngle=DEG45*(1-u);
      hipSlide=.055;
      hipLift=.035*(1-u);
     }else{
-     // 4) Com a pata plana no chão, a perna desliza suavemente para trás até repouso.
+     // 4) Na fase de apoio, fêmur, segmento inferior e anca descem juntos
+     // conforme a perna gira para trás, mantendo a pata apoiada no chão.
      const u=smoothStep(.70,1,phase);
      hipAngle=-.08+.44*u;
      lowerAngle=.10*(1-u);
@@ -465,11 +467,26 @@ function updateJaguarRig(){
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Não reposiciona a anca para "corrigir" o chão a cada frame: essa
-    // correção dinâmica causava pequenos trancos/flicker na cadeia inteira.
-    // O contato é obtido pela descida articulada e pela pata nivelada.
-    // O tronco só começa a reagir depois de a pata ter levantado.
-    hindLoad+=smooth((phase-.16)/.06)*(1-smooth((phase-.70)/.08));
+    // Apoio pelo chão real: mede a caixa da pata em coordenadas mundiais.
+    // Na rotação inicial e no retorno para trás, a anca acompanha a alavanca
+    // para que a sola/ponta toque o piso sem atravessá-lo nem ficar suspensa.
+    // Nas fases de balanço, apenas impede que a pata atravesse o chão.
+    const floorY=-.04;
+    const planted=(phase<.22)||(phase>=.70);
+    for(let fix=0;fix<2;fix++){
+     r.body.updateMatrixWorld(true);
+     const pawBounds=new THREE.Box3().setFromObject(leg.paw);
+     if(!pawBounds.isEmpty()){
+      const correction=floorY-pawBounds.min.y;
+      if(planted || correction>0.0001){
+       leg.hip.position.y+=correction;
+       if(Math.abs(correction)<0.0001)break;
+      }else break;
+     }
+    }
+
+    // A reação do tronco começa junto da alavanca da pata, sem antecipação.
+    hindLoad+=smooth((phase-.10)/.10)*(1-smooth((phase-.70)/.08));
    }else{
     // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
     // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
@@ -894,5 +911,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=168",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=169",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
