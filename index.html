@@ -333,11 +333,11 @@ function jaguarPreset(){
  // O tronco central fica estreito e encaixado entre o peitoral e a anca.
  // A coluna funciona como um pistão curto: ligeiramente menor que a anca,
  // com movimento longitudinal e vertical próprio, sem atravessar o contorno dela.
- block(body,"Peitoral", [0,1.48,.43],[.84,.76,.78],COAT2);
+ block(body,"Peitoral", [0,1.48,.43],[.84,.76,.78],COAT2,"ellipsoid");
  const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
- block(spine,"Eixo central do tronco",[0,0,0],[.61,.43,.76],COAT3);
+ block(spine,"Eixo central do tronco",[0,0,0],[.61,.43,.76],COAT3,"ellipsoid");
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
- block(rump,"Massa da anca",[0,0,0],[.84,.68,.66],COAT2,"body",[0,0,-.02]);
+ block(rump,"Massa da anca",[0,0,0],[.84,.68,.66],COAT2,"ellipsoid",[0,0,-.02]);
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -361,9 +361,9 @@ function jaguarPreset(){
  }
  // Pescoço/cabeça baixos e compactos.
  const neck=group(body,[0,1.55,.72],"Pescoço móvel");
- block(neck,"Pescoço inclinado",[0,.08,.20],[.52,.50,.57],COAT2,"body",[-.12,0,0]);
+ block(neck,"Pescoço inclinado",[0,.08,.20],[.52,.50,.57],COAT2,"ellipsoid",[-.12,0,0]);
  const head=group(neck,[0,.22,.49],"Cabeça móvel");
- block(head,"Crânio felino",[0,.14,.15],[.51,.40,.49],COAT3);
+ block(head,"Crânio felino",[0,.14,.15],[.51,.40,.49],COAT3,"ellipsoid");
  block(head,"Bochecha esquerda",[-.17,.01,.28],[.18,.19,.22],COAT);
  block(head,"Bochecha direita",[.17,.01,.28],[.18,.19,.22],COAT);
  block(head,"Mandíbula inferior",[0,-.105,.30],[.34,.13,.29],COAT2,"ellipsoid");
@@ -1025,5 +1025,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=209",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=210",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
