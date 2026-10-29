@@ -362,13 +362,10 @@ function jaguarPreset(){
    block(knee,"Segmento inferior traseiro único",[0,-.29,.045],[.20,.60,.20],COAT3,"taper",[-.12,0,q.side*.012]);
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
-   // Braço dianteiro articulado em duas peças, como no vídeo de referência:
-   // braço superior -> cotovelo -> antebraço -> pulso/pata.
-   block(hip,"Bloco 2 — braço superior dianteiro",[0,-.265,.012],[.245,.57,.245],COAT3,"taper",[.02,0,q.side*-.018]);
-   elbow=group(hip,[0,-.535,.02],"Articulação do cotovelo dianteiro "+(q.side<0?"esquerdo":"direito"));
-   forearmMesh=block(elbow,"Bloco 3 — antebraço dianteiro articulado",[0,-.225,.012],[.205,.53,.205],COAT3,"taper",[-.015,0,q.side*-.012]);
+   // Braço dianteiro único e reto, como no vídeo: ombro largo, sem cotovelo.
+   forearmMesh=block(hip,"Bloco 2 — braço dianteiro único",[0,-.415,.015],[.25,1.08,.25],COAT3,"taper",[.02,0,q.side*-.018]);
   }
-  const wrist=group(q.hind?knee:elbow,q.hind?[0,-.62,.07]:[0,-.465,.035],"Pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   const paw=group(wrist,[0,0,0],"Pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
@@ -494,9 +491,8 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v195 — reconstruído a partir da referência em vídeo.
-    // A passada é uma cadeia articulada: ombro acompanha, braço superior conduz,
-    // cotovelo flexiona no balanço e a pata nivela no contato com o chão.
+    // Ciclo dianteiro v196 — fiel à referência: membro reto, ombro largo,
+    // passada em arco e sem articulação de cotovelo.
     const frontTrack=(keys,x)=>{
      if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
@@ -508,24 +504,19 @@ function updateJaguarRig(){
      return v0+(v1-v0)*blend;
     };
     const DEG45=Math.PI/4;
-    // Arco de passada: recolhe atrás, avança suspensa, estende no toque
-    // e mantém o apoio enquanto o membro recua.
-    const shoulderZ=frontTrack([[0,0],[.06,-.025],[.16,.055],[.28,.16],[.38,.19],[.46,.08],[.53,0],[1,0]],p);
-    const shoulderY=frontTrack([[0,0],[.08,.015],[.20,.055],[.31,.07],[.40,.035],[.48,-.018],[.56,0],[1,0]],p);
-    const shoulderAngle=frontTrack([[0,.02],[.08,.10],[.19,-.22],[.31,-.48],[.40,-.42],[.48,-.20],[.55,0],[.74,.015],[.91,.02],[1,.02]],p);
-    const upperAngle=frontTrack([[0,.02],[.08,.20],[.18,-.12],[.30,-.48],[.39,-.36],[.47,-.12],[.54,.02],[.72,.12],[.90,.20],[1,.02]],p);
-    const elbowAngle=frontTrack([[0,.02],[.08,.08],[.18,.38],[.29,.56],[.37,.43],[.45,.20],[.52,.05],[.66,.015],[.88,.015],[.96,.08],[1,.02]],p);
-    const pawAngle=frontTrack([[0,DEG45],[.08,DEG45],[.20,DEG45],[.31,DEG45],[.39,DEG45],[.46,.12],[.51,0],[.91,0],[.97,DEG45],[1,DEG45]],p);
+    // A perna inteira gira como uma peça rígida no ombro: recolhe para trás,
+    // passa à frente em arco e estende até o chão. O apoio é a fase longa.
+    const shoulderZ=frontTrack([[0,-.015],[.08,-.035],[.22,.005],[.34,.035],[.43,.015],[.52,0],[1,-.015]],p);
+    const shoulderY=frontTrack([[0,0],[.10,.012],[.24,.055],[.34,.07],[.43,.025],[.50,-.012],[.58,0],[1,0]],p);
+    const legSwing=frontTrack([[0,.34],[.08,.48],[.20,.20],[.31,-.30],[.39,-.48],[.47,-.24],[.54,.04],[.70,.24],[.88,.40],[1,.34]],p);
+    // A pata inclina durante o balanço e volta a ficar plana quando toca o solo.
+    const pawAngle=frontTrack([[0,DEG45],[.08,DEG45],[.20,DEG45],[.31,DEG45],[.39,DEG45],[.46,.18],[.52,0],[.91,0],[.97,DEG45],[1,DEG45]],p);
     if(leg.scapula){
      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y+shoulderY,leg.baseScapulaPos.z+shoulderZ);
-     leg.scapula.rotation.set(shoulderAngle,leg.baseScapulaRot.y,leg.baseScapulaRot.z);
+     leg.scapula.rotation.set(leg.baseScapulaRot.x,leg.baseScapulaRot.y,leg.baseScapulaRot.z);
     }
     leg.hip.position.copy(leg.baseHip);
-    leg.hip.rotation.set(leg.baseHipRot.x+upperAngle,leg.baseHipRot.y,leg.baseHipRot.z);
-    if(leg.elbow){
-     leg.elbow.position.set(0,-.535,.02);
-     leg.elbow.rotation.set(elbowAngle,0,0);
-    }
+    leg.hip.rotation.set(leg.baseHipRot.x+legSwing,leg.baseHipRot.y,leg.baseHipRot.z);
     if(leg.forearmMesh&&leg.baseForearmScale){
      leg.forearmMesh.scale.copy(leg.baseForearmScale);
      leg.forearmMesh.position.copy(leg.baseForearmPos);
@@ -533,8 +524,7 @@ function updateJaguarRig(){
     leg.wrist.position.copy(leg.baseWrist);
     leg.wrist.rotation.copy(leg.baseWristRot);
     const shoulderX=leg.scapula?leg.scapula.rotation.x:0;
-    const elbowX=leg.elbow?leg.elbow.rotation.x:0;
-    leg.paw.rotation.set(leg.basePawRot.x+pawAngle-shoulderX-leg.hip.rotation.x-elbowX-leg.wrist.rotation.x,leg.basePawRot.y,leg.basePawRot.z);
+    leg.paw.rotation.set(leg.basePawRot.x+pawAngle-legSwing-shoulderX-leg.wrist.rotation.x,leg.basePawRot.y,leg.basePawRot.z);
     foreLoad+=frontTrack([[0,0],[.12,.22],[.28,.62],[.48,1],[.68,.86],[.84,.42],[1,0]],p);
     foreLoad+=frontTrack([[0,0],[.12,.28],[.30,.70],[.49,1],[.72,.82],[.88,.30],[1,0]],p);
    }
@@ -938,5 +928,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=195",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=196",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
