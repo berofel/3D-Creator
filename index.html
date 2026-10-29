@@ -418,20 +418,20 @@ function updateJaguarRig(){
     const DEG45=Math.PI/4, FLAT=0;
     let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012,hipLift=0;
 
-    if(phase<.22){
-     // 1) A pata gira lentamente; a cadeia acompanha como uma alavanca.
-     // O contato da ponta com o chão será corrigido após atualizar a pose mundial.
-     const u=smoothStep(0,.22,phase);
-     hipAngle=.36-.16*u;
-     lowerAngle=.07*u;
+    if(phase<.28){
+     // 1) Primeiro se move somente a pata, ainda com a perna recolhida atrás.
+     // O pulso ocupa mais tempo do ciclo para levantar de forma lenta e contínua.
+     const u=smoothStep(0,.28,phase);
+     hipAngle=.36;
+     lowerAngle=0;
      pawWorldAngle=DEG45*u;
      hipSlide=-.012;
      hipLift=0;
     }else if(phase<.56){
-     // 2) Com a pata a 45°, fêmur e segmento inferior avançam em conjunto.
-     const u=smoothStep(.22,.56,phase);
-     hipAngle=.20-.72*u;
-     lowerAngle=.07+.045*Math.sin(Math.PI*u);
+     // 2) Só depois de a pata alcançar 45° a perna começa a avançar.
+     const u=smoothStep(.28,.56,phase);
+     hipAngle=.36-.88*u;
+     lowerAngle=.045*Math.sin(Math.PI*u);
      pawWorldAngle=DEG45;
      hipSlide=-.012+.067*u;
      hipLift=.035*u;
@@ -484,12 +484,15 @@ function updateJaguarRig(){
     // Depois do contato, mantém a pata no chão durante a rotação e o deslizamento.
     const floorY=-.04;
     const contactWeight=phase<.56?0:smoothStep(.56,.70,phase);
-    const planted=(phase>=.70)||(phase<.22);
+    const planted=phase>=.70;
     for(let fix=0;fix<2;fix++){
      r.body.updateMatrixWorld(true);
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
      if(!pawBounds.isEmpty()){
       const correction=floorY-pawBounds.min.y;
+      // Durante o levantamento inicial, não desloca a perna para compensar:
+      // a pata precisa iniciar o movimento sozinha, sem a anca antecipar.
+      if(phase<.28)break;
       if(phase>=.56){
        leg.hip.position.y+=correction*contactWeight;
        if(Math.abs(correction*contactWeight)<0.0001)break;
@@ -927,5 +930,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=170",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=171",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
