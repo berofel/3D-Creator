@@ -417,34 +417,41 @@ function updateJaguarRig(){
     let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012;
     let contactBlend=0;
 
-    if(phase<.16){
-     // 1) IMPULSO ATRÁS: a pata faz apenas um pulso até 45° para fora.
-     const u=smoothStep(0,.16,phase);
+    if(phase<.12){
+     // 1) PRIMEIRO SÓ A PATA: levanta até 45° com fêmur e anca imóveis.
+     const u=smoothStep(0,.12,phase);
+     hipAngle=.36;
+     lowerAngle=0;
+     pawWorldAngle=DEG45*u;
+     hipSlide=-.012;
+     contactBlend=0;
+    }else if(phase<.30){
+     // 2) IMPULSO: só depois de levantar, a pata empurra e a perna inicia a extensão.
+     const u=smoothStep(.12,.30,phase);
      hipAngle=.36-.14*u;
      lowerAngle=.02*(1-u);
-     pawWorldAngle=DEG45*u;
+     pawWorldAngle=DEG45*(1-u);
      hipSlide=-.012+.032*u;
      contactBlend=0;
-    }else if(phase<.43){
-     // 2) RETORNO + AVANÇO: desfaz os mesmos 45° e deixa a sola plana.
-     const u=smoothStep(.16,.43,phase);
+    }else if(phase<.48){
+     // 3) RECUPERAÇÃO: a pata fica plana enquanto o fêmur avança.
+     const u=smoothStep(.30,.48,phase);
      hipAngle=.22-.30*u;
      lowerAngle=0;
-     pawWorldAngle=DEG45*(1-u);
+     pawWorldAngle=FLAT;
      hipSlide=.020+.035*u;
      contactBlend=0;
-    }else if(phase<.55){
-     // 3) CONTATO À FRENTE: a pata já está plana; não faz outra volta.
-     const u=smoothStep(.43,.55,phase);
+    }else if(phase<.58){
+     // 4) CONTATO À FRENTE: sola plana, sem giro extra.
+     const u=smoothStep(.48,.58,phase);
      hipAngle=-.08;
      lowerAngle=0;
      pawWorldAngle=FLAT;
      hipSlide=.055;
      contactBlend=u;
     }else{
-     // 4) APOIO/ARRASTO: mantém a sola horizontal enquanto desliza para trás.
-     // O ciclo recomeça atrás com um novo pulso de 45° para fora.
-     const u=smoothStep(.55,1,phase);
+     // 5) APOIO/ARRASTO: sola plana deslizando para trás até o próximo pulso.
+     const u=smoothStep(.58,1,phase);
      hipAngle=.22+.14*u;
      lowerAngle=.025*(1-u);
      pawWorldAngle=FLAT;
@@ -478,25 +485,31 @@ function updateJaguarRig(){
       leg.hip.position.add(p1.sub(p0));
      }
     }
-    hindLoad+=(phase>=.28&&phase<.93)?1:0;
+    // Carga de propulsão contínua: o tronco reage depois do levantamento, sem degrau binário.
+    hindLoad+=smooth((phase-.12)/.05)*(1-smooth((phase-.25)/.07));
    }else{
-    // ALCANCE E ARRASTO: ombro leva a pata para a frente; depois, com a pata
-    // apoiada, o conjunto desliza para trás além do eixo neutro até a barriga.
-    const reach=stance?(.20-.58*stanceT):(-.38+.66*rec);
-    const slide=stance?(.20-.62*stanceT):(-.42+.62*rec);
+    // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
+    // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
+    const delayedPhase=p<.26?1:(p-.26)/.74;
+    const frontStance=delayedPhase<.62;
+    const frontStanceT=frontStance?delayedPhase/.62:1;
+    const frontRecoveryT=frontStance?0:(delayedPhase-.62)/.38;
+    const frontRec=smooth(frontRecoveryT);
+    const reach=frontStance?(.28-.66*frontStanceT):(-.38+.66*frontRec);
+    const slide=frontStance?(.20-.62*frontStanceT):(-.42+.62*frontRec);
     if(leg.scapula){
      leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+slide);
     }
     leg.hip.rotation.set(reach*(gallop?1.15:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
     leg.hip.position.copy(leg.baseHip);
-    // Sem cotovelo independente: a flexão de recuperação ocorre na pata.
+    // Flexão suave: a pata não dá tranco ao passar do apoio para a recuperação.
     leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.x=stance?(-.02-.025*stanceT):(.48*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.x=frontStance?(-.045*frontStanceT):(-.045+.045*smooth(Math.min(1,frontRecoveryT/.36)));
     leg.wrist.rotation.y=.01*Math.sin(cycle+side);
-    const toe=stance?(.18-.20*stanceT):(-.22+.62*smooth(Math.min(1,recoveryT/.36)));
+    const toe=frontStance?(.40-.42*frontStanceT):(-.02+.42*smooth(Math.min(1,frontRecoveryT/.36)));
     leg.paw.rotation.set(leg.basePawRot.x+toe,leg.basePawRot.y,leg.basePawRot.z);
-    foreLoad+=stance?1:0;
+    foreLoad+=frontStance?(1-smooth(frontStanceT)):smooth(frontRecoveryT);
    }
   }
   foreLoad/=2;hindLoad/=2;
@@ -895,5 +908,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=162",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=163",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
