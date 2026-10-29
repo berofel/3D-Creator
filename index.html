@@ -362,9 +362,9 @@ function jaguarPreset(){
    block(knee,"Segmento inferior traseiro único",[0,-.29,.045],[.20,.60,.20],COAT3,"taper",[-.12,0,q.side*.012]);
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
-   block(hip,"Bloco 2 — braço dianteiro único",[0,-.245,.015],[.25,.68,.25],COAT3,"taper",[.02,0,q.side*-.018]);
+   block(hip,"Bloco 2 — braço dianteiro único",[0,-.415,.015],[.25,1.08,.25],COAT3,"taper",[.02,0,q.side*-.018]);
   }
-  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.565,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   const paw=group(wrist,[0,0,0],"Pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
@@ -414,36 +414,52 @@ function updateJaguarRig(){
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
-    // Ciclo traseiro com interpolação cúbica monotônica: mantém a mesma sequência
-    // e os mesmos extremos, mas compartilha velocidades entre fases para evitar microparadas.
+    // Ciclo traseiro contínuo com antecipação nas articulações.
+    // As poses-chave aprovadas são preservadas; as tangentes compartilhadas
+    // fazem cada movimento entrar no seguinte sem zerar a velocidade na junção.
     const phase=p;
+    const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*(3-2*v)};
     const DEG45=Math.PI/4, FLAT=0;
     const BACK_ANGLE=.38, FRONT_ANGLE=-.52;
-    const sampleCurve=(keys,x)=>{
-     const n=keys.length,slopes=new Array(n),h=[],d=[];
-     for(let i=0;i<n-1;i++){h[i]=keys[i+1][0]-keys[i][0];d[i]=(keys[i+1][1]-keys[i][1])/h[i];}
-     for(let i=1;i<n-1;i++){
-      const a=d[i-1],b=d[i];
-      if(a*b<=0)slopes[i]=0;
-      else{const w1=2*h[i]+h[i-1],w2=h[i]+2*h[i-1];slopes[i]=(w1+w2)/(w1/a+w2/b);}
-     }
-     // As extremidades representam o mesmo ponto do ciclo; a tangente é periódica.
-     const prevH=keys[0][0]+1-keys[n-2][0],nextH=keys[1][0]-keys[0][0];
-     const prevD=(keys[0][1]-keys[n-2][1])/prevH,nextD=d[0];
-     if(prevD*nextD<=0)slopes[0]=0;
-     else{const w1=2*nextH+prevH,w2=nextH+2*prevH;slopes[0]=(w1+w2)/(w1/prevD+w2/nextD);}
-     slopes[n-1]=slopes[0];
-     let i=0;while(i<n-2&&x>keys[i+1][0])i++;
-     const x0=keys[i][0],x1=keys[i+1][0],span=x1-x0,u=Math.max(0,Math.min(1,(x-x0)/span));
-     const y0=keys[i][1],y1=keys[i+1][1],u2=u*u,u3=u2*u;
-     return (2*u3-3*u2+1)*y0+(u3-2*u2+u)*span*slopes[i]+(-2*u3+3*u2)*y1+(u3-u2)*span*slopes[i+1];
+    const sampleTrack=(keys,x)=>{
+     if(x<=keys[0][0])return keys[0][1];
+     const last=keys.length-1;
+     if(x>=keys[last][0])return keys[last][1];
+     let i=0;
+     while(i<last-1&&x>keys[i+1][0])i++;
+     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0;
+     const slope=(j)=>{
+      if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+      if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+      const before=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
+      const after=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+      // Média ponderada das inclinações adjacentes: tangente contínua no nó.
+      const left=keys[j][0]-keys[j-1][0],right=keys[j+1][0]-keys[j][0];
+      if(before*after<=0)return 0;
+      return (before*right+after*left)/(left+right);
+     };
+     const m0=slope(i),m1=slope(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
-    const hipAngle=sampleCurve([[0,BACK_ANGLE],[.24,FRONT_ANGLE],[.44,-.44],[.54,-.08],[.72,BACK_ANGLE],[1,BACK_ANGLE]],phase);
-    const lowerAngle=sampleCurve([[0,0],[.24,.10],[.44,.10],[.54,0],[.72,0],[1,0]],phase);
-    const pawWorldAngle=sampleCurve([[0,DEG45],[.24,DEG45],[.44,DEG45],[.54,FLAT],[.72,FLAT],[1,DEG45]],phase);
-    const axisSlide=sampleCurve([[0,-.012],[.24,.055],[.44,.055],[.54,.055],[.72,-.012],[1,-.012]],phase);
-    const axisLift=sampleCurve([[0,0],[.24,.022],[.44,0],[.54,0],[.72,0],[1,0]],phase);
-
+    // O quadril avança e recua sem parar nas junções .23, .42, .52 e .69.
+    const hipAngle=sampleTrack([[0,BACK_ANGLE],[.23,FRONT_ANGLE],[.42,-.44],[.52,-.08],[.69,BACK_ANGLE],[1,BACK_ANGLE]],phase);
+    const lowerAngle=sampleTrack([[0,0],[.23,.10],[.42,.10],[.52,0],[.69,0],[1,0]],phase);
+    const axisSlide=sampleTrack([[0,-.012],[.23,.055],[.42,.055],[.52,.055],[.69,-.012],[1,-.012]],phase);
+    const axisLift=sampleTrack([[0,0],[.23,.022],[.42,0],[.52,0],[.69,0],[1,0]],phase);
+    // A pata mantém a ordem anatômica: toca o chão, nivela e só então recua.
+    // A inclinação final chega a 45° antes do próximo avanço do fêmur.
+    let pawWorldAngle=DEG45;
+    if(phase<.42){
+     pawWorldAngle=DEG45;
+    }else if(phase<.52){
+     const u=Math.max(0,Math.min(1,(phase-.42)/.10));
+     pawWorldAngle=DEG45*(1-(u*u*(3-2*u)));
+    }else if(phase<.69){
+     pawWorldAngle=FLAT;
+    }else{
+     const u=Math.max(0,Math.min(1,(phase-.72)/.28));
+     pawWorldAngle=DEG45*(u*u*(3-2*u));
+    }
     // Eixo diagonal translada em Y/Z independentemente da rotação do fêmur.
     leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
     leg.hip.position.copy(leg.baseHip);
@@ -458,10 +474,9 @@ function updateJaguarRig(){
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Mantém o contato do chão gradual; a correção não redefine a trajetória do eixo.
+    // Corrige o contato na descida usando o eixo de translação, sem deslocar o pivô.
     const floorY=-.04;
-    const contactU=Math.max(0,Math.min(1,(phase-.24)/.20));
-    const contactWeight=phase<.24?0:phase<.44?contactU*contactU*(3-2*contactU):1;
+    const contactWeight=phase<.24?0:smoothStep(.24,.44,phase);
     for(let fix=0;fix<2;fix++){
      r.body.updateMatrixWorld(true);
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
@@ -474,28 +489,43 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
-    // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
-    const delayedPhase=p<.26?1:(p-.26)/.74;
-    const frontStance=delayedPhase<.62;
-    const frontStanceT=frontStance?delayedPhase/.62:1;
-    const frontRecoveryT=frontStance?0:(delayedPhase-.62)/.38;
-    const frontRec=smooth(frontRecoveryT);
-    const reach=frontStance?(.28-.66*frontStanceT):(-.38+.66*frontRec);
-    const slide=frontStance?(.20-.62*frontStanceT):(-.42+.62*frontRec);
+    // Pata dianteira sincronizada em oposição à traseira diagonal.
+    // O fêmur fica relativamente reto; a munheca faz apenas a flexão curta.
+    // A fase de recuo ocupa .50-.73, enquanto a traseira oposta avança;
+    // a recuperação .73-.23 traz a pata para a frente sem uma pausa artificial.
+    const frontTrack=(keys,x)=>{
+     if(x<=keys[0][0])return keys[0][1];
+     const last=keys.length-1;
+     if(x>=keys[last][0])return keys[last][1];
+     let i=0;
+     while(i<last-1&&x>keys[i+1][0])i++;
+     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0;
+     const tangent=j=>{
+      if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+      if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+      const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
+      const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+      if(left*right<=0)return 0;
+      const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
+      return (left*dr+right*dl)/(dl+dr);
+     };
+     const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
+    };
+    const reach=frontTrack([[0,.46],[.19,.46],[.50,.22],[.73,-.42],[1,.46]],p);
+    const slide=frontTrack([[0,.42],[.19,.42],[.50,.16],[.73,-.42],[1,.42]],p);
+    const wristFlex=frontTrack([[0,0],[.23,0],[.50,0],[.61,-.045],[.73,0],[1,0]],p);
     if(leg.scapula){
      leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+slide);
     }
     leg.hip.rotation.set(reach*(gallop?1.15:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
     leg.hip.position.copy(leg.baseHip);
-    // Flexão suave: a pata não dá tranco ao passar do apoio para a recuperação.
+    // Sem flexão extra de joelho: a munheca é a única articulação distal ativa.
     leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.x=frontStance?(-.045*frontStanceT):(-.045+.045*smooth(Math.min(1,frontRecoveryT/.36)));
-    leg.wrist.rotation.y=.01*Math.sin(cycle+side);
-    const toe=frontStance?(.40-.42*frontStanceT):(-.02+.42*smooth(Math.min(1,frontRecoveryT/.36)));
-    leg.paw.rotation.set(leg.basePawRot.x+toe,leg.basePawRot.y,leg.basePawRot.z);
-    foreLoad+=frontStance?(1-smooth(frontStanceT)):smooth(frontRecoveryT);
+    leg.wrist.rotation.set(leg.baseWristRot.x+wristFlex,leg.baseWristRot.y+.01*Math.sin(cycle+side),leg.baseWristRot.z);
+    leg.paw.rotation.copy(leg.basePawRot);
+    foreLoad+=frontTrack([[0,0],[.23,0],[.50,0],[.73,1],[1,0]],p);
    }
   }
   foreLoad/=2;hindLoad/=2;
@@ -897,5 +927,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=180",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=185",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
