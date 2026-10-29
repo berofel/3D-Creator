@@ -409,55 +409,48 @@ function updateJaguarRig(){
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
-    // Ciclo traseiro: pulso curto de +45° para fora e retorno a 0° (sola plana).
-    // Não continuar a rotação para 90°/180°: a pata volta pelo mesmo caminho.
+    // Ciclo traseiro: a pata sobe a 45°, mantém esse ângulo durante o avanço
+    // do fêmur e só volta a 0° quando a perna desce e reencontra o chão.
     const phase=p;
     const smoothStep=(a,b,x)=>smooth((x-a)/(b-a));
     const DEG45=Math.PI/4, FLAT=0;
     let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012,hipLift=0;
     let contactBlend=0;
 
-    if(phase<.12){
-     // 1) LEVANTAR A PATA: só a pata gira; fêmur e anca ficam imóveis.
-     const u=smoothStep(0,.12,phase);
+    if(phase<.14){
+     // 1) PRIMEIRO A PATA: levanta suavemente até 45° e não volta ainda.
+     const u=smoothStep(0,.14,phase);
      hipAngle=.36;
      lowerAngle=0;
      pawWorldAngle=DEG45*u;
      hipSlide=-.012;
      hipLift=0;
      contactBlend=0;
-    }else if(phase<.24){
-     // 2) EMPURRAR: a pata retorna dos 45° até ficar plana, sem mover o fêmur ainda.
-     const u=smoothStep(.12,.24,phase);
-     hipAngle=.36;
-     lowerAngle=0;
-     pawWorldAngle=DEG45*(1-u);
-     hipSlide=-.012;
-     hipLift=0;
-     contactBlend=0;
     }else if(phase<.48){
-     // 3) SÓ AGORA A ANCA DESLIZA: fêmur vai à frente e um pouco para cima em diagonal.
-     const u=smoothStep(.24,.48,phase);
+     // 2) COM A PATA A 45°, o fêmur gira para a frente e sobe em diagonal,
+     // carregando a pata até à posição de impulso sem a deixar voltar a zero.
+     const u=smoothStep(.14,.48,phase);
      hipAngle=.36-.44*u;
-     lowerAngle=.02*Math.sin(Math.PI*u);
-     pawWorldAngle=FLAT;
+     lowerAngle=.015*Math.sin(Math.PI*u);
+     pawWorldAngle=DEG45;
      hipSlide=-.012+.067*u;
-     hipLift=.035*Math.sin(Math.PI*u);
+     hipLift=.035*u;
      contactBlend=0;
-    }else if(phase<.58){
-     // 4) CHEGADA À FRENTE: pata plana e elevação da anca suavemente assentada.
-     const u=smoothStep(.48,.58,phase);
+    }else if(phase<.60){
+     // 3) NA POSIÇÃO DE IMPULSO, a perna baixa suavemente; só então a pata
+     // desce de 45° a 0° e toca o chão com a ponta/sola.
+     const u=smoothStep(.48,.60,phase);
      hipAngle=-.08;
-     lowerAngle=0;
-     pawWorldAngle=FLAT;
+     lowerAngle=.10*u;
+     pawWorldAngle=DEG45*(1-u);
      hipSlide=.055;
      hipLift=.035*(1-u);
      contactBlend=u;
     }else{
-     // 5) APOIO/ARRASTO: sola plana; a anca retorna gradualmente até a posição de trás.
-     const u=smoothStep(.58,1,phase);
+     // 4) COM A PATA PLANA E NO CHÃO, a perna desliza para trás até repouso.
+     const u=smoothStep(.60,1,phase);
      hipAngle=-.08+.44*u;
-     lowerAngle=.025*Math.sin(Math.PI*u);
+     lowerAngle=.10*(1-u);
      pawWorldAngle=FLAT;
      hipSlide=.055-.067*u;
      hipLift=0;
@@ -913,5 +906,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=165",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=166",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
