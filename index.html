@@ -491,7 +491,7 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v196 — fiel à referência: membro reto, ombro largo,
+    // Ciclo dianteiro v197 — fiel à referência: membro reto, ombro largo,
     // passada em arco e sem articulação de cotovelo.
     const frontTrack=(keys,x)=>{
      if(x<=keys[0][0])return keys[0][1];
@@ -508,9 +508,13 @@ function updateJaguarRig(){
     // passa à frente em arco e estende até o chão. O apoio é a fase longa.
     const shoulderZ=frontTrack([[0,-.015],[.08,-.035],[.22,.005],[.34,.035],[.43,.015],[.52,0],[1,-.015]],p);
     const shoulderY=frontTrack([[0,0],[.10,.012],[.24,.055],[.34,.07],[.43,.025],[.50,-.012],[.58,0],[1,0]],p);
-    const legSwing=frontTrack([[0,.34],[.08,.48],[.20,.20],[.31,-.30],[.39,-.48],[.47,-.24],[.54,.04],[.70,.24],[.88,.40],[1,.34]],p);
-    // A pata inclina durante o balanço e volta a ficar plana quando toca o solo.
-    const pawAngle=frontTrack([[0,DEG45],[.08,DEG45],[.20,DEG45],[.31,DEG45],[.39,DEG45],[.46,.18],[.52,0],[.91,0],[.97,DEG45],[1,DEG45]],p);
+    // Passos em diagonal: dianteira esquerda + traseira direita,
+    // depois dianteira direita + traseira esquerda. O braço reto acompanha
+    // o mesmo ritmo das patas traseiras, sem articulação intermediária.
+    const legSwing=frontTrack([[0,.38],[.23,-.52],[.42,-.44],[.52,-.08],[.69,.38],[1,.38]],p);
+    // A pata fica inclinada no apoio inicial, nivela na transição e volta
+    // a inclinar no recolhimento, sincronizada com o ciclo traseiro.
+    const pawAngle=frontTrack([[0,DEG45],[.42,DEG45],[.52,0],[.69,0],[.99,DEG45],[1,DEG45]],p);
     if(leg.scapula){
      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y+shoulderY,leg.baseScapulaPos.z+shoulderZ);
      leg.scapula.rotation.set(leg.baseScapulaRot.x,leg.baseScapulaRot.y,leg.baseScapulaRot.z);
@@ -928,5 +932,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=196",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=197",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
