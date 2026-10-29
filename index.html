@@ -436,17 +436,28 @@ function updateJaguarRig(){
      hipSlide=-.012+.067*u;
      hipLift=.035*u;
     }else if(phase<.70){
-     // 3) A perna desce suavemente e a pata volta gradualmente ao plano.
+     // 3) No alcance dianteiro, a perna baixa até a ponta tocar o chão.
+     // A pata permanece nos 45° durante essa descida: não começa a girar no ar.
      const u=smoothStep(.56,.70,phase);
-     hipAngle=-.52+.44*u;
-     lowerAngle=.07+.03*u;
-     pawWorldAngle=DEG45*(1-u);
+     hipAngle=-.52+.08*u;
+     lowerAngle=.10;
+     pawWorldAngle=DEG45;
      hipSlide=.055;
      hipLift=.035*(1-u);
+    }else if(phase<.80){
+     // 4) Só depois do contato, a pata faz o movimento inverso:
+     // gira suavemente dos 45° até a posição plana de apoio (90° em relação
+     // ao eixo da perna), enquanto a perna permanece na frente.
+     const u=smoothStep(.70,.80,phase);
+     hipAngle=-.44+.36*u;
+     lowerAngle=.10*(1-u);
+     pawWorldAngle=DEG45*(1-u);
+     hipSlide=.055;
+     hipLift=0;
     }else{
-     // 4) Na fase de apoio, fêmur, segmento inferior e anca descem juntos
-     // conforme a perna gira para trás, mantendo a pata apoiada no chão.
-     const u=smoothStep(.70,1,phase);
+     // 5) Com a pata plana e apoiada, começa o deslizamento para trás.
+     // Fêmur, segmento inferior e anca recuam juntos, mantendo contato com o piso.
+     const u=smoothStep(.80,1,phase);
      hipAngle=-.08+.44*u;
      lowerAngle=.10*(1-u);
      pawWorldAngle=FLAT;
@@ -467,20 +478,25 @@ function updateJaguarRig(){
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Apoio pelo chão real: mede a caixa da pata em coordenadas mundiais.
-    // Na rotação inicial e no retorno para trás, a anca acompanha a alavanca
-    // para que a sola/ponta toque o piso sem atravessá-lo nem ficar suspensa.
-    // Nas fases de balanço, apenas impede que a pata atravesse o chão.
+    // Contato gradual com o chão: mede a pata em coordenadas mundiais.
+    // Entre 56% e 70% do ciclo, a correção cresce suavemente para a ponta
+    // alcançar o piso antes de a pata começar a girar para a posição plana.
+    // Depois do contato, mantém a pata no chão durante a rotação e o deslizamento.
     const floorY=-.04;
-    const planted=(phase<.22)||(phase>=.70);
+    const contactWeight=phase<.56?0:smoothStep(.56,.70,phase);
+    const planted=(phase>=.70)||(phase<.22);
     for(let fix=0;fix<2;fix++){
      r.body.updateMatrixWorld(true);
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
      if(!pawBounds.isEmpty()){
       const correction=floorY-pawBounds.min.y;
-      if(planted || correction>0.0001){
+      if(phase>=.56){
+       leg.hip.position.y+=correction*contactWeight;
+       if(Math.abs(correction*contactWeight)<0.0001)break;
+      }else if(planted && correction>0.0001){
        leg.hip.position.y+=correction;
-       if(Math.abs(correction)<0.0001)break;
+      }else if(correction>0.0001){
+       leg.hip.position.y+=correction;
       }else break;
      }
     }
@@ -911,5 +927,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=169",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=170",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
