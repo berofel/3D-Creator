@@ -416,14 +416,16 @@ function updateJaguarRig(){
     // Isso evita o tranco visual nas trocas de fase.
     const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*v*(v*(v*6-15)+10)};
     const DEG45=Math.PI/4, FLAT=0;
-    let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012,hipLift=0;
+    let hipAngle=0,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012,hipLift=0;
 
     if(phase<.32){
      // 1) A pata inicia e conduz o movimento. A anca fica quieta até
      // a pata passar da metade; depois sobe apenas um pouco e muito suavemente.
      const u=smoothStep(0,.32,phase);
      const hipRise=smoothStep(.16,.32,phase);
-     hipAngle=.36;
+     // O fêmur e o segmento inferior ficam rigorosamente na pose neutra.
+     // Só a pata gira nesta primeira etapa.
+     hipAngle=0;
      lowerAngle=0;
      pawWorldAngle=DEG45*u;
      hipSlide=-.012;
@@ -432,7 +434,8 @@ function updateJaguarRig(){
      // 2) Só depois de a pata chegar aos 45° a perna começa a avançar.
      // A elevação continua de .012 até .022 sem salto ou mudança de velocidade.
      const u=smoothStep(.32,.56,phase);
-     hipAngle=.36-.88*u;
+     // O avanço do fêmur começa em zero, só depois de a pata atingir 45°.
+     hipAngle=-.52*u;
      lowerAngle=.10*smoothStep(0,1,u);
      pawWorldAngle=DEG45;
      hipSlide=-.012+.067*u;
@@ -460,7 +463,7 @@ function updateJaguarRig(){
      // 5) Com a pata plana e apoiada, começa o deslizamento para trás.
      // Fêmur, segmento inferior e anca recuam juntos, mantendo contato com o piso.
      const u=smoothStep(.80,1,phase);
-     hipAngle=-.08+.44*u;
+     hipAngle=-.08+.08*u;
      lowerAngle=.10*(1-u);
      pawWorldAngle=FLAT;
      hipSlide=.055-.067*u;
@@ -927,5 +930,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=176",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=177",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
