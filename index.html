@@ -457,7 +457,8 @@ function updateJaguarRig(){
      contactBlend=1;
     }
 
-    // Durante o pulso da pata, a anca fica imóvel; sem micro-oscilações que pareçam antecipação.\n    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
+    // Durante o pulso da pata, a anca fica imóvel; sem micro-oscilações que pareçam antecipação.
+    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
     leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+hipLift,leg.baseHip.z+hipSlide);
     if(leg.knee){
      leg.knee.rotation.set(leg.baseKneeRot.x+lowerAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
