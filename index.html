@@ -493,38 +493,6 @@ function updateJaguarRig(){
     }
     hindLoad+=(phase>=.28&&phase<.93)?1:0;
    }else{
-     // Recolhe a pata para a pose propulsora, já suspensa, e reinicia.
-     const u=smoothStep(.93,1,phase);
-     hipAngle=-1.02;
-     lowerAngle=0;
-     pawAngle=.785+(-.18-.785)*u;
-     hipSlide=0;
-     contactBlend=1-u;
-    }
-
-    leg.hip.rotation.set(hipAngle*(gallop?1.04:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y,leg.baseHip.z+hipSlide);
-    if(leg.knee){
-     leg.knee.rotation.set(leg.baseKneeRot.x+lowerAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
-    }
-    leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.set(leg.baseWristRot.x,leg.baseWristRot.y,leg.baseWristRot.z);
-    leg.paw.rotation.set(leg.basePawRot.x+pawAngle,leg.basePawRot.y,leg.basePawRot.z);
-
-    // Compensação vertical para a sola tocar o plano y=0. Considera
-    // o tamanho da pata e a inclinação, evitando atravessar o chão.
-    if(contactBlend>0){
-     r.body.updateMatrixWorld(true);
-     const pawWorld=leg.paw.getWorldPosition(new THREE.Vector3());
-     const a=leg.basePawRot.x+pawAngle;
-     const flatHeight=.095*Math.abs(Math.cos(a))+.24*Math.abs(Math.sin(a));
-     const targetY=.095+(flatHeight-.095);
-     const correction=(targetY-pawWorld.y)*Math.min(1,contactBlend);
-     leg.hip.position.y+=correction;
-    }
-    // Apoio visual enquanto a pata está pousada e durante o impulso.
-    hindLoad+=(phase>=.28&&phase<.93)?1:0;
-   }else{
     // ALCANCE E ARRASTO: ombro leva a pata para a frente; depois, com a pata
     // apoiada, o conjunto desliza para trás além do eixo neutro até a barriga.
     const reach=stance?(.20-.58*stanceT):(-.38+.66*rec);
