@@ -491,17 +491,35 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v197 — fiel à referência: membro reto, ombro largo,
+    // Ciclo dianteiro v198 — fiel à referência: membro reto, ombro largo,
     // passada em arco e sem articulação de cotovelo.
+    // Interpolação cúbica Hermite com tangentes compartilhadas:
+    // mantém velocidade ao cruzar cada pose e fecha o ciclo sem tranco.
     const frontTrack=(keys,x)=>{
-     if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
-     if(x>=keys[last][0])return keys[last][1];
+     x=((x%1)+1)%1;
      let i=0;
      while(i<last-1&&x>keys[i+1][0])i++;
-     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],u=(x-t0)/(t1-t0);
-     const blend=u*u*(3-2*u);
-     return v0+(v1-v0)*blend;
+     const slope=j=>{
+      if(j===0){
+       const first=(keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+       const end=(keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+       return Math.abs(keys[0][1]-keys[last][1])<1e-8?(first+end)*.5:first;
+      }
+      if(j===last){
+       const first=(keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+       const end=(keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+       return Math.abs(keys[0][1]-keys[last][1])<1e-8?(first+end)*.5:end;
+      }
+      const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
+      const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+      if(left*right<=0)return 0;
+      const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
+      return (left*dr+right*dl)/(dl+dr);
+     };
+     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0,u=(x-t0)/dt;
+     const m0=slope(i),m1=slope(i+1),u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
     const DEG45=Math.PI/4;
     // A perna inteira gira como uma peça rígida no ombro: recolhe para trás,
@@ -932,5 +950,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=197",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=198",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
