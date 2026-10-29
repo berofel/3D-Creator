@@ -442,7 +442,7 @@ function updateJaguarRig(){
      return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
     // O quadril avança e recua sem parar nas junções .23, .42, .52 e .69.
-    const hipAngle=sampleTrack([[0,BACK_ANGLE],[.23,FRONT_ANGLE],[.42,-.42],[.52,-.08],[.69,BACK_ANGLE],[1,BACK_ANGLE]],phase);
+    const hipAngle=sampleTrack([[0,BACK_ANGLE],[.23,FRONT_ANGLE],[.42,-.44],[.52,-.08],[.69,BACK_ANGLE],[1,BACK_ANGLE]],phase);
     const lowerAngle=sampleTrack([[0,0],[.23,.10],[.42,.10],[.52,0],[.69,0],[1,0]],phase);
     const axisSlide=sampleTrack([[0,-.012],[.23,.055],[.42,.055],[.52,.055],[.69,-.012],[1,-.012]],phase);
     const axisLift=sampleTrack([[0,0],[.23,.022],[.42,0],[.52,0],[.69,0],[1,0]],phase);
