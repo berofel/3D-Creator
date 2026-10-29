@@ -418,7 +418,7 @@ function updateJaguarRig(){
     // do recuo. Ele continua girando para trás enquanto a pata desliza,
     // fica nessa posição durante a inclinação e só então inicia novo avanço.
     const phase=p;
-    const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*v*(v*(v*6-15)+10)};
+    const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v+0.12*Math.sin(2*Math.PI*v)/(2*Math.PI)};
     const DEG45=Math.PI/4, FLAT=0;
     const BACK_ANGLE=.38, FRONT_ANGLE=-.52;
     let hipAngle=BACK_ANGLE,lowerAngle=0,pawWorldAngle=DEG45,axisSlide=-.012,axisLift=0;
@@ -920,5 +920,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=179",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=180",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
