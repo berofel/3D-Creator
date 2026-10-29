@@ -429,8 +429,8 @@ function updateJaguarRig(){
   let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
    const hind=leg.hind,side=leg.side;
-   // Espelhamento entre lados e defasagem entre patas dianteiras/traseiras.
-   const p=((cycle/(Math.PI*2)+(gallop?0:(leg.phase/Math.PI)*.5))%1+1)%1;
+   // Na corrida, cada par se move junto, mas dianteiras e traseiras ficam em oposição de fase: quando as traseiras avançam, as dianteiras recuam. Na caminhada, preserva a diagonal alternada aprovada.
+   const p=((cycle/(Math.PI*2)+(gallop?(hind?0.5:0):(leg.phase/Math.PI)*.5))%1+1)%1;
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
@@ -971,5 +971,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=202",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=203",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
