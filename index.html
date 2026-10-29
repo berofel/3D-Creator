@@ -450,7 +450,7 @@ function updateJaguarRig(){
      // IMPULSO: pata inclina a ~45° e empurra o chão; o fêmur avança
      // de volta para a pose propulsora. O segundo bloco continua rígido.
      const u=smoothStep(.84,.94,phase);
-     hipAngle=-.96+(.96-.(-1.02))*u;
+     hipAngle=-.96+(.96-(-1.02))*u;
      lowerAngle=0;
      pawAngle=.785*u;
      hipSlide=-.16*(1-u);
