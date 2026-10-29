@@ -491,7 +491,7 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v198 — fiel à referência: membro reto, ombro largo,
+    // Ciclo dianteiro v199 — fiel à referência: membro reto, ombro largo,
     // passada em arco e sem articulação de cotovelo.
     // Interpolação cúbica Hermite com tangentes compartilhadas:
     // mantém velocidade ao cruzar cada pose e fecha o ciclo sem tranco.
@@ -529,7 +529,9 @@ function updateJaguarRig(){
     // Passos em diagonal: dianteira esquerda + traseira direita,
     // depois dianteira direita + traseira esquerda. O braço reto acompanha
     // o mesmo ritmo das patas traseiras, sem articulação intermediária.
-    const legSwing=frontTrack([[0,.38],[.23,-.52],[.42,-.44],[.52,-.08],[.69,.38],[1,.38]],p);
+    // Desacelera moderadamente o avanço/apoio, distribuindo a transição
+    // por mais tempo sem inserir pausas ou alterar a sincronização diagonal.
+    const legSwing=frontTrack([[0,.38],[.27,-.52],[.49,-.44],[.63,-.08],[.80,.38],[1,.38]],p);
     // A pata fica inclinada no apoio inicial, nivela na transição e volta
     // a inclinar no recolhimento, sincronizada com o ciclo traseiro.
     const pawAngle=frontTrack([[0,DEG45],[.42,DEG45],[.52,0],[.69,0],[.99,DEG45],[1,DEG45]],p);
@@ -950,5 +952,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=198",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=199",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
