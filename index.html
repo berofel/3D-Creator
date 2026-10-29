@@ -27,7 +27,7 @@ details.add-group .group-content button{margin-top:6px}
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script>
 (function(){
- function show(msg){const el=document.getElementById("status");if(el){el.textContent=msg;el.style.background="#7f1d1d";el.style.color="#fff";el.style.padding="10px";el.style.borderRadius="8px"}}
+ function show(msg){const el=document.getElementById("status");if(el){el.textContent=msg;el.style.background="#7f1d1d";el.style.color="#fff";el.style.padding="10px";el.style.borderRadius="8px";el.style.whiteSpace="pre-wrap";el.style.overflowWrap="anywhere"}const vp=document.getElementById("viewport");if(vp){let overlay=document.getElementById("viewport-error-overlay");if(!overlay){overlay=document.createElement("div");overlay.id="viewport-error-overlay";overlay.style.cssText="position:absolute;z-index:20;left:12px;right:12px;bottom:12px;max-height:45%;overflow:auto;background:rgba(80,20,20,.96);color:#fff;border:1px solid #fca5a5;border-radius:10px;padding:12px;font:12px/1.45 system-ui;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:auto";vp.appendChild(overlay)}overlay.textContent=msg;overlay.style.display="block"}}
  window.addEventListener("error",e=>{if(e.message)show("Erro JavaScript: "+e.message.slice(0,220))});
  window.addEventListener("unhandledrejection",e=>{const r=e.reason;show("Falha ao carregar módulo 3D: "+String(r&&r.message||r||"erro desconhecido").slice(0,220))});
  setTimeout(()=>{if(!document.querySelector("#viewport canvas"))show("O motor 3D não criou o canvas. Verifique WebGL ou o carregamento do Three.js; recarregue a página após alguns segundos.")},3500);
@@ -741,5 +741,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=150",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=151",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
