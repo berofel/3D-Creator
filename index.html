@@ -382,7 +382,7 @@ function jaguarPreset(){
  const tail4=group(tail3,[0,-.015,-.09],"Cauda articulada 4 | ponta");
  block(tail4,"Ponta escura",[0,-.01,-.065],[.13,.13,.13],DARK,"taper",[.12,0,0]);
  const tailSegments=[tail1,tail2,tail3,tail4];
- window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,tailSegments,legs,baseY:body.position.y,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
+ window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,tailSegments,legs,baseY:body.position.y,baseBodyZ:body.position.z,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
  select(null);setSkinMode("bones");setAnimation("idle");say("Onça pronta em respiração: peito, cabeça e cauda em movimento suave.");
 }
 function updateJaguarRig(){
@@ -430,7 +430,7 @@ function updateJaguarRig(){
   for(const leg of r.legs){
    const hind=leg.hind,side=leg.side;
    // Espelhamento entre lados e defasagem entre patas dianteiras/traseiras.
-   const p=((cycle/(Math.PI*2)+(leg.phase/Math.PI)*.5)%1+1)%1;
+   const p=((cycle/(Math.PI*2)+(gallop?0:(leg.phase/Math.PI)*.5))%1+1)%1;
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
@@ -576,6 +576,7 @@ function updateJaguarRig(){
   // e cresce apenas durante o avanço/impulso, sem degraus no início do ciclo.
   const bodyReact=smooth(hindLoad*.95);
   r.body.position.y=r.baseY+Math.sin(cycle*2)* (gallop? .006:.0015)*bodyReact;
+  if(gallop){const runPhase=((cycle/(Math.PI*2))%1+1)%1;const runTravel=runPhase<.23?runPhase/.23:runPhase<.48?1:runPhase<.69?1-(runPhase-.48)/.21:0;const eased=runTravel*runTravel*(3-2*runTravel);r.body.position.z=(r.baseBodyZ??0)+eased*.055;}else{r.body.position.z=r.baseBodyZ??0;}
   r.body.rotation.x=(Math.sin(cycle+.3)*(gallop? .012:.003)+(hindLoad-foreLoad)*.006)*bodyReact;
   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.003*bodyReact;
   r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop? .018:.006)*bodyReact;
