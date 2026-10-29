@@ -21,6 +21,7 @@ details.add-group summary::after{content:"＋";color:var(--accent)}
 details.add-group[open] summary::after{content:"−"}
 details.add-group .group-content{padding:0 9px 10px}
 details.add-group .group-content button{margin-top:6px}
+.reference-preview{display:none;width:100%;max-height:220px;object-fit:contain;background:#0b1220;border:1px solid var(--line);border-radius:9px;margin-top:8px}.reference-prompt{min-height:180px;resize:vertical;white-space:pre-wrap;font:12px/1.45 ui-monospace,SFMono-Regular,monospace}
 @media(max-width:760px){#viewport-tools{top:8px;left:8px;max-width:calc(100% - 16px);padding:7px;gap:5px}#viewport-tools button{padding:6px 7px;font-size:11px}#viewport-tools .tool-caption{display:none}details.add-group summary{padding:9px 10px}}
 @media(max-width:760px){header{padding:9px 11px}.brand{font-size:15px}.topbuttons button{padding:8px 9px;font-size:12px}.layout{display:flex;flex-direction:column}#viewport{height:53dvh;min-height:300px;order:0}.side{order:1;border:0;border-top:1px solid var(--line);padding:12px}.part-list{max-height:125px}.mobilebar{display:flex;gap:6px;overflow:auto;padding:8px;background:#0b1220}.mobilebar button{white-space:nowrap}.section{margin-bottom:10px;padding-bottom:10px}}
 </style>
@@ -47,7 +48,7 @@ details.add-group .group-content button{margin-top:6px}
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
 <details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details>
-<details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
+<details class="add-group"><summary>IA — Imagem para 3D (novo)</summary><div class="group-content"><p class="hint">Fluxo não destrutivo: primeiro reconstruir a estética por código com img2threejs; depois adaptar o modelo ao rig e às animações já existentes. Nada é substituído automaticamente.</p><label for="referenceImage">Imagem de referência</label><input id="referenceImage" type="file" accept="image/*"><img id="referencePreview" class="reference-preview" alt="Prévia da imagem de referência"><div id="referenceStatus" class="status">Nenhuma referência selecionada.</div><label for="referenceStyle">Estilo de reconstrução</label><select id="referenceStyle"><option value="preservar exatamente a estética da referência">Copiar estética da referência</option><option value="low-poly facetado compatível com o estilo atual do Creature Forge">Low-poly compatível com o editor</option><option value="voxel estilizado com volumes modulares">Voxel estilizado</option><option value="estilizado HD-2.5D com silhueta limpa">HD-2.5D estilizado</option></select><button id="prepareReferenceWorkflow" class="wide primary">Preparar instruções img2threejs</button><textarea id="referencePrompt" class="wide reference-prompt" rows="9" readonly placeholder="As instruções para o fluxo em duas fases aparecerão aqui."></textarea><div class="grid"><button id="copyReferencePrompt">Copiar instruções</button><button id="downloadReferencePrompt">Baixar .MD</button></div><p class="hint">Este painel organiza a referência e o briefing. A geração real exige executar a skill/agente img2threejs; o navegador não chama um agente de IA por conta própria. O rig é uma etapa posterior e deve preservar as animações atuais.</p></div></details><details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
 <details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
 <details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
@@ -867,6 +868,68 @@ function treeUpdate(dt){
 document.querySelectorAll("[data-tree]").forEach(b=>b.onclick=()=>createTreeDemo(b.dataset.tree));$("treePlay").onclick=treePlay;$("treePause").onclick=()=>{treeDemo.playing=false;treeSay("Animação pausada.")};$("treeReset").onclick=treeReset;$("treeHit").onclick=treeHit;$("treeFall").onclick=treeFall;$("treeGroundHit").onclick=treeGroundHit;$("treeCollect").onclick=treeCollect;
 // A cena inicia vazia: o usuário escolhe quando adicionar o pinheiro e reproduzir a animação.
 
+// Fluxo aditivo de referência img2threejs: prepara o briefing sem alterar a cena atual.
+let referenceObjectUrl=null;
+const referenceImageInput=$("referenceImage"),referencePreview=$("referencePreview"),referenceStatus=$("referenceStatus"),referencePrompt=$("referencePrompt");
+if(referenceImageInput){
+ referenceImageInput.addEventListener("change",()=>{
+  const f=referenceImageInput.files&&referenceImageInput.files[0];
+  if(referenceObjectUrl){URL.revokeObjectURL(referenceObjectUrl);referenceObjectUrl=null}
+  if(!f){referencePreview.style.display="none";referenceStatus.textContent="Nenhuma referência selecionada.";return}
+  if(!f.type.startsWith("image/")){referenceStatus.textContent="Selecione um arquivo de imagem válido.";referenceImageInput.value="";return}
+  referenceObjectUrl=URL.createObjectURL(f);referencePreview.src=referenceObjectUrl;referencePreview.style.display="block";
+  referenceStatus.textContent="Referência carregada localmente: "+f.name+" ("+Math.round(f.size/1024)+" KB). A cena e as animações não foram alteradas.";
+ });
+}
+function buildReferenceWorkflowPrompt(){
+ const f=referenceImageInput?.files?.[0];
+ if(!f){referenceStatus.textContent="Selecione uma imagem antes de preparar o briefing.";return}
+ const style=$("referenceStyle").value;
+ const prompt=`BEROFEL 3D CREATE — FLUXO IMG2THREEJS EM DUAS FASES
+Referência: ${f.name}
+Direção estética: ${style}
+
+OBJETIVO
+Use a imagem fornecida como referência visual principal. Execute primeiro o fluxo oficial img2threejs para reconstruir a aparência por código procedural Three.js. Só depois de aprovar a silhueta, proporções, paleta, materiais e detalhes, prepare o rig e as animações.
+
+FASE 1 — RECONSTRUÇÃO VISUAL
+1. Inspecione a imagem em vistas e detalhes disponíveis; registre silhueta, proporções, cores, materiais, volumes e características distintivas.
+2. Use o repositório/skill oficial img2threejs: https://github.com/img2threejs/img2threejs
+3. Gere geometria procedural e materiais; não substitua a referência por assets baixados nem por uma malha genérica.
+4. Compare o render com a imagem e refine proporções e materiais antes de prosseguir.
+5. Mantenha nomes semânticos e componentes separados quando isso facilitar a articulação posterior.
+
+FASE 2 — RIG E ANIMAÇÃO
+1. Integre o modelo aprovado ao rig existente do Creature Forge, sem remover ou sobrescrever presets, animações, estética, controles, exportadores ou funções existentes.
+2. Reutilize as animações e convenções atuais sempre que compatíveis; adicione novos mapeamentos em paralelo.
+3. Para quadrúpedes, valide comprimentos dos membros, pivôs de quadril/ombro, joelho/cotovelo, canela e pata; teste avanço, apoio e propulsão.
+4. Preserve pose-base e calcule cada quadro a partir dela, evitando rotação acumulada e saltos no loop.
+5. Verifique seleção, hierarquia, câmera, toque no iPhone, JSON e exportação GLB.
+6. Se a estrutura gerada não for compatível, crie um adaptador isolado; não reescreva o rig existente.
+
+SEGURANÇA E ACEITAÇÃO
+- Faça backup/branch antes de qualquer alteração.
+- Implementação estritamente aditiva; não apagar nem substituir funcionalidades existentes.
+- Trabalhe em branch separada e apresente diff antes de integrar.
+- Teste a estética antes do rig; teste o rig antes da exportação final.
+- Informe claramente o que foi testado e o que continua pendente.
+- Se algum teste falhar, reverta a branch da mudança e mantenha a versão estável.
+
+IMPORTANTE
+Este arquivo é um briefing para o agente de programação. A imagem precisa ser fornecida ao agente junto com estas instruções; selecionar a imagem nesta interface apenas gera este briefing e não executa a IA automaticamente.`;
+ referencePrompt.value=prompt;referenceStatus.textContent="Briefing preparado. Envie a imagem e este texto ao agente img2threejs; a cena atual permanece intacta.";
+}
+$("prepareReferenceWorkflow")?.addEventListener("click",buildReferenceWorkflowPrompt);
+$("copyReferencePrompt")?.addEventListener("click",async()=>{
+ if(!referencePrompt.value.trim()){buildReferenceWorkflowPrompt();if(!referencePrompt.value.trim())return}
+ try{await navigator.clipboard.writeText(referencePrompt.value);referenceStatus.textContent="Instruções copiadas."}
+ catch(e){referencePrompt.focus();referencePrompt.select();referenceStatus.textContent="A cópia automática foi bloqueada; texto selecionado para copiar manualmente."}
+});
+$("downloadReferencePrompt")?.addEventListener("click",()=>{
+ if(!referencePrompt.value.trim()){buildReferenceWorkflowPrompt();if(!referencePrompt.value.trim())return}
+ const blob=new Blob([referencePrompt.value],{type:"text/markdown;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="berofel-img2threejs-workflow.md";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 let renderFault=false;
 function showRuntimeIssue(label,err){
  console.error("Berofel 3D Create: "+label,err);
