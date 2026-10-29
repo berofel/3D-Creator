@@ -83,7 +83,7 @@ function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){
  type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():
  type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);
  const organic=type==="sphere"||type==="capsule"||type==="joint";
- const mat=new THREE.MeshStandardMaterial({color,roughness:organic?.9:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:!organic||type==="ellipsoid"||type==="faceted"||type==="hexprism});
+ const mat=new THREE.MeshStandardMaterial({color,roughness:organic?.9:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:!organic||type==="ellipsoid"||type==="faceted"||type==="hexprism"});
  const m=new THREE.Mesh(geo,mat);m.position.set(...pos);
  if(type==="capsule")m.scale.set(scale[0],scale[1]/2,scale[2]);else m.scale.set(...scale);
  m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m
@@ -1029,5 +1029,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=211",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=212",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
