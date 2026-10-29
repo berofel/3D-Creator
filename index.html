@@ -474,8 +474,7 @@ function updateJaguarRig(){
     leg.wrist.rotation.copy(leg.baseWristRot);
     // Compensa a rotação acumulada dos segmentos para a pata ficar plana
     // no apoio; os 45 graus são uma orientação mundial relativa ao tronco.
-    const baseChainAngle=leg.baseHipRot.x+leg.baseKneeRot.x+leg.baseWristRot.x+leg.basePawRot.x;
-    const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+baseChainAngle*0;
+    const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
     // Mantém o contato no eixo vertical do mundo, convertendo a correção
