@@ -489,59 +489,47 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro novo: FRENTE -> APOIO -> ATRÁS -> REPOUSO.
-    // Ombro e braço trabalham juntos; o ombro absorve a carga com pequeno atraso.
-    const frontTrack=(keys,x)=>{
-     if(x<=keys[0][0])return keys[0][1];
-     const last=keys.length-1;
-     if(x>=keys[last][0])return keys[last][1];
-     let i=0;
-     while(i<last-1&&x>keys[i+1][0])i++;
-     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0;
-     const tangent=j=>{
-      if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
-      if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
-      const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
-      const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
-      if(left*right<=0)return 0;
-      const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
-      return (left*dr+right*dl)/(dl+dr);
-     };
-     const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
-     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
-    };
+    // Ciclo dianteiro simplificado v187:
+    // 1) impulso com a pata a 45°; 2) ombro gira para lançar a perna à frente;
+    // 3) a pata nivela ao tocar o chão; 4) o ombro gira para trás enquanto a pata desliza apoiada.
+    // O pivô do ombro permanece rigorosamente na posição-base: só muda a rotação.
     const DEG45=Math.PI/4;
-    // 0-.12: repouso centralizado; .12-.32: lança a pata para a frente.
-    // .32-.42: estica o braço, toca o chão e nivela a pata.
-    // .42-.76: apoio e deslize para trás até o meio do corpo.
-    // .76-1: descarrega, levanta e retorna suavemente ao repouso.
-    const shoulderSwing=frontTrack([[0,0],[.08,0],[.18,.34],[.30,.48],[.40,.23],[.58,-.12],[.76,-.34],[.88,-.12],[1,0]],p);
-    const armSwing=frontTrack([[0,0],[.08,0],[.18,.18],[.30,.24],[.40,.10],[.58,-.10],[.76,-.20],[.88,-.07],[1,0]],p);
-    const shoulderSlide=frontTrack([[0,0],[.08,0],[.18,.16],[.30,.22],[.42,.08],[.58,-.14],[.76,-.34],[.88,-.12],[1,0]],p);
-    const extension=frontTrack([[0,0],[.22,0],[.32,.14],[.40,.12],[.48,0],[.76,0],[.84,.04],[1,0]],p);
-    const pawAngle=frontTrack([[0,0],[.10,0],[.18,DEG45],[.32,DEG45],[.40,0],[.72,0],[.80,DEG45],[.90,DEG45],[1,0]],p);
-    const wristFlex=frontTrack([[0,0],[.32,0],[.40,-.035],[.60,-.025],[.76,0],[1,0]],p);
+    const shoulderAngle=frontTrack([[0,0],[.10,0],[.20,-.42],[.30,-.78],[.38,-.92],[.42,-.92],[.58,-.55],[.76,.10],[.88,.38],[.94,.30],[1,0]],p);
+    const extension=frontTrack([[0,0],[.10,0],[.20,.13],[.30,.19],[.36,.12],[.42,0],[.92,0],[.97,0],[1,0]],p);
+    const pawAngle=frontTrack([[0,DEG45],[.12,DEG45],[.28,DEG45],[.38,0],[.91,0],[.96,DEG45],[1,DEG45]],p);
     if(leg.scapula){
-     // Amortecedor: pequeno atraso e retorno elástico, sem mudar a sequência principal.
-     const shock=.035*Math.sin(p*Math.PI*2*1.35)*Math.sin(Math.PI*Math.min(1,p/.88));
-     leg.scapula.rotation.set(shoulderSwing+shock,.008*Math.sin(cycle+side),side*.008*Math.sin(cycle));
-     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+shoulderSlide);
+     // Sem translação nem oscilação do pivô: ombro parado no centro anatômico.
+     leg.scapula.position.copy(leg.baseScapulaPos);
+     leg.scapula.rotation.set(shoulderAngle,0,0);
     }
-    leg.hip.rotation.set(armSwing*(gallop?1.08:1),.008*Math.sin(cycle+side),side*.006*Math.sin(cycle));
+    // O braço não cria uma segunda passada: o avanço e o retorno são comandados pelo ombro.
+    leg.hip.rotation.copy(leg.baseHipRot);
     leg.hip.position.copy(leg.baseHip);
     if(leg.forearmMesh&&leg.baseForearmScale){
      const stretch=1+extension;
      leg.forearmMesh.scale.set(leg.baseForearmScale.x,leg.baseForearmScale.y*stretch,leg.baseForearmScale.z);
-     // Mantém a parte superior do bloco junto ao ombro enquanto a extremidade alonga.
      leg.forearmMesh.position.set(leg.baseForearmPos.x,leg.baseForearmPos.y-.54*(stretch-1),leg.baseForearmPos.z);
     }
     leg.wrist.position.set(leg.baseWrist.x,leg.baseWrist.y-1.08*extension,leg.baseWrist.z);
-    leg.wrist.rotation.set(leg.baseWristRot.x+wristFlex,leg.baseWristRot.y+.006*Math.sin(cycle+side),leg.baseWristRot.z);
-    // Compensa a rotação acumulada para manter a pata nos 45° ou 0° pedidos.
+    leg.wrist.rotation.copy(leg.baseWristRot);
+    // Compensa a cadeia articular para manter a pata exatamente a 45° ou nivelada.
     const shoulderX=leg.scapula?leg.scapula.rotation.x:0;
-    const worldAngle=pawAngle;
-    leg.paw.rotation.set(leg.basePawRot.x+worldAngle-shoulderX-leg.hip.rotation.x-leg.wrist.rotation.x,leg.basePawRot.y,leg.basePawRot.z);
-    foreLoad+=frontTrack([[0,0],[.18,0],[.32,.25],[.42,1],[.72,1],[.84,.2],[1,0]],p);
+    leg.paw.rotation.set(leg.basePawRot.x+pawAngle-shoulderX-leg.hip.rotation.x-leg.wrist.rotation.x,leg.basePawRot.y,leg.basePawRot.z);
+    // Durante o apoio, corrige apenas a altura da articulação da pata:
+    // o pivô do ombro não se desloca e a sola permanece no chão enquanto desliza.
+    if(p>=.40&&p<=.92){
+     const floorY=-.04;
+     for(let fix=0;fix<3;fix++){
+      r.body.updateMatrixWorld(true);
+      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
+      if(pawBounds.isEmpty())break;
+      const correction=floorY-pawBounds.min.y;
+      if(Math.abs(correction)<.0001)break;
+      const verticalFactor=Math.max(.25,Math.cos(shoulderX));
+      leg.wrist.position.y+=correction/verticalFactor;
+     }
+    }
+    foreLoad+=frontTrack([[0,0],[.12,.35],[.28,.65],[.40,1],[.72,1],[.88,.35],[1,0]],p);
    }
   }
   foreLoad/=2;hindLoad/=2;
@@ -943,5 +931,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=186",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=187",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
