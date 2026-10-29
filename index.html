@@ -338,7 +338,8 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
- // Membros articulados. Na traseira, a silhueta reproduz a onça do vídeo: coxa volumosa ligada à anca, jarrete marcado, segmento inferior mais estreito e pata compacta.
+ // Rig anatômico simplificado: exatamente três blocos funcionais por pata.
+ // Dianteira: ombro + braço único + pata. Traseira: fêmur + segmento inferior único + pata.
  const legs=[];
  const specs=[
   {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
@@ -347,31 +348,23 @@ function jaguarPreset(){
  for(const q of specs){
   const parent=q.hind?rump:body;
   const pivotPos=q.hind?[q.side*.29,-.22,q.z]:[q.side*.30,1.14,q.z];
-  const pivotName=(q.hind?"Pivô da anca traseira ":"Pivô escapular dianteiro ")+(q.side<0?"esquerdo":"direito");
+  const pivotName=(q.hind?"Pivô do fêmur traseiro ":"Pivô do ombro dianteiro ")+(q.side<0?"esquerdo":"direito");
   const scapula=q.hind?null:group(parent,pivotPos,pivotName);
-  const hip=q.hind?group(parent,pivotPos,pivotName):group(scapula,[0,-.025,0],"Articulação do ombro "+(q.side<0?"esquerdo":"direito"));
-  let knee=null,elbow=null;
+  const hip=q.hind?group(parent,pivotPos,pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
+  let knee=null,elbow=null,hock=null;
   if(q.hind){
-   // Traseira em três repartições claras: fêmur largo no quadril,
-   // segmento curto e inclinado para a frente, depois calcanhar/jarrete.
-   block(hip,"Fêmur traseiro largo no quadril e afinado até o calcanhar",[0,-.265,-.025],[.39,.59,.34],COAT3,"taper",[.34,0,q.side*.018]);
-   knee=group(hip,[0,-.515,-.105],"Articulação do joelho e calcanhar traseiro");
-   block(knee,"Calcanhar compacto",[0,-.015,0],[.22,.18,.22],COAT2,"taper",[.08,0,q.side*.015]);
-   block(knee,"Perna inferior curta inclinada para a frente",[0,-.145,.055],[.19,.30,.19],COAT3,"taper",[-.25,0,q.side*.012]);
+   block(hip,"Bloco 1 — fêmur traseiro largo",[0,-.265,-.025],[.39,.59,.34],COAT3,"taper",[.34,0,q.side*.018]);
+   knee=group(hip,[0,-.515,-.105],"Bloco 2 — segmento inferior traseiro");
+   block(knee,"Segmento inferior traseiro único",[0,-.155,.045],[.19,.34,.19],COAT3,"taper",[-.18,0,q.side*.012]);
   }else{
-   // Ombro mais definido: funciona como pistão visual; o braço entra parcialmente nele.
-   block(scapula,"Ombro dianteiro musculoso tipo pistão",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
-   block(hip,"Braço dianteiro superior alongado",[0,-.245,.015],[.25,.51,.25],COAT3,"taper",[.02,0,q.side*-.018]);
-   elbow=group(hip,[0,-.49,.025],"Articulação do cotovelo "+(q.side<0?"esquerdo":"direito"));
-   block(elbow,"Antebraço dianteiro",[0,-.18,.035],[.205,.37,.21],COAT3,"taper",[-.035,0,q.side*.012]);
+   block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
+   block(hip,"Bloco 2 — braço dianteiro único",[0,-.245,.015],[.25,.68,.25],COAT3,"taper",[.02,0,q.side*-.018]);
   }
-  const hock=q.hind?group(knee,[0,-.285,.105],"Jarrete e calcanhar articulado traseiro"):null;
-  if(hock)block(hock,"Metatarso curto até a pata",[0,-.085,.035],[.155,.22,.16],COAT3,"taper",[-.16,0,0]);
-  const wrist=group(hock||knee||elbow||hip,[0,hock?-.19:(elbow?-.36:-.84),hock?.035:(q.hind?.02:-.025+.07)],"Pivô do carpo/boleto");
-  const paw=group(wrist,[0,0,0],"Articulação dos dedos e apoio da pata");
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.34,.07]:[0,-.565,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const paw=group(wrist,[0,0,0],"Pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
-  legs.push({hip,scapula,elbow,knee,hock,baseKneeRot:knee?knee.rotation.clone():null,baseHockRot:hock?hock.rotation.clone():null,baseElbowRot:elbow?elbow.rotation.clone():null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
+  legs.push({hip,scapula,elbow,knee,hock,baseKneeRot:knee?knee.rotation.clone():null,baseHockRot:null,baseElbowRot:null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
  }
  // Cauda presa à anca, com balanço secundário.
  const tail=group(rump,[0,.02,-.39],"Pivô da cauda");
@@ -389,127 +382,80 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?6.0:3.25;
+ const t=animClock,rate=gallop?5.0:2.25;
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
- const arc=(p,a,b)=>{const u=(p-a)/(b-a);return u<=0||u>=1?0:Math.sin(Math.PI*u)};
- const ramp=(p,a,b)=>smooth((p-a)/(b-a));
  for(const r of (window.__berofelJaguarRigs||[])){
   const cycle=t*rate;
   if(mode==="stop"){
-   for(const leg of r.legs){leg.hip.rotation.copy(leg.baseHipRot);leg.wrist.rotation.copy(leg.baseWristRot);leg.hip.position.copy(leg.baseHip);leg.wrist.position.copy(leg.baseWrist);if(leg.paw){leg.paw.position.copy(leg.basePawPos);leg.paw.rotation.copy(leg.basePawRot);}if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);if(leg.hock)leg.hock.rotation.copy(leg.baseHockRot);if(leg.elbow)leg.elbow.rotation.copy(leg.baseElbowRot);if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos)}}
+   for(const leg of r.legs){
+    leg.hip.rotation.copy(leg.baseHipRot);leg.hip.position.copy(leg.baseHip);
+    leg.wrist.rotation.copy(leg.baseWristRot);leg.wrist.position.copy(leg.baseWrist);
+    leg.paw.position.copy(leg.basePawPos);leg.paw.rotation.copy(leg.basePawRot);
+    if(leg.knee)leg.knee.rotation.copy(leg.baseKneeRot);
+    if(leg.scapula){leg.scapula.rotation.copy(leg.baseScapulaRot);leg.scapula.position.copy(leg.baseScapulaPos);}
+   }
    r.body.position.y=r.baseY;r.body.position.z=0;r.body.rotation.set(0,0,0);
    r.spine.position.set(0,r.baseSpineY,r.baseSpineZ);r.spine.rotation.set(0,0,0);
    r.rump.position.copy(r.baseRumpPos);r.rump.rotation.copy(r.baseRumpRot);
-   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);if(r.tailSegments)for(const seg of r.tailSegments)seg.rotation.set(0,0,0);
+   r.neck.rotation.set(0,0,0);r.head.rotation.set(0,0,0);r.tail.rotation.set(0,0,0);
+   if(r.tailSegments)for(const seg of r.tailSegments)seg.rotation.set(0,0,0);
    continue;
   }
   let foreLoad=0,hindLoad=0;
   for(const leg of r.legs){
    const hind=leg.hind,side=leg.side;
-   // Espelhamento real entre os lados: cada par usa a mesma mecânica,
-   // mas entra na fase oposta. A dianteira e a traseira mantêm defasagem
-   // própria para formar a sequência felina de quatro apoios.
-   // Lado esquerdo: dianteira .25 / traseira 0. Lado direito: +.50 ciclo.
-   // No galope, as fases convergem em pares diagonais, sem copiar o cavalo.
-   const sidePhase=side<0?0:.5;
-   const walkBase=hind?0:.25;
-   const offset=gallop
-    ? (hind?(side<0?.04:.20):(side<0?.52:.68))
-    : (walkBase+sidePhase)%1;
-   const p=((t*rate/(Math.PI*2)+offset)%1+1)%1;
-   const swing=arc(p,.02,.43),lift=arc(p,.04,.39),plant=ramp(p,.34,.43),push=ramp(p,.43,.78),release=ramp(p,.78,.98);
-   // A fase local também espelha pequenas oscilações laterais e articulares.
-   const phase=cycle+leg.phase+(side>0?Math.PI:0);
-   const stance=p<.62;
-   const stanceT=stance?p/.62:1;
-   const recoveryT=stance?0:(p-.62)/.38;
-   const recover=smooth(recoveryT);
+   // Espelhamento entre lados e defasagem entre patas dianteiras/traseiras.
+   const phaseOffset=gallop?(hind?(side<0?0:.5):(side<0?.5:0)):(hind?(side<0?0:.5):(side<0?.5:0));
+   const p=((cycle/(Math.PI*2)+phaseOffset+(leg.phase===Math.PI?.5:0))%1+1)%1;
+   const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
+   const rec=smooth(recoveryT);
    if(hind){
-    // A passada nasce na cadeia anca > coxa > jarrete > boleto > pata.
-    // +Z aponta para a cabeça; a extensão da anca leva o membro para trás no apoio,
-    // enquanto o corpo avança sobre a pata. A pata NÃO recebe translação independente.
-    // O vídeo mostra um impulso final curto e forte: a pata fica firme no apoio
-    // e dá uma rotação rápida dos dedos no fim da passada, acompanhada pelo jarrete.
-    const pushOff=Math.pow(Math.max(0,Math.min(1,(p-.48)/.14)),2.2);
-    const recoverySnap=smooth(Math.min(1,recoveryT/.28));
-    // Apoio: a anca gira a perna para trás; joelho e calcanhar ficam quase firmes.
-    // No ciclo em lugar, a rotação cria a leitura de passada horizontal sem soltar a pata.
-    const hipPitch=stance?(-.10-.48*stanceT+.08*pushOff):(.38-.72*recover);
-    const hipYaw=.012*Math.sin(phase*.5+side*.5);
-    leg.hip.rotation.set(gallop?hipPitch*1.12:hipPitch,hipYaw,side*.008*Math.sin(phase));
-    leg.hip.position.copy(leg.baseHip);
-    // O joelho mantém carga durante o apoio e estende mais depressa no último instante.
+    // IMPULSO: o fêmur recua enquanto a pata empurra o chão.
+    // RECUPERAÇÃO: a pata levanta, dobra e avança; o fêmur acompanha.
+    const push=smooth((p-.40)/.22);
+    const hipAngle=stance?(-.08-.58*stanceT+.12*push):(.48-.78*rec);
+    leg.hip.rotation.set(hipAngle*(gallop?1.18:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y,leg.baseHip.z+(stance?-.10*stanceT:.13*Math.sin(Math.PI*recoveryT)));
     if(leg.knee){
-     const kneeFlex=stance?(-.01-.035*stanceT-.12*pushOff):(-.40+.25*recoverySnap-.10*Math.sin(Math.PI*recoveryT));
-     leg.knee.rotation.set(leg.baseKneeRot.x+kneeFlex,leg.baseKneeRot.y,leg.baseKneeRot.z);
+     const kneeAngle=stance?(-.03+.16*push):(-.62*(1-rec)+.05*rec);
+     leg.knee.rotation.set(leg.baseKneeRot.x+kneeAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
     }
-    // O jarrete dispara junto com a pata; a saída do solo não é uma rotação isolada.
-    const hock=stance?(.005+.035*stanceT+.48*pushOff):(.50-.52*recoverySnap-.10*Math.sin(Math.PI*recoveryT));
-    if(leg.hock)leg.hock.rotation.set(hock,.008*Math.sin(phase+.5),side*.006*Math.sin(phase));
-    leg.wrist.rotation.set(.02*Math.sin(phase+.8),0,leg.baseWristRot.z);
     leg.wrist.position.copy(leg.baseWrist);
-    // A pata gira rapidamente para pressionar o chão para trás no fim do apoio,
-    // depois recolhe cedo na recuperação. Sem deslocamento artificial da pata.
-    const toePush=stance?(-.045+.88*pushOff):(.835-1.08*recoverySnap);
-    if(leg.paw){
-     leg.paw.position.copy(leg.basePawPos);
-     leg.paw.rotation.set(leg.basePawRot.x+toePush,leg.basePawRot.y,leg.basePawRot.z);
-    }
+    leg.wrist.rotation.x=stance?(-.02+.55*push):(.68*(1-smooth(Math.min(1,recoveryT/.72))));
+    leg.paw.rotation.set(leg.basePawRot.x+(stance?-.08+.20*push:.65*(1-smooth(Math.min(1,recoveryT/.55)))),leg.basePawRot.y,leg.basePawRot.z);
     hindLoad+=stance?1:0;
    }else{
-     // Dianteira: a pata pousa à frente e desliza para trás até a região
-     // central da barriga, ultrapassando a posição neutra. Depois recolhe,
-     // levanta e volta à frente para iniciar o próximo ciclo.
-     const shoulder=stance?(.26-.46*stanceT):(-.20+.50*recover);
-     const scapulaGlide=stance?(.22-.52*stanceT):(-.30+.52*recover);
-     if(leg.scapula){
-      leg.scapula.rotation.set(.025*Math.sin(phase*.5+side*.3),.012*Math.sin(phase*.5+side*.3),side*.008*Math.sin(phase));
-      // Z positivo aponta para a cabeça; Z negativo conduz a pata para o centro
-      // do corpo durante o arrasto apoiado no chão.
-      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+scapulaGlide);
-     }
-     // O ombro alcança à frente na recuperação e puxa o braço durante o arrasto.
-     leg.hip.rotation.set(gallop?shoulder*1.12:shoulder,.018*Math.sin(phase*.5+side*.4),side*.012*Math.sin(phase));
-     leg.hip.position.copy(leg.baseHip);
-     if(leg.elbow){
-      const elbowFlex=stance?(.02+.025*stanceT):(-.18-.48*Math.sin(Math.PI*recoveryT));
-      leg.elbow.rotation.set(gallop?elbowFlex*1.10:elbowFlex,.008*Math.sin(phase+side*.2),side*.008*Math.sin(phase+.3));
-     }
-     // Pata baixa durante o arrasto; recolhe para trás quando sai do chão.
-     const frontToe=stance?(.22-.25*stanceT):(-.18+.52*smooth(Math.min(1,recoveryT/.34)));
-     if(leg.paw){
-      leg.paw.position.copy(leg.basePawPos);
-      leg.paw.rotation.set(frontToe,leg.basePawRot.y,leg.basePawRot.z);
-     }
-     // O carpo levanta no meio da recuperação e volta a estender antes do pouso.
-     leg.wrist.rotation.x=stance?(-.015-.025*stanceT):(.32*Math.sin(Math.PI*recoveryT));
-     leg.wrist.rotation.y=.012*Math.sin(phase+.4);
-     foreLoad+=stance?1:0;
+    // ALCANCE E ARRASTO: ombro leva a pata para a frente; depois, com a pata
+    // apoiada, o conjunto desliza para trás além do eixo neutro até a barriga.
+    const reach=stance?(.20-.58*stanceT):(-.38+.66*rec);
+    const slide=stance?(.20-.62*stanceT):(-.42+.62*rec);
+    if(leg.scapula){
+     leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
+     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+slide);
+    }
+    leg.hip.rotation.set(reach*(gallop?1.15:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
+    leg.hip.position.copy(leg.baseHip);
+    // Sem cotovelo independente: a flexão de recuperação ocorre na pata.
+    leg.wrist.position.copy(leg.baseWrist);
+    leg.wrist.rotation.x=stance?(-.02-.025*stanceT):(.48*Math.sin(Math.PI*recoveryT));
+    leg.wrist.rotation.y=.01*Math.sin(cycle+side);
+    const toe=stance?(.18-.20*stanceT):(-.22+.62*smooth(Math.min(1,recoveryT/.36)));
+    leg.paw.rotation.set(leg.basePawRot.x+toe,leg.basePawRot.y,leg.basePawRot.z);
+    foreLoad+=stance?1:0;
    }
   }
   foreLoad/=2;hindLoad/=2;
-  if(gallop){
-   const airborne=Math.max(0,Math.sin(cycle*2+.25));
-   r.body.position.y=r.baseY+.003+airborne*.012;
-   r.body.rotation.x=-Math.sin(cycle+.4)*.035+(hindLoad-foreLoad)*.012;
-   r.spine.position.y=r.baseSpineY+Math.sin(cycle+.3)*.009;
-   r.spine.position.z=r.baseSpineZ+Math.sin(cycle+.3)*.035;
-   r.spine.rotation.x=Math.sin(cycle+.3)*.035+(hindLoad-foreLoad)*.012;
-  }else{
-   r.body.position.y=r.baseY+Math.sin(cycle*2)*.0025;
-   r.body.rotation.x=Math.sin(cycle+.3)*.006;
-   // Pistão desliza longitudinalmente, mas permanece visualmente dentro da anca.
-   r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.007;
-   r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*.026;
-   r.spine.rotation.x=.018*Math.sin(cycle*2)+(hindLoad-foreLoad)*.008;
-  }
-  // A anca faz pequena rotação vertical e horizontal independente do pistão.
-  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.018:.008),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.045:.018));
-  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.055:.025),Math.sin(cycle*.55)*(gallop?.065:.03),Math.sin(cycle+.2)*(gallop?.02:.01));
-  r.neck.rotation.x=moving?(gallop?-.11*Math.sin(cycle+.4):-.035*Math.sin(cycle+.35)):Math.sin(t*1.15)*.012;
-  r.head.rotation.x=moving?(gallop?.075*Math.sin(cycle+.4):.025*Math.sin(cycle+.35)):Math.sin(t*1.35)*.008;
+  r.body.position.y=r.baseY+Math.sin(cycle*2)* (gallop?.009:.003);
+  r.body.rotation.x=Math.sin(cycle+.3)*(gallop?.025:.006)+(hindLoad-foreLoad)*.01;
+  r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.006;
+  r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop?.035:.02);
+  r.spine.rotation.x=Math.sin(cycle+.3)*(gallop?.03:.012)+(hindLoad-foreLoad)*.008;
+  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop?.014:.006),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop?.035:.015));
+  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop?.04:.02),Math.sin(cycle*.55)*(gallop?.05:.025),Math.sin(cycle+.2)*(gallop?.018:.008));
+  r.neck.rotation.x=moving?(gallop?-.08*Math.sin(cycle+.4):-.025*Math.sin(cycle+.35)):0;
+  r.head.rotation.x=moving?(gallop?.05*Math.sin(cycle+.4):.018*Math.sin(cycle+.35)):0;
   r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop?.22:.13);
-  r.tail.rotation.x=Math.sin(cycle+.7)*(gallop?.16:.06);
+  r.tail.rotation.x=Math.sin(cycle+.7)*(gallop?.13:.05);
   if(r.tailSegments){
    const lag=gallop?.38:.24;
    r.tailSegments[0].rotation.y=Math.sin(cycle-lag)*.16;
