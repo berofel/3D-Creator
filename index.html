@@ -489,7 +489,7 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v193: ombro central no repouso e no arrasto; projeta-se apenas na passada aérea.
+    // Ciclo dianteiro v194: ombro central no repouso e no arrasto; projeta-se apenas na passada aérea.
     const frontTrack=(keys,x,linear=false)=>{
      if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
@@ -502,8 +502,8 @@ function updateJaguarRig(){
     };
     const DEG45=Math.PI/4;
     // +Z aponta para a cabeça. Ombro no centro durante o apoio e todo o arrasto;
-    // só avança um pouco quando a pata levanta, sem recuar para trás do ponto central.
-    const shoulderZ=frontTrack([[0,0],[.045,0],[.12,.045],[.22,.105],[.30,.12],[.35,.11],[.40,.065],[.44,0],[.60,0],[.80,0],[1,0]],p,true);
+    // avança mais, chegando perto da extremidade dianteira do peito; no apoio retorna ao centro e fica lá durante todo o arrasto.
+    const shoulderZ=frontTrack([[0,0],[.045,0],[.12,.10],[.22,.24],[.30,.31],[.35,.30],[.40,.18],[.44,0],[.60,0],[.80,0],[1,0]],p,true);
     // Ombro sobe com a pata; cede na aterrissagem e fica na altura neutra no deslizamento.
     const shoulderY=frontTrack([[0,0],[.045,.025],[.14,.085],[.24,.105],[.30,.09],[.35,.045],[.40,-.015],[.44,-.035],[.49,-.015],[.58,0],[1,0]],p);
     // Rotação do conjunto para frente durante a fase aérea; depois retorna progressivamente
@@ -937,5 +937,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=193",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=194",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
