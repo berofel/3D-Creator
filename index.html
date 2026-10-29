@@ -489,10 +489,8 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Pata dianteira sincronizada em oposição à traseira diagonal.
-    // O fêmur fica relativamente reto; a munheca faz apenas a flexão curta.
-    // A fase de recuo ocupa .50-.73, enquanto a traseira oposta avança;
-    // a recuperação .73-.23 traz a pata para a frente sem uma pausa artificial.
+    // Pata dianteira: passada contínua, com deslocamento real da pata.
+    // Mantém o desenho visual relativamente reto; não altera a lógica traseira.
     const frontTrack=(keys,x)=>{
      if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
@@ -512,20 +510,34 @@ function updateJaguarRig(){
      const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
      return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
-    const reach=frontTrack([[0,.46],[.19,.46],[.50,.22],[.73,-.42],[1,.46]],p);
-    const slide=frontTrack([[0,.42],[.19,.42],[.50,.16],[.73,-.42],[1,.42]],p);
-    const wristFlex=frontTrack([[0,0],[.23,0],[.50,0],[.61,-.045],[.73,0],[1,0]],p);
+    // A passada usa a mesma continuidade da traseira, mas com fase oposta.
+    // O ombro avança/recuar, enquanto a origem sobe durante a recuperação.
+    const reach=frontTrack([[0,.34],[.20,-.48],[.42,-.43],[.54,-.10],[.70,.34],[1,.34]],p);
+    const slide=frontTrack([[0,-.01],[.20,.055],[.42,.055],[.54,.035],[.70,-.045],[.86,-.015],[1,-.01]],p);
+    const lift=frontTrack([[0,0],[.42,0],[.54,.055],[.66,.17],[.78,.13],[.90,.045],[1,0]],p);
+    const wristFlex=frontTrack([[0,0],[.40,0],[.54,-.045],[.66,-.10],[.78,-.065],[.90,0],[1,0]],p);
+    const pawPitch=frontTrack([[0,0],[.42,0],[.54,.025],[.66,.07],[.78,.045],[.90,0],[1,0]],p);
     if(leg.scapula){
-     leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
-     leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+slide);
+     leg.scapula.rotation.set(.012*Math.sin(cycle+side),.006*Math.sin(cycle*.5),side*.006*Math.sin(cycle));
+     leg.scapula.position.set(
+      leg.baseScapulaPos.x,
+      leg.baseScapulaPos.y+lift,
+      leg.baseScapulaPos.z+slide
+     );
     }
-    leg.hip.rotation.set(reach*(gallop?1.15:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
+    leg.hip.rotation.set(reach*(gallop?1.08:1),.006*Math.sin(cycle+side),side*.006*Math.sin(cycle));
     leg.hip.position.copy(leg.baseHip);
-    // Sem flexão extra de joelho: a munheca é a única articulação distal ativa.
     leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.set(leg.baseWristRot.x+wristFlex,leg.baseWristRot.y+.01*Math.sin(cycle+side),leg.baseWristRot.z);
-    leg.paw.rotation.copy(leg.basePawRot);
-    foreLoad+=frontTrack([[0,0],[.23,0],[.50,0],[.73,1],[1,0]],p);
+    leg.wrist.rotation.set(leg.baseWristRot.x+wristFlex,leg.baseWristRot.y,leg.baseWristRot.z);
+    // Mantém a pata orientada de forma natural, sem anulá-la no espaço:
+    // a posição vertical e longitudinal agora mudam durante o balanço.
+    const shoulderPitch=leg.scapula?leg.scapula.rotation.x:0;
+    leg.paw.rotation.set(
+     leg.basePawRot.x-shoulderPitch-reach-wristFlex+pawPitch,
+     leg.basePawRot.y,
+     leg.basePawRot.z
+    );
+    foreLoad+=frontTrack([[0,1],[.20,1],[.42,1],[.54,.65],[.70,0],[.90,.25],[1,1]],p);
    }
   }
   foreLoad/=2;hindLoad/=2;
