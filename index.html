@@ -414,59 +414,35 @@ function updateJaguarRig(){
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
-    // Ciclo traseiro contínuo: o fêmur não volta à posição neutra no fim
-    // do recuo. Ele continua girando para trás enquanto a pata desliza,
-    // fica nessa posição durante a inclinação e só então inicia novo avanço.
+    // Ciclo traseiro com interpolação cúbica monotônica: mantém a mesma sequência
+    // e os mesmos extremos, mas compartilha velocidades entre fases para evitar microparadas.
     const phase=p;
-    const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*v*(v*(v*6-15)+10)};
     const DEG45=Math.PI/4, FLAT=0;
     const BACK_ANGLE=.38, FRONT_ANGLE=-.52;
-    let hipAngle=BACK_ANGLE,lowerAngle=0,pawWorldAngle=DEG45,axisSlide=-.012,axisLift=0;
-
-    if(phase<.24){
-     // 1) A pata já está inclinada. O fêmur sai da posição traseira e avança,
-     // enquanto o eixo diagonal leva a articulação para a frente.
-     const u=smoothStep(0,.24,phase);
-     pawWorldAngle=DEG45;
-     hipAngle=BACK_ANGLE+(FRONT_ANGLE-BACK_ANGLE)*u;
-     lowerAngle=.10*smoothStep(0,1,u);
-     axisSlide=-.012+.067*u;
-     axisLift=.022*u;
-    }else if(phase<.44){
-     // 2) Na frente, a perna desce até tocar o chão mantendo a pata a 45°.
-     const u=smoothStep(.24,.44,phase);
-     pawWorldAngle=DEG45;
-     hipAngle=FRONT_ANGLE+.08*u;
-     lowerAngle=.10;
-     axisSlide=.055;
-     axisLift=.022*(1-u);
-    }else if(phase<.54){
-     // 3) Depois do contato, a pata volta a 0° antes do recuo.
-     const u=smoothStep(.44,.54,phase);
-     pawWorldAngle=DEG45*(1-u);
-     hipAngle=-.44+.36*u;
-     lowerAngle=.10*(1-u);
-     axisSlide=.055;
-     axisLift=0;
-    }else if(phase<.72){
-     // 4) Pata plana no chão: o fêmur CONTINUA girando para trás
-     // além da posição de repouso, enquanto o eixo desliza para trás.
-     const u=smoothStep(.54,.72,phase);
-     pawWorldAngle=FLAT;
-     hipAngle=-.08+(BACK_ANGLE+.08)*u;
-     lowerAngle=0;
-     axisSlide=.055-.067*u;
-     axisLift=0;
-    }else{
-     // 5) Com a perna já atrás do corpo, mantém o fêmur nessa posição
-     // e inclina a pata de 0° a 45°. O fim coincide com o início do ciclo.
-     const u=smoothStep(.72,1,phase);
-     pawWorldAngle=DEG45*u;
-     hipAngle=BACK_ANGLE;
-     lowerAngle=0;
-     axisSlide=-.012;
-     axisLift=0;
-    }
+    const sampleCurve=(keys,x)=>{
+     const n=keys.length,slopes=new Array(n),h=[],d=[];
+     for(let i=0;i<n-1;i++){h[i]=keys[i+1][0]-keys[i][0];d[i]=(keys[i+1][1]-keys[i][1])/h[i];}
+     for(let i=1;i<n-1;i++){
+      const a=d[i-1],b=d[i];
+      if(a*b<=0)slopes[i]=0;
+      else{const w1=2*h[i]+h[i-1],w2=h[i]+2*h[i-1];slopes[i]=(w1+w2)/(w1/a+w2/b);}
+     }
+     // As extremidades representam o mesmo ponto do ciclo; a tangente é periódica.
+     const prevH=keys[0][0]+1-keys[n-2][0],nextH=keys[1][0]-keys[0][0];
+     const prevD=(keys[0][1]-keys[n-2][1])/prevH,nextD=d[0];
+     if(prevD*nextD<=0)slopes[0]=0;
+     else{const w1=2*nextH+prevH,w2=nextH+2*prevH;slopes[0]=(w1+w2)/(w1/prevD+w2/nextD);}
+     slopes[n-1]=slopes[0];
+     let i=0;while(i<n-2&&x>keys[i+1][0])i++;
+     const x0=keys[i][0],x1=keys[i+1][0],span=x1-x0,u=Math.max(0,Math.min(1,(x-x0)/span));
+     const y0=keys[i][1],y1=keys[i+1][1],u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*y0+(u3-2*u2+u)*span*slopes[i]+(-2*u3+3*u2)*y1+(u3-u2)*span*slopes[i+1];
+    };
+    const hipAngle=sampleCurve([[0,BACK_ANGLE],[.24,FRONT_ANGLE],[.44,-.44],[.54,-.08],[.72,BACK_ANGLE],[1,BACK_ANGLE]],phase);
+    const lowerAngle=sampleCurve([[0,0],[.24,.10],[.44,.10],[.54,0],[.72,0],[1,0]],phase);
+    const pawWorldAngle=sampleCurve([[0,DEG45],[.24,DEG45],[.44,DEG45],[.54,FLAT],[.72,FLAT],[1,DEG45]],phase);
+    const axisSlide=sampleCurve([[0,-.012],[.24,.055],[.44,.055],[.54,.055],[.72,-.012],[1,-.012]],phase);
+    const axisLift=sampleCurve([[0,0],[.24,.022],[.44,0],[.54,0],[.72,0],[1,0]],phase);
 
     // Eixo diagonal translada em Y/Z independentemente da rotação do fêmur.
     leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
@@ -482,9 +458,9 @@ function updateJaguarRig(){
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Corrige o contato na descida usando o eixo de translação, sem deslocar o pivô.
+    // Mantém o contato do chão gradual; a correção não redefine a trajetória do eixo.
     const floorY=-.04;
-    const contactWeight=phase<.24?0:smoothStep(.24,.44,phase);
+    const contactWeight=phase<.24?0:sampleCurve([[0,0],[.24,0],[.44,1],[.54,1],[.72,0],[1,0]],phase);
     for(let fix=0;fix<2;fix++){
      r.body.updateMatrixWorld(true);
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
@@ -920,5 +896,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=179",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=180",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
