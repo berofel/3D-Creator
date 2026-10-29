@@ -425,8 +425,8 @@ function jaguarPreset(){
  const tail4=group(tail3,[0,-.015,-.09],"Cauda articulada 4 | ponta");
  block(tail4,"Ponta escura",[0,-.01,-.065],[.13,.13,.13],DARK,"taper",[.12,0,0]);
  const tailSegments=[tail1,tail2,tail3,tail4];
- window.__berofelJaguarRigs.push({body,spine,rump,neck,head,tail,tailSegments,legs,baseY:body.position.y,baseBodyZ:body.position.z,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()});
- select(null);setSkinMode("bones");setAnimation("idle");say("Onça pronta em respiração: peito, cabeça e cauda em movimento suave.");
+ const jaguarRig={body,spine,rump,neck,head,tail,tailSegments,legs,baseY:body.position.y,baseBodyZ:body.position.z,baseSpineY:spine.position.y,baseSpineZ:spine.position.z,baseRumpPos:rump.position.clone(),baseRumpRot:rump.rotation.clone()};window.__berofelJaguarRigs.push(jaguarRig);
+ buildJaguarSkin(jaguarRig);select(null);setAnimation("idle");say("Onça pronta: pele anatômica low-poly ativada; rig e animação preservados.");
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
@@ -712,6 +712,45 @@ function humanoidPreset(isOgre=false){
 }
 
 
+function jaguarSkinPiece(parent,name,pos,scale,color,segments=8){
+ const sides=Math.max(5,Math.min(12,segments));
+ const geo=new THREE.SphereGeometry(1,sides,Math.max(4,Math.floor(sides*.65)));
+ const mat=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});
+ const mesh=new THREE.Mesh(geo,mat);mesh.name="Pele | "+name;
+ mesh.position.set(...pos);mesh.scale.set(...scale);mesh.castShadow=true;mesh.receiveShadow=true;
+ mesh.userData={skin:true,name:"Pele "+name};parent.add(mesh);skinMeshes.push(mesh);return mesh;
+}
+function buildJaguarSkin(rig){
+ const coat="#a9784e",warm="#c28d5c",cream="#d9c9ad",spot="#4a3328";
+ // Volumes low-poly sobrepostos: melhoram a silhueta sem alterar os pivôs nem a animação.
+ jaguarSkinPiece(rig.body,"peitoral",[0,1.48,.43],[.405,.365,.39],warm,10);
+ jaguarSkinPiece(rig.body,"escápula esquerda",[-.30,1.14,.39],[.17,.29,.20],coat,9);
+ jaguarSkinPiece(rig.body,"escápula direita",[.30,1.14,.39],[.17,.29,.20],coat,9);
+ jaguarSkinPiece(rig.spine,"tronco central",[0,0,0],[.315,.225,.395],coat,10);
+ jaguarSkinPiece(rig.rump,"anca",[0,0,0],[.405,.325,.325],warm,10);
+ jaguarSkinPiece(rig.neck,"pescoço",[0,.08,.20],[.255,.245,.285],coat,9);
+ jaguarSkinPiece(rig.head,"crânio",[0,.14,.15],[.245,.19,.235],warm,9);
+ jaguarSkinPiece(rig.head,"bochecha esquerda",[-.15,.01,.28],[.105,.12,.13],coat,8);
+ jaguarSkinPiece(rig.head,"bochecha direita",[.15,.01,.28],[.105,.12,.13],coat,8);
+ jaguarSkinPiece(rig.head,"mandíbula",[0,-.105,.30],[.18,.075,.18],coat,8);
+ jaguarSkinPiece(rig.head,"focinho claro",[0,-.04,.43],[.17,.095,.13],cream,8);
+ for(const side of [-1,1]){
+  for(const [z,y] of [[-.27,.12],[-.08,.20],[.12,.12],[.28,.17],[-.20,-.04],[.04,-.08],[.23,-.04]]){
+   jaguarSkinPiece(rig.body,"mancha lateral",[side*.335,y+1.48,z-.19],[.012,.035,.045],spot,6);
+  }
+ }
+ for(const leg of rig.legs){
+  if(leg.hind){
+   jaguarSkinPiece(leg.hip,"coxa traseira",[0,-.20,-.025],[.205,.32,.175],warm,8);
+   if(leg.knee)jaguarSkinPiece(leg.knee,"segmento inferior traseiro",[0,-.29,.045],[.105,.29,.105],coat,8);
+  }else{
+   if(leg.scapula)jaguarSkinPiece(leg.scapula,"ombro dianteiro",[0,-.035,0],[.155,.17,.15],coat,8);
+   jaguarSkinPiece(leg.hip,"braço dianteiro",[0,-.415,.015],[.125,.51,.125],warm,8);
+  }
+  jaguarSkinPiece(leg.paw,"pata",[0,-.025,.09],[.135,.075,.15],"#49382e",7);
+ }
+ setSkinMode("skin");
+}
 function addElement(generator,label){
  appendMode=true;
  const beforeRoots=new Set(scene.children);
@@ -1025,5 +1064,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=207",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=208",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
