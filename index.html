@@ -387,7 +387,7 @@ function jaguarPreset(){
 }
 function updateJaguarRig(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?5.0:2.25;
+ const t=animClock,rate=gallop?5.5:2.475; // +10% de velocidade, preservando poses e sincronismo
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
  for(const r of (window.__berofelJaguarRigs||[])){
   const cycle=t*rate;
@@ -491,7 +491,7 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v199 — fiel à referência: membro reto, ombro largo,
+    // Ciclo dianteiro v200 — fiel à referência: membro reto, ombro largo,
     // passada em arco e sem articulação de cotovelo.
     // Interpolação cúbica Hermite com tangentes compartilhadas:
     // mantém velocidade ao cruzar cada pose e fecha o ciclo sem tranco.
@@ -952,5 +952,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=199",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=200",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
