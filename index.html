@@ -457,7 +457,7 @@ function updateJaguarRig(){
      contactBlend=1;
     }
 
-    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),.006*Math.sin(cycle+side),side*.006*Math.sin(cycle));
+    // Durante o pulso da pata, a anca fica imóvel; sem micro-oscilações que pareçam antecipação.\n    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
     leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+hipLift,leg.baseHip.z+hipSlide);
     if(leg.knee){
      leg.knee.rotation.set(leg.baseKneeRot.x+lowerAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
@@ -469,22 +469,11 @@ function updateJaguarRig(){
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Mantém o contato no eixo vertical do mundo, convertendo a correção
-    // para o espaço local do pivô. Evita deslocar a perna para fora da anca.
-    if(contactBlend>0){
-     scene.updateMatrixWorld(true);
-     const pawWorld=leg.paw.getWorldPosition(new THREE.Vector3());
-     const soleRadius=.07*Math.abs(Math.cos(pawWorldAngle))+.15*Math.abs(Math.sin(pawWorldAngle));
-     const correction=(soleRadius-pawWorld.y)*Math.min(1,contactBlend);
-     if(Math.abs(correction)>.0001){
-      const parent=leg.hip.parent;
-      const p0=parent.worldToLocal(pawWorld.clone());
-      const p1=parent.worldToLocal(pawWorld.clone().add(new THREE.Vector3(0,correction,0)));
-      leg.hip.position.add(p1.sub(p0));
-     }
-    }
-    // Carga de propulsão contínua: o tronco reage depois do levantamento, sem degrau binário.
-    hindLoad+=smooth((phase-.12)/.05)*(1-smooth((phase-.25)/.07));
+    // Não reposiciona a anca para "corrigir" o chão a cada frame: essa
+    // correção dinâmica causava pequenos trancos/flicker na cadeia inteira.
+    // O contato é obtido pela descida articulada e pela pata nivelada.
+    // O tronco só começa a reagir depois de a pata ter levantado.
+    hindLoad+=smooth((phase-.16)/.06)*(1-smooth((phase-.70)/.08));
    }else{
     // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
     // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
@@ -511,13 +500,16 @@ function updateJaguarRig(){
    }
   }
   foreLoad/=2;hindLoad/=2;
-  r.body.position.y=r.baseY+Math.sin(cycle*2)* (gallop? .009:.003);
-  r.body.rotation.x=Math.sin(cycle+.3)*(gallop? .025:.006)+(hindLoad-foreLoad)*.01;
-  r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.006;
-  r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop? .035:.02);
-  r.spine.rotation.x=Math.sin(cycle+.3)*(gallop? .03:.012)+(hindLoad-foreLoad)*.008;
-  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop? .014:.006),r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop? .035:.015));
-  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop? .04:.02),Math.sin(cycle*.55)*(gallop? .05:.025),Math.sin(cycle+.2)*(gallop? .018:.008));
+  // O corpo não balança antes da pata: a reação começa depois do levantamento
+  // e cresce apenas durante o avanço/impulso, sem degraus no início do ciclo.
+  const bodyReact=smooth(hindLoad*.95);
+  r.body.position.y=r.baseY+Math.sin(cycle*2)* (gallop? .006:.0015)*bodyReact;
+  r.body.rotation.x=(Math.sin(cycle+.3)*(gallop? .012:.003)+(hindLoad-foreLoad)*.006)*bodyReact;
+  r.spine.position.y=r.baseSpineY+Math.sin(cycle*2+.2)*.003*bodyReact;
+  r.spine.position.z=r.baseSpineZ+Math.sin(cycle)*(gallop? .018:.006)*bodyReact;
+  r.spine.rotation.x=(Math.sin(cycle+.3)*(gallop? .014:.004)+(hindLoad-foreLoad)*.004)*bodyReact;
+  r.rump.position.set(r.baseRumpPos.x,r.baseRumpPos.y+Math.sin(cycle*2+.5)*(gallop? .006:.002)*bodyReact,r.baseRumpPos.z+Math.sin(cycle+.8)*(gallop? .015:.004)*bodyReact);
+  r.rump.rotation.set(Math.sin(cycle+.8)*(gallop? .018:.005)*bodyReact,Math.sin(cycle*.55)*(gallop? .02:.006)*bodyReact,Math.sin(cycle+.2)*(gallop? .008:.003)*bodyReact);
   r.neck.rotation.x=moving?(gallop?-.08*Math.sin(cycle+.4):-.025*Math.sin(cycle+.35)):0;
   r.head.rotation.x=moving?(gallop? .05*Math.sin(cycle+.4):.018*Math.sin(cycle+.35)):0;
   r.tail.rotation.y=Math.sin(t*(gallop?rate*.62:rate*.38)+.4)*(gallop? .22:.13);
@@ -906,5 +898,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=166",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=167",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
