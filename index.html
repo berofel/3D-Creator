@@ -347,20 +347,20 @@ function jaguarPreset(){
  ];
  for(const q of specs){
   const parent=q.hind?rump:body;
-  const pivotPos=q.hind?[q.side*.29,-.08,q.z]:[q.side*.30,1.14,q.z];
+  const pivotPos=q.hind?[q.side*.29,-.18,q.z]:[q.side*.30,1.14,q.z];
   const pivotName=(q.hind?"Pivô do fêmur traseiro ":"Pivô do ombro dianteiro ")+(q.side<0?"esquerdo":"direito");
   const scapula=q.hind?null:group(parent,pivotPos,pivotName);
   const hip=q.hind?group(parent,pivotPos,pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
   let knee=null,elbow=null,hock=null;
   if(q.hind){
    block(hip,"Bloco 1 — fêmur traseiro largo",[0,-.20,-.025],[.42,.66,.36],COAT3,"taper",[.34,0,q.side*.018]);
-   knee=group(hip,[0,-.48,-.105],"Bloco 2 — segmento inferior traseiro");
-   block(knee,"Segmento inferior traseiro único",[0,-.155,.045],[.19,.34,.19],COAT3,"taper",[-.18,0,q.side*.012]);
+   knee=group(hip,[0,-.52,-.105],"Bloco 2 — segmento inferior traseiro");
+   block(knee,"Segmento inferior traseiro único",[0,-.29,.045],[.20,.60,.20],COAT3,"taper",[-.12,0,q.side*.012]);
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
    block(hip,"Bloco 2 — braço dianteiro único",[0,-.245,.015],[.25,.68,.25],COAT3,"taper",[.02,0,q.side*-.018]);
   }
-  const wrist=group(q.hind?knee:hip,q.hind?[0,-.34,.07]:[0,-.565,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.565,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   const paw=group(wrist,[0,0,0],"Pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
@@ -908,5 +908,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=157",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=158",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
