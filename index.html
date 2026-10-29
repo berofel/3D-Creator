@@ -409,20 +409,69 @@ function updateJaguarRig(){
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
-    // IMPULSO: o fêmur recua enquanto a pata empurra o chão.
-    // RECUPERAÇÃO: a pata levanta, dobra e avança; o fêmur acompanha.
-    const push=smooth((p-.40)/.22);
-    const hipAngle=stance?(-.08-.58*stanceT+.12*push):(.48-.78*rec);
-    leg.hip.rotation.set(hipAngle*(gallop?1.18:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y,leg.baseHip.z+(stance?-.10*stanceT:.13*Math.sin(Math.PI*recoveryT)));
+    // Ciclo traseiro em poses-alvo: propulsor (12:35), descida,
+    // arrasto com pata plana, recuo do fêmur (10:25), impulso a 45°.
+    // O segundo bloco não articula durante o arrasto: permanece na mesma pose.
+    const phase=p;
+    const smoothStep=(a,b,x)=>smooth((x-a)/(b-a));
+    let hipAngle=0,lowerAngle=0,pawAngle=0,hipSlide=0;
+    if(phase<.18){
+     // PROPULSOR: fêmur alinhado verticalmente; segmento e pata apontam
+     // para baixo ainda suspensos. Aproximação visual da pose 12:35.
+     const u=smoothStep(0,.18,phase);
+     hipAngle=-1.02*u;
+     lowerAngle=-.08*u;
+     pawAngle=-.18*u;
+     hipSlide=.015*u;
+    }else if(phase<.30){
+     // DESCIDA: o fêmur baixa a perna até a pata pousar plana a 90°.
+     const u=smoothStep(.18,.30,phase);
+     hipAngle=-1.02+.48*u;
+     lowerAngle=-.08*(1-u);
+     pawAngle=-.18+(.18)*u;
+     hipSlide=.015*(1-u);
+    }else if(phase<.72){
+     // ARRASTO: pata fica plana (90°) e desliza para trás.
+     // O segundo bloco fica imóvel; apenas o fêmur desloca/roda.
+     const u=smoothStep(.30,.72,phase);
+     hipAngle=-.54-.32*u;
+     lowerAngle=0;
+     pawAngle=0;
+     hipSlide=-.16*u;
+    }else if(phase<.84){
+     // FIM DO ARRASTO: fêmur chega à inclinação aproximada 10:25,
+     // mantendo a pata plana até o instante do impulso.
+     const u=smoothStep(.72,.84,phase);
+     hipAngle=-.86-.10*u;
+     lowerAngle=0;
+     pawAngle=0;
+     hipSlide=-.16;
+    }else if(phase<.94){
+     // IMPULSO: pata inclina a ~45° e empurra o chão; o fêmur avança
+     // de volta para a pose propulsora. O segundo bloco continua rígido.
+     const u=smoothStep(.84,.94,phase);
+     hipAngle=-.96+(.96-.(-1.02))*u;
+     lowerAngle=0;
+     pawAngle=.785*u;
+     hipSlide=-.16*(1-u);
+    }else{
+     // Recuperação curta até o alinhamento propulsor para reiniciar o ciclo.
+     const u=smoothStep(.94,1,phase);
+     hipAngle=-.06-.96*u;
+     lowerAngle=0;
+     pawAngle=.785*(1-u);
+     hipSlide=0;
+    }
+    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
+    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y,leg.baseHip.z+hipSlide);
     if(leg.knee){
-     const kneeAngle=stance?(-.03+.16*push):(-.62*(1-rec)+.05*rec);
-     leg.knee.rotation.set(leg.baseKneeRot.x+kneeAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
+     leg.knee.rotation.set(leg.baseKneeRot.x+lowerAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
     }
     leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.x=stance?(-.02+.55*push):(.68*(1-smooth(Math.min(1,recoveryT/.72))));
-    leg.paw.rotation.set(leg.basePawRot.x+(stance?-.08+.20*push:.65*(1-smooth(Math.min(1,recoveryT/.55)))),leg.basePawRot.y,leg.basePawRot.z);
-    hindLoad+=stance?1:0;
+    leg.wrist.rotation.set(leg.baseWristRot.x,leg.baseWristRot.y,leg.baseWristRot.z);
+    leg.paw.rotation.set(leg.basePawRot.x+pawAngle,leg.basePawRot.y,leg.basePawRot.z);
+    // Só conta como apoio durante o arrasto e no início do impulso.
+    hindLoad+=(phase>=.30&&phase<.94)?1:0;
    }else{
     // ALCANCE E ARRASTO: ombro leva a pata para a frente; depois, com a pata
     // apoiada, o conjunto desliza para trás além do eixo neutro até a barriga.
