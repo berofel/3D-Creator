@@ -418,6 +418,7 @@ function updateJaguarRig(){
     // As poses-chave aprovadas são preservadas; as tangentes compartilhadas
     // fazem cada movimento entrar no seguinte sem zerar a velocidade na junção.
     const phase=p;
+    const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*(3-2*v)};
     const DEG45=Math.PI/4, FLAT=0;
     const BACK_ANGLE=.38, FRONT_ANGLE=-.52;
     const sampleTrack=(keys,x)=>{
