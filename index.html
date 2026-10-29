@@ -46,7 +46,7 @@ details.add-group .group-content button{margin-top:6px}
 </div></main><aside class="side">
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
-<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details>
+<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Volumes orgânicos para músculos, articulações, focinho e transições suaves; formas duras para garras, chifres e acessórios.</p><div class="grid"><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
 <details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
 <details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
 <details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
@@ -71,7 +71,21 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandard
 const grid=new THREE.GridHelper(30,30,0x7792a4,0xc1d0da);grid.position.y=-.025;scene.add(grid);
 let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBase=new WeakMap();
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
-function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){const geo=type==="horn"?new THREE.ConeGeometry(.22,.7,5):type==="tail"?new THREE.CylinderGeometry(.12,.24,.8,6):type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);const mat=new THREE.MeshStandardMaterial({color,roughness:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m}
+function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){
+ const geo=type==="horn"||type==="cone"||type==="claw"?new THREE.ConeGeometry(type==="claw"?.16:.22,type==="claw"?.42:.7,type==="horn"?5:8):
+ type==="tail"||type==="cylinder"?new THREE.CylinderGeometry(.38,.48,1,10,1):
+ type==="ring"?new THREE.TorusGeometry(.38,.09,6,12):
+ type==="sphere"||type==="ellipsoid"||type==="joint"?new THREE.SphereGeometry(1,type==="ellipsoid"?12:8,type==="ellipsoid"?8:6):
+ type==="capsule"?new THREE.CapsuleGeometry(.5,1,3,8):
+ type==="octahedron"?new THREE.OctahedronGeometry(.5,0):
+ type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():
+ type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);
+ const organic=type==="ellipsoid"||type==="sphere"||type==="capsule"||type==="joint";
+ const mat=new THREE.MeshStandardMaterial({color,roughness:organic?.9:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:!organic});
+ const m=new THREE.Mesh(geo,mat);m.position.set(...pos);
+ if(type==="capsule")m.scale.set(scale[0],scale[1]/2,scale[2]);else m.scale.set(...scale);
+ m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m
+}
 function clearSkin(){if(appendMode)return;for(const m of skinMeshes){if(m.parent)m.parent.remove(m);m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}skinMeshes=[]}
 function skinPiece(name,pos,scale,color,segments=7){const sides=Math.max(4,Math.min(7,Math.round(segments)));const rings=Math.max(3,Math.min(5,Math.floor(sides*.65)));const geo=new THREE.SphereGeometry(1,sides,rings);const mat=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;m.userData={skin:true,name};scene.add(m);skinMeshes.push(m);return m}
 function setSkinMode(mode){skinMode=mode;const showSkin=mode==="skin";for(const m of skinMeshes)m.visible=showSkin;for(const p of parts){p.visible=true;p.material.visible=!showSkin}if(showSkin)transform.detach();transformHelper.visible=!showSkin;$("skinStatus").textContent=showSkin?"Pele visível; esqueleto oculto.":"Esqueleto articulado visível; pele ocultada.";say(showSkin?"Camada de pele ativada.":"Esqueleto articulado ativado.")}
@@ -91,7 +105,25 @@ function buildSkin(kind){
  }
  scene.updateMatrixWorld(true);for(const m of skinMeshes){const n=m.userData.name.toLowerCase();let targetName=null;if(n==="pele tronco")targetName="Tronco dianteiro";else if(n==="pele garupa")targetName="Garupa";else if(n==="pele peito")targetName="Peito e ombros";else if(n==="pele pescoço")targetName="Pescoço";else if(n==="pele cabeça")targetName="Cabeça";else if(n==="pele focinho")targetName="Focinho";else if(n==="crina pele")targetName="Pescoço";else if(n==="cauda pele")targetName="Cauda";else if(n.startsWith("pele ombro"))targetName="Perna superior dianteira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele anca"))targetName="Perna superior traseira "+(n.endsWith("esquerda")?"esquerda":"direita");else if(n.startsWith("pele perna dianteira")||n.startsWith("pele perna traseira")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Perna superior "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("pele canela")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Canela "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}else if(n.startsWith("casco")){const rear=n.includes("traseira"),left=n.endsWith(" e");targetName="Casco "+(rear?"traseira ":"dianteira ")+(left?"esquerda":"direita")}const target=parts.find(p=>p.userData.name===targetName);if(target)target.attach(m);m.userData.limb=n.includes("tronco")||n.includes("garupa")||n.includes("peito")?"body":n.includes("cabeça")||n.includes("pescoço")?"head":null;skinBase.set(m,{position:m.position.clone(),rotation:m.rotation.clone()})}setSkinMode("skin");
 }
-function add(type){let p=[0,1,0],s=[1,1,1],c="#65a8a1";if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1"}if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8"}if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d"}if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b"}if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1"}if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b"}return make(type,p,s,c)}
+function add(type){
+ let p=[0,1,0],s=[.6,.6,.6],c="#65a8a1",n=type;
+ if(type==="body"){p=[0,1.4,0];s=[1.8,.9,2.5];c="#65a8a1";n="Tronco"}
+ if(type==="head"){p=[0,2.1,1.55];s=[.85,.8,.8];c="#8bc8b8";n="Cabeça"}
+ if(type==="leg"){p=[.65,.55,.8];s=[.3,1,.35];c="#4e827d";n="Perna"}
+ if(type==="foot"){p=[.65,.12,.9];s=[.45,.2,.55];c="#d5b17b";n="Pata"}
+ if(type==="tail"){p=[0,1.4,-1.6];s=[.45,.45,1];c="#65a8a1";n="Cauda"}
+ if(type==="horn"){p=[-.25,2.7,1.55];s=[1,1,1];c="#d5b17b";n="Chifre"}
+ if(type==="ellipsoid"){p=[0,1.4,0];s=[.55,.38,.7];c="#a9784e";n="Volume orgânico"}
+ if(type==="sphere"){p=[0,1.4,0];s=[.4,.4,.4];c="#a9784e";n="Esfera"}
+ if(type==="capsule"){p=[0,1,0];s=[.28,.9,.28];c="#4e827d";n="Cápsula anatômica"}
+ if(type==="cylinder"){p=[0,1,0];s=[.22,1,.22];c="#79523a";n="Cilindro"}
+ if(type==="cone"){p=[0,1,0];s=[.3,.8,.3];c="#d5b17b";n="Cone"}
+ if(type==="joint"){p=[0,1,0];s=[.22,.22,.22];c="#8bc8b8";n="Articulação"}
+ if(type==="claw"){p=[0,.2,.3];s=[.12,.25,.12];c="#e2d8c5";n="Garra"}
+ if(type==="ring"){p=[0,1,0];s=[.5,.5,.5];c="#b88a43";n="Anel"}
+ if(type==="octahedron"){p=[0,1,0];s=[.4,.4,.4];c="#b88a43";n="Octaedro"}
+ return make(type,p,s,c,n)
+}
 let horseRoot=null,horseJoints=[];
 function horseTexture(base){const cv=document.createElement("canvas");cv.width=cv.height=16;const x=cv.getContext("2d");x.fillStyle=base;x.fillRect(0,0,16,16);const rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));let s=base.split("").reduce((a,b)=>a+b.charCodeAt(0),37);for(let i=0;i<42;i++){s=(s*1664525+1013904223)>>>0;const px=s%16;s=(s*1664525+1013904223)>>>0;const py=s%16;s=(s*1664525+1013904223)>>>0;const d=s%43-21;x.fillStyle="rgb("+rgb.map(v=>Math.max(0,Math.min(255,v+d))).join(",")+")";x.fillRect(px,py,1,1)}const t=new THREE.CanvasTexture(cv);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.colorSpace=THREE.SRGBColorSpace;return t}
 function quadruped(){
@@ -306,6 +338,12 @@ function jaguarPreset(){
  block(spine,"Eixo central do tronco",[0,0,0],[.61,.43,.76],COAT3);
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
  block(rump,"Massa da anca",[0,0,0],[.84,.68,.66],COAT2,"body",[0,0,-.02]);
+ // Volumes orgânicos de transição: escápulas e musculatura da anca.
+ // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
+ for(const side of [-1,1]){
+  block(body,"Músculo do ombro "+(side<0?"esquerdo":"direito"),[side*.30,1.12,.39],[.29,.39,.31],COAT3,"ellipsoid",[0,0,side*-.08]);
+  block(rump,"Músculo da anca "+(side<0?"esquerdo":"direito"),[side*.30,-.02,.02],[.30,.39,.31],COAT3,"ellipsoid",[0,0,side*-.10]);
+ }
  // Manchas ficam sobre as laterais do corpo; são rasas para não parecerem espinhos.
  let spotIndex=0;
  for(const side of [-1,1]){
@@ -328,8 +366,13 @@ function jaguarPreset(){
  block(head,"Crânio felino",[0,.14,.15],[.51,.40,.49],COAT3);
  block(head,"Bochecha esquerda",[-.17,.01,.28],[.18,.19,.22],COAT);
  block(head,"Bochecha direita",[.17,.01,.28],[.18,.19,.22],COAT);
- block(head,"Focinho claro",[0,-.04,.43],[.34,.19,.25],CREAM);
- block(head,"Nariz",[0,.01,.565],[.13,.08,.06],NOSE);
+ block(head,"Mandíbula inferior",[0,-.105,.30],[.34,.13,.29],COAT2,"ellipsoid");
+ block(head,"Bochecha volumétrica esquerda",[-.16,.015,.28],[.19,.18,.22],COAT,"ellipsoid");
+ block(head,"Bochecha volumétrica direita",[.16,.015,.28],[.19,.18,.22],COAT,"ellipsoid");
+ block(head,"Almofada do focinho esquerda",[-.075,-.035,.425],[.13,.105,.14],CREAM,"ellipsoid");
+ block(head,"Almofada do focinho direita",[.075,-.035,.425],[.13,.105,.14],CREAM,"ellipsoid");
+ block(head,"Focinho claro",[0,-.04,.43],[.34,.19,.25],CREAM,"ellipsoid");
+ block(head,"Nariz",[0,.01,.565],[.13,.08,.06],NOSE,"ellipsoid");
  for(const side of [-1,1]){
   block(head,"Orelha",[side*.20,.38,.05],[.16,.16,.14],COAT2,"ear",[0,0,side*-.12]);
   block(head,"Interior da orelha",[side*.20,.39,.125],[.075,.075,.02],DARK);
@@ -982,5 +1025,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=205",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=206",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
