@@ -22,6 +22,11 @@ This is an additive workflow. Never delete, replace, rename destructively, or si
 5. Render and inspect the result from front, side, and 3/4 views. Refine visual similarity before rigging.
 6. Do not claim img2threejs ran if it was only described in a prompt. Record whether the agent/skill was actually available and executed.
 
+## Feline reference profile — current user-approved target
+For the current feline, match the supplied reference: athletic elongated torso; angular, low-poly/voxel-like planes; muted gray-brown coat with irregular pixel/checker-like dark markings; compact feline head, short muzzle, small ears; long tail with a dark tip; segmented angular limbs and paws. Preserve the reference's material/color language and silhouette, but do not treat the still image's running pose as the only animation pose.
+
+Critical requirement: reuse the Creature Forge's current feline movement/locomotion logic. Adapt the new model's part names, pivots, and dimensions to the existing movement; do not replace the movement system to fit the new geometry. Keep all existing animation clips and presets intact. If current movement code cannot be mapped without a destructive rewrite, stop and report the mismatch before changing it.
+
 ## Phase 2 — adapt rig and animation
 1. After the visual model is accepted, map its components onto the existing Creature Forge rig conventions.
 2. Prefer a small adapter or additional mapping table over rewriting existing rig code.
