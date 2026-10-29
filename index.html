@@ -362,9 +362,9 @@ function jaguarPreset(){
    block(knee,"Segmento inferior traseiro único",[0,-.29,.045],[.20,.60,.20],COAT3,"taper",[-.12,0,q.side*.012]);
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
-   block(hip,"Bloco 2 — braço dianteiro único",[0,-.245,.015],[.25,.68,.25],COAT3,"taper",[.02,0,q.side*-.018]);
+   block(hip,"Bloco 2 — braço dianteiro único",[0,-.285,.015],[.25,.82,.25],COAT3,"taper",[.02,0,q.side*-.018]);
   }
-  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.565,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.62,.07]:[0,-.705,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   const paw=group(wrist,[0,0,0],"Pata");
   block(paw,"Pata larga",[0,-.025,.09],[.27,.14,.30],PAW,"foot");
   for(const toe of [-1,1])block(paw,"Dedo da pata",[toe*.062,-.035,.205],[.078,.065,.09],"#45362e","foot");
@@ -512,8 +512,8 @@ function updateJaguarRig(){
      const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
      return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
     };
-    const reach=frontTrack([[0,.28],[.23,.28],[.50,.28],[.73,-.38],[1,.28]],p);
-    const slide=frontTrack([[0,.20],[.23,.20],[.50,.20],[.73,-.42],[1,.20]],p);
+    const reach=frontTrack([[0,.46],[.19,.46],[.50,.22],[.73,-.42],[1,.46]],p);
+    const slide=frontTrack([[0,.42],[.19,.42],[.50,.16],[.73,-.42],[1,.42]],p);
     const wristFlex=frontTrack([[0,0],[.23,0],[.50,0],[.61,-.045],[.73,0],[1,0]],p);
     if(leg.scapula){
      leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
@@ -927,5 +927,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=183",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=184",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
