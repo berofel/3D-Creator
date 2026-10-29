@@ -405,8 +405,7 @@ function updateJaguarRig(){
   for(const leg of r.legs){
    const hind=leg.hind,side=leg.side;
    // Espelhamento entre lados e defasagem entre patas dianteiras/traseiras.
-   const phaseOffset=gallop?(hind?(side<0?0:.5):(side<0?.5:0)):(hind?(side<0?0:.5):(side<0?.5:0));
-   const p=((cycle/(Math.PI*2)+phaseOffset+(leg.phase===Math.PI?.5:0))%1+1)%1;
+   const p=((cycle/(Math.PI*2)+(leg.phase/Math.PI)*.5)%1+1)%1;
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
