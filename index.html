@@ -460,7 +460,8 @@ function updateJaguarRig(){
 
     // Mantém o contato do chão gradual; a correção não redefine a trajetória do eixo.
     const floorY=-.04;
-    const contactWeight=phase<.24?0:sampleCurve([[0,0],[.24,0],[.44,1],[.54,1],[.72,0],[1,0]],phase);
+    const contactU=Math.max(0,Math.min(1,(phase-.24)/.20));
+    const contactWeight=phase<.24?0:phase<.44?contactU*contactU*(3-2*contactU):1;
     for(let fix=0;fix<2;fix++){
      r.body.updateMatrixWorld(true);
      const pawBounds=new THREE.Box3().setFromObject(leg.paw);
