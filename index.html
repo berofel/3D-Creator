@@ -492,6 +492,26 @@ function updateJaguarRig(){
     // Ciclo dianteiro simplificado v187:
     // 1) impulso com a pata a 45°; 2) ombro gira para lançar a perna à frente;
     // 3) a pata nivela ao tocar o chão; 4) o ombro gira para trás enquanto a pata desliza apoiada.
+    // Interpolação suave das poses-chave da pata dianteira.
+    const frontTrack=(keys,x)=>{
+     if(x<=keys[0][0])return keys[0][1];
+     const last=keys.length-1;
+     if(x>=keys[last][0])return keys[last][1];
+     let i=0;
+     while(i<last-1&&x>keys[i+1][0])i++;
+     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0;
+     const tangent=j=>{
+      if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+      if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+      const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
+      const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+      if(left*right<=0)return 0;
+      const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
+      return (left*dr+right*dl)/(dl+dr);
+     };
+     const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
+    };
     // O pivô do ombro permanece rigorosamente na posição-base: só muda a rotação.
     const DEG45=Math.PI/4;
     const shoulderAngle=frontTrack([[0,0],[.10,0],[.20,-.42],[.30,-.78],[.38,-.92],[.42,-.92],[.58,-.55],[.76,.10],[.88,.38],[.94,.30],[1,0]],p);
