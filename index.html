@@ -489,9 +489,9 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v189: ombro recua levemente, avança em diagonal para baixo,
-    // apoia a pata e então a arrasta pelo chão de volta para trás.
-    // Toda a pata continua presa à mesma cadeia de articulações: nada é lançado.
+    // Ciclo dianteiro v190: levantar atrás -> projetar à frente -> tocar o chão
+    // com a ponta -> manter a pata a 0° e arrastá-la continuamente até trás.
+    // A pata só volta a 45° quando já chegou atrás; não há retorno intermediário ao meio.
     const frontTrack=(keys,x)=>{
      if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
@@ -503,20 +503,23 @@ function updateJaguarRig(){
      return v0+(v1-v0)*eased;
     };
     const DEG45=Math.PI/4;
-    // +Z é a frente da onça. Deslocamentos pequenos para manter a pata ligada ao ombro.
-    const shoulderBack=frontTrack([[0,0],[.08,-.05],[.18,-.08],[.30,.10],[.40,.18],[.72,-.04],[.90,-.08],[1,0]],p);
-    const shoulderDown=frontTrack([[0,0],[.14,0],[.34,-.075],[.70,-.075],[.90,-.025],[1,0]],p);
-    const shoulderAngle=frontTrack([[0,0],[.08,.10],[.18,.16],[.32,-.18],[.42,-.24],[.70,-.10],[.88,.10],[1,0]],p);
-    const pawAngle=frontTrack([[0,DEG45],[.16,DEG45],[.34,0],[.86,0],[.96,DEG45],[1,DEG45]],p);
+    // +Z é a frente. A posição do ombro conduz a pata numa trajetória contínua.
+    const shoulderZ=frontTrack([[0,-.15],[.10,-.15],[.22,-.06],[.34,.10],[.42,.16],[.50,.15],[.68,.04],[.84,-.10],[.92,-.15],[1,-.15]],p);
+    // O ombro cede para baixo apenas no contato dianteiro e retorna enquanto arrasta.
+    const shoulderY=frontTrack([[0,0],[.24,0],[.34,-.025],[.42,-.085],[.50,-.075],[.72,-.035],[.88,0],[1,0]],p);
+    // Rotação do ombro lança a perna à frente; depois volta gradualmente durante o arrasto.
+    const shoulderAngle=frontTrack([[0,0],[.10,0],[.20,-.20],[.32,-.62],[.40,-.78],[.46,-.62],[.62,-.36],[.80,-.12],[.90,0],[1,0]],p);
+    // Pata levantada a 45° durante a projeção; nivelada a 0° no contato e no arrasto.
+    const pawAngle=frontTrack([[0,DEG45],[.18,DEG45],[.32,DEG45],[.39,DEG45],[.44,0],[.88,0],[.94,DEG45],[1,DEG45]],p);
     if(leg.scapula){
      leg.scapula.position.set(
       leg.baseScapulaPos.x,
-      leg.baseScapulaPos.y+shoulderDown,
-      leg.baseScapulaPos.z+shoulderBack
+      leg.baseScapulaPos.y+shoulderY,
+      leg.baseScapulaPos.z+shoulderZ
      );
      leg.scapula.rotation.set(shoulderAngle,leg.baseScapulaRot.y,leg.baseScapulaRot.z);
     }
-    // Sem escala artificial: braço e pulso permanecem rigidamente conectados.
+    // Braço rígido: sem escala variável, sem deslocamento independente do pulso.
     leg.hip.rotation.copy(leg.baseHipRot);
     leg.hip.position.copy(leg.baseHip);
     if(leg.forearmMesh&&leg.baseForearmScale){
@@ -935,5 +938,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=189",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=190",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
