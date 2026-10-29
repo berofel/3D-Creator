@@ -489,28 +489,43 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
-    // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
-    const delayedPhase=p<.26?1:(p-.26)/.74;
-    const frontStance=delayedPhase<.62;
-    const frontStanceT=frontStance?delayedPhase/.62:1;
-    const frontRecoveryT=frontStance?0:(delayedPhase-.62)/.38;
-    const frontRec=smooth(frontRecoveryT);
-    const reach=frontStance?(.28-.66*frontStanceT):(-.38+.66*frontRec);
-    const slide=frontStance?(.20-.62*frontStanceT):(-.42+.62*frontRec);
+    // Pata dianteira sincronizada em oposição à traseira diagonal.
+    // O fêmur fica relativamente reto; a munheca faz apenas a flexão curta.
+    // A fase de recuo ocupa .50-.73, enquanto a traseira oposta avança;
+    // a recuperação .73-.23 traz a pata para a frente sem uma pausa artificial.
+    const frontTrack=(keys,x)=>{
+     if(x<=keys[0][0])return keys[0][1];
+     const last=keys.length-1;
+     if(x>=keys[last][0])return keys[last][1];
+     let i=0;
+     while(i<last-1&&x>keys[i+1][0])i++;
+     const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0;
+     const tangent=j=>{
+      if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+      if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+      const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
+      const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+      if(left*right<=0)return 0;
+      const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
+      return (left*dr+right*dl)/(dl+dr);
+     };
+     const m0=tangent(i),m1=tangent(i+1),u=(x-t0)/dt,u2=u*u,u3=u2*u;
+     return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
+    };
+    const reach=frontTrack([[0,.28],[.23,.28],[.50,.28],[.73,-.38],[1,.28]],p);
+    const slide=frontTrack([[0,.20],[.23,.20],[.50,.20],[.73,-.42],[1,.20]],p);
+    const wristFlex=frontTrack([[0,0],[.23,0],[.50,0],[.61,-.045],[.73,0],[1,0]],p);
     if(leg.scapula){
      leg.scapula.rotation.set(.02*Math.sin(cycle+side),.01*Math.sin(cycle*.5),side*.008*Math.sin(cycle));
      leg.scapula.position.set(leg.baseScapulaPos.x,leg.baseScapulaPos.y,leg.baseScapulaPos.z+slide);
     }
     leg.hip.rotation.set(reach*(gallop?1.15:1),.012*Math.sin(cycle+side),side*.01*Math.sin(cycle));
     leg.hip.position.copy(leg.baseHip);
-    // Flexão suave: a pata não dá tranco ao passar do apoio para a recuperação.
+    // Sem flexão extra de joelho: a munheca é a única articulação distal ativa.
     leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.x=frontStance?(-.045*frontStanceT):(-.045+.045*smooth(Math.min(1,frontRecoveryT/.36)));
-    leg.wrist.rotation.y=.01*Math.sin(cycle+side);
-    const toe=frontStance?(.40-.42*frontStanceT):(-.02+.42*smooth(Math.min(1,frontRecoveryT/.36)));
-    leg.paw.rotation.set(leg.basePawRot.x+toe,leg.basePawRot.y,leg.basePawRot.z);
-    foreLoad+=frontStance?(1-smooth(frontStanceT)):smooth(frontRecoveryT);
+    leg.wrist.rotation.set(leg.baseWristRot.x+wristFlex,leg.baseWristRot.y+.01*Math.sin(cycle+side),leg.baseWristRot.z);
+    leg.paw.rotation.copy(leg.basePawRot);
+    foreLoad+=frontTrack([[0,0],[.23,0],[.50,0],[.73,1],[1,0]],p);
    }
   }
   foreLoad/=2;hindLoad/=2;
@@ -912,5 +927,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=182",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=183",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
