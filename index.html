@@ -409,48 +409,47 @@ function updateJaguarRig(){
    const stance=p<.62,stanceT=stance?p/.62:1,recoveryT=stance?0:(p-.62)/.38;
    const rec=smooth(recoveryT);
    if(hind){
-    // Ciclo traseiro: impulso atrás a 45°, avanço, contato pela ponta e apoio
-    // com a sola inteira na horizontal (180°), arrasto e retorno a 45° já atrás.
+    // Ciclo traseiro: pulso curto de +45° para fora e retorno a 0° (sola plana).
+    // Não continuar a rotação para 90°/180°: a pata volta pelo mesmo caminho.
     const phase=p;
     const smoothStep=(a,b,x)=>smooth((x-a)/(b-a));
-    const DEG45=Math.PI/4, DEG180=Math.PI;
-    let hipAngle=.36,lowerAngle=0,pawWorldAngle=DEG45,hipSlide=-.012;
+    const DEG45=Math.PI/4, FLAT=0;
+    let hipAngle=.36,lowerAngle=0,pawWorldAngle=FLAT,hipSlide=-.012;
     let contactBlend=0;
 
     if(phase<.16){
-     // 1) IMPULSO ATRÁS: a pata fica a 45° enquanto começa a levantar e avançar.
+     // 1) IMPULSO ATRÁS: a pata faz apenas um pulso até 45° para fora.
      const u=smoothStep(0,.16,phase);
      hipAngle=.36-.14*u;
      lowerAngle=.02*(1-u);
-     pawWorldAngle=DEG45;
+     pawWorldAngle=DEG45*u;
      hipSlide=-.012+.032*u;
      contactBlend=0;
     }else if(phase<.43){
-     // 2) AVANÇO: fêmur gira em direção à cabeça, pata ainda a 45°.
+     // 2) RETORNO + AVANÇO: desfaz os mesmos 45° e deixa a sola plana.
      const u=smoothStep(.16,.43,phase);
      hipAngle=.22-.30*u;
      lowerAngle=0;
-     pawWorldAngle=DEG45;
+     pawWorldAngle=DEG45*(1-u);
      hipSlide=.020+.035*u;
      contactBlend=0;
     }else if(phase<.55){
-     // 3) CONTATO: a ponta toca primeiro; depois a sola roda até ficar plana.
+     // 3) CONTATO À FRENTE: a pata já está plana; não faz outra volta.
      const u=smoothStep(.43,.55,phase);
      hipAngle=-.08;
      lowerAngle=0;
-     pawWorldAngle=DEG45+(DEG180-DEG45)*u;
+     pawWorldAngle=FLAT;
      hipSlide=.055;
      contactBlend=u;
     }else{
-     // 4) APOIO E ARRASTO: sola inteira horizontal a 180° durante o deslizamento.
-     // Ao chegar atrás, a pata gira suavemente para 45° para o próximo impulso.
+     // 4) APOIO/ARRASTO: mantém a sola horizontal enquanto desliza para trás.
+     // O ciclo recomeça atrás com um novo pulso de 45° para fora.
      const u=smoothStep(.55,1,phase);
-     const rearTurn=smoothStep(.88,1,phase);
      hipAngle=.22+.14*u;
      lowerAngle=.025*(1-u);
-     pawWorldAngle=DEG180-(DEG180-DEG45)*rearTurn;
+     pawWorldAngle=FLAT;
      hipSlide=.055-.067*u;
-     contactBlend=1-rearTurn;
+     contactBlend=1;
     }
 
     leg.hip.rotation.set(hipAngle*(gallop?1.08:1),.006*Math.sin(cycle+side),side*.006*Math.sin(cycle));
@@ -896,5 +895,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=161",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=162",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
