@@ -489,7 +489,7 @@ function updateJaguarRig(){
     }
     hindLoad+=smooth(phase/.12)*(1-smooth((phase-.44)/.08));
    }else{
-    // Ciclo dianteiro v191: deslize contínuo até trás; só então levanta e projeta o conjunto.
+    // Ciclo dianteiro v192: o ombro acompanha a pata, impulsionando-se para frente e para cima.
     const frontTrack=(keys,x,linear=false)=>{
      if(x<=keys[0][0])return keys[0][1];
      const last=keys.length-1;
@@ -501,16 +501,17 @@ function updateJaguarRig(){
      return v0+(v1-v0)*blend;
     };
     const DEG45=Math.PI/4;
-    // +Z é a frente. O ombro fica atrás enquanto levanta; avança pouco na fase suspensa.
-    // Depois do contato, a trajetória é linear e contínua até trás, passando reto pelo repouso.
-    const shoulderZ=frontTrack([[0,-.16],[.08,-.16],[.16,-.105],[.27,.045],[.34,.085],[.39,.085],[.41,.075],[.55,.025],[.70,-.035],[.85,-.105],[1,-.16]],p,true);
-    // Pequena descida somente no contato, sem puxar a pata para um ponto intermediário.
-    const shoulderY=frontTrack([[0,0],[.26,0],[.31,-.018],[.36,-.075],[.40,-.075],[.48,-.055],[.68,-.025],[.86,0],[1,0]],p);
-    // Ombro, braço e pata giram como um conjunto rígido durante a projeção; depois retornam no arrasto.
-    const shoulderAngle=frontTrack([[0,0],[.08,0],[.16,-.24],[.26,-.72],[.31,-.78],[.36,-.78],[.41,-.68],[.56,-.42],[.74,-.18],[.90,-.035],[1,0]],p);
-    // A pata fica a 45° suspensa e toca ainda inclinada; nivela só após o contato.
-    // Ela permanece a 0° durante todo o arrasto e só volta a 45° ao chegar atrás.
-    const pawAngle=frontTrack([[0,DEG45],[.08,DEG45],[.28,DEG45],[.36,DEG45],[.40,DEG45],[.43,0],[.94,0],[.985,DEG45],[1,DEG45]],p);
+    // +Z aponta para a cabeça. No fim do arrasto, a pata levanta atrás e o ombro
+    // começa a avançar e subir junto com ela; o avanço é moderado, sem salto brusco.
+    const shoulderZ=frontTrack([[0,-.16],[.035,-.145],[.12,-.055],[.22,.045],[.30,.095],[.36,.10],[.40,.085],[.44,.065],[.56,.025],[.70,-.035],[.85,-.105],[1,-.16]],p,true);
+    // O ombro sobe durante a retirada da pata do chão; depois cede suavemente até o contato.
+    const shoulderY=frontTrack([[0,.015],[.06,.045],[.16,.095],[.25,.12],[.31,.105],[.36,.055],[.40,.005],[.44,-.045],[.52,-.045],[.68,-.025],[.86,0],[1,.015]],p);
+    // Rotação solidária do ombro com braço e pata: eleva, projeta o membro para frente
+    // e só começa a baixar depois de chegar à frente.
+    const shoulderAngle=frontTrack([[0,0],[.045,-.10],[.14,-.38],[.24,-.70],[.30,-.80],[.35,-.80],[.40,-.70],[.46,-.60],[.58,-.40],[.76,-.17],[.92,-.025],[1,0]],p);
+    // A pata permanece a 45° durante a projeção e no primeiro contato; nivela após tocar.
+    // Mantém 0° em todo o deslizamento e só levanta de novo quando chega atrás.
+    const pawAngle=frontTrack([[0,DEG45],[.06,DEG45],[.25,DEG45],[.34,DEG45],[.40,DEG45],[.44,0],[.94,0],[.985,DEG45],[1,DEG45]],p);
     if(leg.scapula){
      leg.scapula.position.set(
       leg.baseScapulaPos.x,
@@ -937,5 +938,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=191",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=192",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
