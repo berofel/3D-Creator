@@ -415,16 +415,15 @@ function updateJaguarRig(){
    const rec=smooth(recoveryT);
    if(hind){
     // Ciclo traseiro reorganizado conforme a sequência física solicitada.
-    // phase 0 = pata atrás, plana; primeiro desliza/termina o recuo,
-    // inclina até 45°, e SÓ ENTÃO o eixo diagonal levanta e avança o fêmur.
+    // phase 0 = pata atrás, plana; primeiro inclina até 45°, e só então
+    // o eixo diagonal levanta/avança o fêmur. O retorno segue a ordem inversa.
     const phase=p;
     const smoothStep=(a,b,x)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*v*(v*(v*6-15)+10)};
     const DEG45=Math.PI/4, FLAT=0;
     let hipAngle=0,lowerAngle=0,pawWorldAngle=FLAT,axisSlide=0,axisLift=0;
 
     if(phase<.18){
-     // 1) No fim do recuo, a pata inclina sozinha de 0° a 45°.
-     // Fêmur e segmento inferior permanecem neutros.
+     // 1) A pata inclina sozinha de 0° a 45°; fêmur e segmento inferior imóveis.
      const u=smoothStep(0,.18,phase);
      pawWorldAngle=DEG45*u;
      hipAngle=0;
@@ -432,8 +431,7 @@ function updateJaguarRig(){
      axisSlide=-.012;
      axisLift=0;
     }else if(phase<.42){
-     // 2) A pata já chegou a 45°. Agora o eixo diagonal sobe e avança
-     // progressivamente, enquanto o fêmur gira sem teletransporte.
+     // 2) Só após os 45°, o eixo diagonal move o pivô em Y/Z e o fêmur avança.
      const u=smoothStep(.18,.42,phase);
      pawWorldAngle=DEG45;
      hipAngle=-.52*u;
@@ -441,7 +439,7 @@ function updateJaguarRig(){
      axisSlide=-.012+.067*u;
      axisLift=.022*u;
     }else if(phase<.62){
-     // 3) À frente, a perna desce até o chão; a pata conserva os 45°.
+     // 3) À frente, a perna desce até o chão mantendo a pata a 45°.
      const u=smoothStep(.42,.62,phase);
      pawWorldAngle=DEG45;
      hipAngle=-.52+.08*u;
@@ -449,8 +447,7 @@ function updateJaguarRig(){
      axisSlide=.055;
      axisLift=.022*(1-u);
     }else if(phase<.72){
-     // 4) Depois do contato, a pata volta suavemente a 0°.
-     // A anca permanece na frente enquanto a pata se nivela.
+     // 4) Após o contato, a pata retorna suavemente a 0° antes do recuo.
      const u=smoothStep(.62,.72,phase);
      pawWorldAngle=DEG45*(1-u);
      hipAngle=-.44+.36*u;
@@ -458,8 +455,7 @@ function updateJaguarRig(){
      axisSlide=.055;
      axisLift=0;
     }else{
-     // 5) Pata plana no chão: desliza para trás. No fim do trajeto,
-     // a próxima volta começa a inclinação sem salto de posição.
+     // 5) Com a pata plana, desliza para trás; o eixo fecha o ciclo sem salto.
      const u=smoothStep(.72,1,phase);
      pawWorldAngle=FLAT;
      hipAngle=-.08+.08*u;
@@ -468,8 +464,7 @@ function updateJaguarRig(){
      axisLift=0;
     }
 
-    // Rotação e translação em hierarquias separadas: eixo Y/Z diagonal
-    // desloca o pivô; o fêmur gira em torno do pivô, não ao redor da origem.
+    // Translação do eixo separada da rotação do fêmur: trajetória diagonal contínua.
     leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
     leg.hip.position.copy(leg.baseHip);
     if(leg.axis&&leg.baseAxisPos){
@@ -480,11 +475,10 @@ function updateJaguarRig(){
     }
     leg.wrist.position.copy(leg.baseWrist);
     leg.wrist.rotation.copy(leg.baseWristRot);
-    // Mantém a orientação pedida da pata compensando as articulações acima.
     const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
     leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
 
-    // Ajuste de contato limitado à translação do eixo, nunca ao pivô do fêmur.
+    // A correção de contato atua no eixo de translação, não no pivô rotativo.
     const floorY=-.04;
     const contactWeight=phase<.42?0:smoothStep(.42,.62,phase);
     for(let fix=0;fix<2;fix++){
@@ -497,57 +491,7 @@ function updateJaguarRig(){
       if(Math.abs(correction*contactWeight)<0.0001)break;
      }
     }
-
-    // A reação do tronco só começa quando a pata terminou os 45° e o eixo
-    // diagonal inicia a elevação do fêmur.
     hindLoad+=smooth((phase-.18)/.12)*(1-smooth((phase-.62)/.08));
-   }else{
-     // 5) Com a pata plana e apoiada, começa o deslizamento para trás.
-     // Fêmur, segmento inferior e anca recuam juntos, mantendo contato com o piso.
-     const u=smoothStep(.80,1,phase);
-     hipAngle=-.08+.08*u;
-     lowerAngle=.10*(1-u);
-     pawWorldAngle=FLAT;
-     hipSlide=.055-.067*u;
-     hipLift=0;
-    }
-
-    // Durante o pulso da pata, a anca fica imóvel; sem micro-oscilações que pareçam antecipação.
-    leg.hip.rotation.set(hipAngle*(gallop?1.08:1),0,0);
-    leg.hip.position.set(leg.baseHip.x,leg.baseHip.y+hipLift,leg.baseHip.z+hipSlide);
-    if(leg.knee){
-     leg.knee.rotation.set(leg.baseKneeRot.x+lowerAngle,leg.baseKneeRot.y,leg.baseKneeRot.z);
-    }
-    leg.wrist.position.copy(leg.baseWrist);
-    leg.wrist.rotation.copy(leg.baseWristRot);
-    // Compensa a rotação acumulada dos segmentos para a pata ficar plana
-    // no apoio; os 45 graus são uma orientação mundial relativa ao tronco.
-    const chainAngle=hipAngle+leg.baseKneeRot.x+lowerAngle+leg.baseWristRot.x+leg.basePawRot.x;
-    leg.paw.rotation.set(leg.basePawRot.x+(pawWorldAngle-chainAngle),leg.basePawRot.y,leg.basePawRot.z);
-
-    // Contato gradual com o chão: mede a pata em coordenadas mundiais.
-    // Entre 56% e 70% do ciclo, a correção cresce suavemente para a ponta
-    // alcançar o piso antes de a pata começar a girar para a posição plana.
-    // Depois do contato, mantém a pata no chão durante a rotação e o deslizamento.
-    const floorY=-.04;
-    const contactWeight=phase<.56?0:smoothStep(.56,.70,phase);
-    const planted=phase>=.70;
-    for(let fix=0;fix<2;fix++){
-     r.body.updateMatrixWorld(true);
-     const pawBounds=new THREE.Box3().setFromObject(leg.paw);
-     if(!pawBounds.isEmpty()){
-      const correction=floorY-pawBounds.min.y;
-      // Não corrigir a altura com saltos durante o levantamento/avanço.
-      // A compensação começa com peso zero e cresce suavemente na aproximação
-      // ao chão; depois do contato, mantém a pata apoiada sem puxar a anca de repente.
-      if(phase<.56)break;
-      leg.hip.position.y+=correction*contactWeight;
-      if(Math.abs(correction*contactWeight)<0.0001)break;
-     }
-    }
-
-    // A reação do tronco começa junto da alavanca da pata, sem antecipação.
-    hindLoad+=smooth((phase-.16)/.16)*(1-smooth((phase-.70)/.08));
    }else{
     // A pata dianteira diagonal espera o pulso/impulso traseiro; depois avança.
     // O trecho de espera usa o fim da recuperação como pose de repouso, evitando salto no loop.
