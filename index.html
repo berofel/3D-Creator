@@ -619,7 +619,7 @@ function jaguarPreset(){
   // A pata recua para encaixar sobre o pivô e cobrir a junção com o segundo bloco.
   // Uma única peça larga mantém a lateral limpa; a leitura das divisões fica nas quinas.
   const paw=group(wrist,[0,0,-.055],"Pata");
-  createFlatSideBlock("Perfil lateral extrudado — pata",-.025,.025,.14,.32,.16,PAW).position.x=0; paw.add(createFlatSideBlock("Perfil lateral extrudado — pata",-.025,.025,.14,.32,.16,PAW));
+  const pawProfile=createFlatSideBlock("Perfil lateral extrudado — pata",-.025,.025,.14,.32,.16,PAW);paw.add(pawProfile);
   legs.push({hip,axis:hindAxis,scapula,forearmMesh: q.hind?null:forearmMesh,baseForearmPos:!q.hind?forearmMesh.position.clone():null,baseForearmScale:!q.hind?forearmMesh.scale.clone():null,elbow,knee,hock,baseKneeRot:knee?knee.rotation.clone():null,baseHockRot:null,baseElbowRot:null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseAxisPos:hindAxis?hindAxis.position.clone():null,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
  }
  // Cauda presa à anca, com balanço secundário.
