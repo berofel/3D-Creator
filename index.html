@@ -552,18 +552,18 @@ function jaguarPreset(){
   const t=THREE.MathUtils.clamp((y-b.y)/(c.y-b.y),0,1);
   return {y,x:loftValue(a.x,b.x,c.x,d.x,t),rx:Math.max(.08,loftValue(a.rx,b.rx,c.rx,d.rx,t)),rz:Math.max(.08,loftValue(a.rz,b.rz,c.rz,d.rz,t)),z:loftValue(a.z,b.z,c.z,d.z,t)};
  };
- const createHindLegSegment=(fromY,toY,side,materialColor)=>{
+ const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
   const ringCount=14,sides=12,positions=[],indices=[];
   const rings=[];
   for(let i=0;i<=ringCount;i++){
-   const y=THREE.MathUtils.lerp(fromY,toY,i/ringCount),s=sampleHindProfile(y);
+   const globalY=THREE.MathUtils.lerp(fromY,toY,i/ringCount),s=sampleHindProfile(globalY),y=globalY-originY;
    rings.push(s);
    for(let j=0;j<sides;j++){
     const a=j/sides*Math.PI*2+Math.PI/12;
     // Superelipse de seção facetada; a massa lateral é mais cheia que a frente.
     const sx=Math.sign(Math.cos(a))*Math.pow(Math.abs(Math.cos(a)),.78);
     const sz=Math.sign(Math.sin(a))*Math.pow(Math.abs(Math.sin(a)),.78);
-    positions.push(side*s.x+sx*s.rx,y,s.z+sz*s.rz);
+    positions.push(side*s.x+sx*s.rx,y,s.z-originZ+sz*s.rz);
    }
   }
   for(let r=0;r<ringCount;r++)for(let j=0;j<sides;j++){
@@ -573,7 +573,7 @@ function jaguarPreset(){
   // Tampas fechadas no quadril e no corte do joelho/tornozelo.
   for(const end of [0,ringCount]){
    const s=rings[end],center=positions.length/3;
-   positions.push(side*s.x,s.y,s.z);
+   positions.push(side*s.x,s.y-originY,s.z-originZ);
    const base=end*sides;
    for(let j=0;j<sides;j++){
     const a=base+j,b=base+(j+1)%sides;
@@ -592,7 +592,7 @@ function jaguarPreset(){
    thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
    hip.add(thigh);
    knee=group(hip,[0,-.82,-.105],"Bloco 2 — segmento inferior traseiro");
-   const shin=createHindLegSegment(0,-.40,q.side,COAT3);
+   const shin=createHindLegSegment(-.82,-1.22,q.side,COAT3,-.82,-.105);
    shin.name="Volume esculpido contínuo — perna inferior traseira";
    shin.userData={anatomicalSegment:"lower",sharedSculptProfile:true};
    knee.add(shin);
