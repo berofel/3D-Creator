@@ -1,6 +1,6 @@
 export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   const $ = id => document.getElementById(id);
-  const state = { root:null, helper:null, visualRoot:null, visualParts:[], bones:[], selected:null, target:null, showVisual:true, ownsRoot:false };
+  const state = { root:null, helper:null, visualRoot:null, visualParts:[], weightOverlays:[], bones:[], selected:null, target:null, showVisual:true, ownsRoot:false };
   const presets = {
     feline: {label:"Felino / quadrúpede", bones:[
       ["Root",null,[0,0,0]],["Coluna",0,[0,.85,0]],["Peito",1,[0,.25,.45]],["Pescoço",2,[0,.08,.42]],["Cabeça",3,[0,.02,.34]],["Quadril",1,[0,-.08,-.48]],["Cauda_01",5,[0,.05,-.42]],["Cauda_02",6,[0,0,-.42]],
@@ -193,6 +193,74 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     say("Esqueleto nativo conectado ao Rig Studio: "+bones.length+" ossos. A malha continua usando seu skinning original.");
     return bones.length;
   }
+  function clearWeightOverlay(){
+    for(const item of state.weightOverlays){
+      if(item.mesh.parent)item.mesh.parent.remove(item.mesh);
+      item.mesh.geometry?.dispose();
+      const mats=Array.isArray(item.mesh.material)?item.mesh.material:[item.mesh.material];
+      mats.filter(Boolean).forEach(m=>m.dispose());
+    }
+    state.weightOverlays=[];
+    const status=$("rigWeightViewStatus");if(status)status.textContent="Visualização de pesos desligada.";
+    const button=$("rigWeightViewToggle");if(button)button.textContent="Mostrar influência na malha";
+  }
+  function renderWeightBoneOptions(){
+    const select=$("rigWeightBoneSelect");if(!select)return;
+    const previous=select.value;
+    select.replaceChildren();
+    for(const bone of state.bones){
+      const option=document.createElement("option");
+      option.value=bone.userData?.berofelBoneId||bone.name;
+      option.textContent=bone.name;
+      select.append(option);
+    }
+    if([...select.options].some(o=>o.value===previous))select.value=previous;
+    else if(state.selected)select.value=state.selected.userData?.berofelBoneId||state.selected.name;
+  }
+  function showWeightOverlay(){
+    clearWeightOverlay();
+    const target=getSelected?.()||state.target;
+    if(!target)throw new Error("Selecione a criatura que possui o esqueleto nativo.");
+    const select=$("rigWeightBoneSelect");
+    const selectedId=select?.value||(state.selected?.userData?.berofelBoneId||state.selected?.name);
+    if(!selectedId)throw new Error("Escolha um osso para visualizar.");
+    const overlays=[];
+    target.traverse?.(mesh=>{
+      if(!mesh.isSkinnedMesh||!mesh.skeleton)return;
+      const boneIndex=mesh.skeleton.bones.findIndex(b=>(b.userData?.berofelBoneId||b.name)===selectedId);
+      if(boneIndex<0)return;
+      const source=mesh.geometry,indices=source?.attributes?.skinIndex,weights=source?.attributes?.skinWeight;
+      if(!source||!indices||!weights||!source.attributes.position)return;
+      const geometry=source.clone(),count=source.attributes.position.count;
+      const colors=new Float32Array(count*3),color=new THREE.Color();
+      for(let v=0;v<count;v++){
+        let influence=0;
+        for(let k=0;k<4;k++)if(indices.getComponent(v,k)===boneIndex)influence+=weights.getComponent(v,k);
+        const t=Math.max(0,Math.min(1,influence));
+        // Blue = no influence; cyan/yellow = medium; red = strong influence.
+        const hue=(1-t)*.66;
+        color.setHSL(hue,1,.5);
+        colors[v*3]=color.r;colors[v*3+1]=color.g;colors[v*3+2]=color.b;
+      }
+      geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
+      const material=new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.82,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+      const overlay=new THREE.SkinnedMesh(geometry,material);
+      overlay.name="Berofel_WeightHeatmap_"+mesh.name;
+      overlay.bindMode=mesh.bindMode;
+      overlay.bind(mesh.skeleton,mesh.bindMatrix);
+      overlay.bindMatrixInverse.copy(mesh.bindMatrixInverse);
+      overlay.position.copy(mesh.position);overlay.quaternion.copy(mesh.quaternion);overlay.scale.copy(mesh.scale);
+      overlay.frustumCulled=false;overlay.renderOrder=30;
+      mesh.parent?.add(overlay);
+      overlays.push({mesh:overlay,source:mesh});
+    });
+    if(!overlays.length)throw new Error("Não encontrei uma SkinnedMesh com pesos para o osso escolhido. Conecte o esqueleto nativo correto.");
+    state.weightOverlays=overlays;
+    const bone=state.bones.find(b=>(b.userData?.berofelBoneId||b.name)===selectedId);
+    const status=$("rigWeightViewStatus");
+    if(status)status.textContent="Visualizando influência de "+(bone?.name||selectedId)+" em "+overlays.length+" malha(s). Azul: sem influência; vermelho: influência forte. Somente leitura.";
+    const button=$("rigWeightViewToggle");if(button)button.textContent="Ocultar influência na malha";
+  }
   function inspectWeights(){
     const target=getSelected?.()||state.target;
     if(!target)throw new Error("Selecione um modelo ou conecte seu esqueleto nativo antes do diagnóstico.");
@@ -363,5 +431,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  $("rigInspectWeights")?.addEventListener("click",()=>{try{showWeightReport()}catch(e){say(e.message)}});\n  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  $("rigInspectWeights")?.addEventListener("click",()=>{try{showWeightReport()}catch(e){say(e.message)}});\n  $("rigWeightViewToggle")?.addEventListener("click",()=>{try{if(state.weightOverlays.length)clearWeightOverlay();else showWeightOverlay();}catch(e){say(e.message);}});\n  $("rigWeightBoneSelect")?.addEventListener("change",()=>{if(state.weightOverlays.length){try{showWeightOverlay()}catch(e){say(e.message);}}});\n  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
