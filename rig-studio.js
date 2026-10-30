@@ -281,7 +281,8 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       }))
     };
   }
-  $("rigCreatePreset").onclick=()=>{try{createFromPreset($("rigPreset").value)}catch(e){say(e.message)}};\n  $("rigAdoptSkeleton")?.addEventListener("click",()=>{try{adoptNativeSkeleton()}catch(e){say(e.message)}});
+  $("rigCreatePreset").onclick=()=>{try{createFromPreset($("rigPreset").value)}catch(e){say(e.message)}};
+  $("rigAdoptSkeleton")?.addEventListener("click",()=>{try{adoptNativeSkeleton()}catch(e){say(e.message)}});
   $("rigAddBone").onclick=addBone;$("rigMirrorBone").onclick=mirrorSelected;$("rigDeleteBone").onclick=deleteSelected;$("rigRenameBone").onclick=renameSelected;
   $("rigBoneName").addEventListener("change",renameSelected);
   $("rigSaveJson").onclick=()=>{if(!state.root){say("Crie um rig antes de exportar.");return;}const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-rig.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);};
