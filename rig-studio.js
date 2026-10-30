@@ -193,6 +193,76 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     say("Esqueleto nativo conectado ao Rig Studio: "+bones.length+" ossos. A malha continua usando seu skinning original.");
     return bones.length;
   }
+  function inspectWeights(){
+    const target=state.target||getSelected?.();
+    if(!target)throw new Error("Selecione um modelo ou conecte seu esqueleto nativo antes do diagnóstico.");
+    const meshes=[];
+    target.traverse?.(o=>{if(o.isSkinnedMesh)meshes.push(o);});
+    if(!meshes.length){
+      const plain=[];target.traverse?.(o=>{if(o.isMesh)plain.push(o);});
+      return {meshes:plain.length,skinned:0,weightedVertices:0,bones:[],details:plain.map(m=>({name:m.name||"Malha sem nome",vertices:m.geometry?.attributes?.position?.count||0,skinned:false}))};
+    }
+    const boneStats=new Map();
+    let weightedVertices=0,totalVertices=0,invalidWeights=0,unmappedInfluences=0;
+    const details=[];
+    for(const mesh of meshes){
+      const geometry=mesh.geometry,indices=geometry?.attributes?.skinIndex,weights=geometry?.attributes?.skinWeight;
+      const positions=geometry?.attributes?.position;
+      const vertexCount=positions?.count||0;totalVertices+=vertexCount;
+      if(!indices||!weights||indices.count!==weights.count){
+        details.push({name:mesh.name||"SkinnedMesh sem nome",vertices:vertexCount,skinned:false,reason:"Atributos skinIndex/skinWeight ausentes ou incompatíveis"});
+        continue;
+      }
+      const bones=mesh.skeleton?.bones||[];
+      const localCounts=new Map();let localWeighted=0;
+      for(let v=0;v<Math.min(vertexCount,indices.count,weights.count);v++){
+        let sum=0,hasWeight=false;
+        for(let k=0;k<4;k++){
+          const weight=weights.getComponent(v,k),index=indices.getComponent(v,k);
+          if(!Number.isFinite(weight)||weight<0){invalidWeights++;continue;}
+          sum+=weight;
+          if(weight>1e-5){
+            hasWeight=true;
+            const bone=bones[index];
+            if(!bone){unmappedInfluences++;continue;}
+            const id=bone.userData?.berofelBoneId||bone.name||("bone-index-"+index);
+            let stat=boneStats.get(id);
+            if(!stat){stat={id,name:bone.name||id,vertices:0,totalWeight:0,influences:0};boneStats.set(id,stat);}
+            stat.vertices++;stat.totalWeight+=weight;stat.influences++;
+            localCounts.set(id,(localCounts.get(id)||0)+1);
+          }
+        }
+        if(hasWeight)localWeighted++;
+        if(sum>1.05||sum<.95)invalidWeights++;
+      }
+      weightedVertices+=localWeighted;
+      details.push({name:mesh.name||"SkinnedMesh sem nome",vertices:vertexCount,weightedVertices:localWeighted,skinned:true,boneCount:bones.length});
+    }
+    const bones=[...boneStats.values()].sort((a,b)=>b.vertices-a.vertices).map(s=>({...s,averageWeight:s.totalWeight/Math.max(1,s.influences)}));
+    return {meshes:meshes.length,skinned:meshes.length,weightedVertices,totalVertices,invalidWeights,unmappedInfluences,bones,details};
+  }
+  function showWeightReport(){
+    const output=$("rigWeightStatus");
+    try{
+      const report=inspectWeights();
+      if(!output)return report;
+      if(!report.skinned){
+        output.textContent=report.meshes
+          ? "Diagnóstico: "+report.meshes+" malha(s) sem skinning. Nenhum peso foi criado ou alterado. Próxima etapa: associar vértices aos ossos manualmente."
+          : "Nenhuma malha encontrada no modelo selecionado.";
+        return report;
+      }
+      const percent=report.totalVertices?100*report.weightedVertices/report.totalVertices:0;
+      const lines=["Diagnóstico somente leitura — nenhum peso foi modificado.",
+        report.skinned+" SkinnedMesh; "+report.weightedVertices+"/"+report.totalVertices+" vértices com influência ("+percent.toFixed(1)+"%).",
+        "Influências inválidas/somas fora de 0,95–1,05: "+report.invalidWeights+"; índices sem osso correspondente: "+report.unmappedInfluences+".",
+        "Influências por osso (vértices / peso médio):"];
+      for(const bone of report.bones)lines.push("• "+bone.name+": "+bone.vertices+" / "+bone.averageWeight.toFixed(3));
+      for(const mesh of report.details)lines.push("• Malha "+mesh.name+": "+(mesh.weightedVertices??0)+"/"+mesh.vertices+" vértices; "+(mesh.skinned?mesh.boneCount+" ossos":"sem atributos de skinning"));
+      output.textContent=lines.join("\\n");
+      return report;
+    }catch(err){if(output)output.textContent="Falha no diagnóstico: "+err.message;throw err;}
+  }
   function createFromPreset(key){
     const target=attachTarget();clearRig();state.target=target;
     state.root=new THREE.Group();state.ownsRoot=true;state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;state.root.userData.berofelSkeletonId="skeleton-"+makeStableId();target.add(state.root);
@@ -293,5 +363,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  $("rigInspectWeights")?.addEventListener("click",()=>{try{showWeightReport()}catch(e){say(e.message)}});\n  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
