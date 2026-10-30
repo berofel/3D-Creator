@@ -187,7 +187,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
         if(item.quaternion)bone.quaternion.fromArray(item.quaternion);
         else if(item.rotation)bone.rotation.set(...item.rotation);
         bone.scale.fromArray(item.scale||[1,1,1]);parent.add(bone);
-        map.set(item.id,bone);state.bones.push(bone);pending.splice(i,1);progress=true;
+        map.set(item.id||item.name,bone);state.bones.push(bone);pending.splice(i,1);progress=true;
       }
       if(!progress)throw new Error("A hierarquia contém um osso sem pai válido ou uma dependência circular.");
     }
