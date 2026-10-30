@@ -1,0 +1,19 @@
+// Armazenamento local de poses por IDs estáveis de osso.
+export function createFrameManager({getBones,onPoseApplied=()=>{},onChange=()=>{}}={}) {
+  let frames=[],selectedId=null,nextId=1;const $=id=>document.getElementById(id);
+  const clone=v=>JSON.parse(JSON.stringify(v));
+  function capture(label){const bones=getBones?.()||[];if(!bones.length)throw new Error("Crie um esqueleto antes de salvar um quadro.");return{id:"frame-"+(nextId++),label:label||("Frame "+(frames.length+1)),duration:.5,pose:bones.map(b=>({boneId:b.userData.berofelBoneId,position:b.position.toArray(),quaternion:b.quaternion.toArray(),scale:b.scale.toArray()}))};}
+  function apply(frame){const map=new Map((getBones?.()||[]).map(b=>[b.userData.berofelBoneId,b]));let n=0;for(const p of frame.pose||[]){const b=map.get(p.boneId);if(!b)continue;b.position.fromArray(p.position);b.quaternion.fromArray(p.quaternion);b.scale.fromArray(p.scale);b.updateMatrix();n++;}onPoseApplied();return n;}
+  function persist(){try{localStorage.setItem("berofel.motion.frames.v1",JSON.stringify({version:1,nextId,frames}));}catch(e){console.warn("Falha ao salvar quadros",e);}}
+  function render(){const box=$("frameList");if(!box)return;box.replaceChildren();for(const f of frames){const card=document.createElement("div");card.className="frame-card"+(f.id===selectedId?" active":"");const b=document.createElement("button");b.type="button";b.className="frame-select";b.textContent=f.label;b.onclick=()=>{selectedId=f.id;apply(f);render();};const d=document.createElement("button");d.type="button";d.textContent="⧉";d.title="Duplicar";d.onclick=()=>duplicate(f.id);card.append(b,d);box.append(card);}const count=$("frameCount");if(count)count.textContent=frames.length+" quadros";const del=$("frameDelete");if(del)del.disabled=frames.length<2||!selectedId;onChange(frames);}
+  function add(){const f=capture();frames.push(f);selectedId=f.id;render();persist();}
+  function duplicate(id=selectedId){const f=frames.find(x=>x.id===id);if(!f)return;const c=clone(f);c.id="frame-"+(nextId++);c.label="Frame "+(frames.length+1);frames.splice(frames.indexOf(f)+1,0,c);selectedId=c.id;render();persist();}
+  function remove(){if(frames.length<2)return;const i=frames.findIndex(x=>x.id===selectedId);if(i<0)return;frames.splice(i,1);selectedId=frames[Math.max(0,i-1)].id;render();persist();}
+  function updateCurrent(){const f=frames.find(x=>x.id===selectedId);if(!f)return;f.pose=capture(f.label).pose;render();persist();}
+  function exportData(){return{format:"BerofelMotionFrames",version:1,frames:clone(frames)};}
+  $("frameAdd")?.addEventListener("click",()=>{try{add();$("frameStatus").textContent="Pose salva."; }catch(e){$("frameStatus").textContent=e.message;}});
+  $("frameDuplicate")?.addEventListener("click",()=>duplicate());$("frameDelete")?.addEventListener("click",remove);$("frameUpdate")?.addEventListener("click",updateCurrent);
+  $("frameExport")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-poses.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
+  try{const s=JSON.parse(localStorage.getItem("berofel.motion.frames.v1")||"null");if(s?.version===1&&Array.isArray(s.frames)){frames=s.frames;nextId=s.nextId||1;selectedId=frames[0]?.id||null;}}catch{}render();
+  return{add,duplicate,remove,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
+}
