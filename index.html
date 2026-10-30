@@ -77,7 +77,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <label for="rigBoneName">Nome do osso selecionado</label><input id="rigBoneName" placeholder="Ex.: Femur_D">
 <div class="grid"><button id="rigRenameBone">Renomear</button><button id="rigRotateMode">Girar osso</button><button id="rigMoveMode">Mover osso</button><button id="rigClear">Remover rig</button><button id="rigToggleVisual" class="wide">Ocultar silhueta</button></div>
 <div class="hint" id="rigBoneCount">0 ossos</div><div id="rigBoneList" class="part-list"></div>
-<button id="rigSaveJson" class="wide">Exportar hierarquia (.JSON)</button><div id="rigStudioStatus" class="status">Rig Studio pronto.</div>
+<button id="rigSaveJson" class="wide">Exportar hierarquia (.JSON)</button><button id="rigImportJson" class="wide">Importar hierarquia (.JSON)</button><input id="rigImportFile" type="file" accept=".json,application/json" hidden><div id="rigStudioStatus" class="status">Rig Studio pronto.</div>
 <div class="section" id="frameEditor"><h2>QUADROS DE POSE</h2>
 <p class="hint">Posicione os ossos na viewport e salve cada pose. Cada quadro registra posição, rotação e escala locais usando IDs permanentes.</p>
 <div class="grid"><button id="frameAdd" class="primary">＋ Novo quadro</button><button id="frameUpdate">Atualizar pose</button><button id="frameDuplicate">Duplicar</button><button id="frameDelete">Excluir</button></div>
@@ -1559,6 +1559,9 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 const rigStudio=createRigStudio({THREE,scene,transform,getSelected:()=>selected,say});
+$("rigImportJson")?.addEventListener("click",()=>$("rigImportFile")?.click());
+$("rigImportFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());const count=rigStudio.importData(data);say("Rig importado: "+count+" ossos. As identidades originais foram preservadas.");}catch(err){say("Falha ao importar rig: "+(err?.message||err));}finally{e.target.value="";}});
+
 const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,onPoseApplied:()=>rigStudio.update(),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{rigStudio.update();const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
