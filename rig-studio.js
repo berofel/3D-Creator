@@ -12,7 +12,15 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     dragon: {label:"Dragão", bones:[["Root",null,[0,0,0]],["Coluna",0,[0,.7,0]],["Peito",1,[0,.15,.4]],["Pescoço",2,[0,.08,.4]],["Cabeça",3,[0,0,.32]],["Quadril",1,[0,0,-.42]],["Cauda_01",5,[0,0,-.38]],["Cauda_02",6,[0,0,-.38]],["Asa_E",2,[-.3,.12,0]],["Asa_E_Ponta",8,[-.55,0,-.08]],["Asa_D",2,[.3,.12,0]],["Asa_D_Ponta",10,[.55,0,-.08]],["Perna_E",5,[-.2,-.35,-.05]],["Canela_E",12,[0,-.35,0]],["Perna_D",5,[.2,-.35,-.05]],["Canela_D",14,[0,-.35,0]]]}
   };
   function clearRig(){
-    rebuildHelper();
+    if(state.helper?.parent)state.helper.parent.remove(state.helper);
+    if(state.helper?.geometry)state.helper.geometry.dispose();
+    if(state.helper?.material){if(Array.isArray(state.helper.material))state.helper.material.forEach(m=>m.dispose());else state.helper.material.dispose();}
+    if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot);
+    if(state.visualRoot){
+      const geometries=new Set(),materials=new Set();
+      state.visualRoot.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));});
+      geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
+    }
     if(state.root?.parent) state.root.parent.remove(state.root);
     if(state.helper?.parent)state.helper.parent.remove(state.helper);
     state.root=null; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
