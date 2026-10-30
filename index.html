@@ -51,9 +51,10 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <div class="compact-select"><span class="tool-caption">ANIMAÇÃO</span><select id="quickAnimation" aria-label="Animação da criatura selecionada"><option value="idle">Respirar</option><option value="walk">Caminhar</option><option value="gallop">Correr</option><option value="chop">Cortar árvore</option><option value="stop">Parar</option></select><button id="quickAnimationPlay">▶</button></div>
 </div></main><aside class="side">
 <div class="section"><h2>PROJETO NO GITHUB</h2><p class="hint">Salve a cena 3D completa diretamente no repositório berofel/3D-Creator. O arquivo GLB preserva hierarquia, geometria, materiais e texturas. Depois do envio, posso abrir esse mesmo arquivo pelo GitHub para continuar a edição.</p><label for="githubToken">Token de acesso do GitHub (não é salvo)</label><input id="githubToken" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_... ou github_pat_..."><label for="githubCategory">Pasta do modelo</label><select id="githubCategory" class="wide"><option value="Animais">Animais</option><option value="Formas-geometricas-e-anatomia">Formas geométricas e anatomia</option><option value="Humanoides">Humanoides</option><option value="Ferramentas-e-armas">Ferramentas e armas</option><option value="Ambiente">Ambiente</option></select><button id="saveGitHubProject" class="wide primary">Salvar modelo no GitHub</button><div id="githubSaveStatus" class="status">Ainda não enviado ao GitHub.</div><p class="hint">Crie um Fine-grained personal access token limitado ao repositório 3D-Creator, com Contents: Read and write. O token fica apenas na memória desta aba e desaparece ao recarregar a página. Não o envie no chat.</p></div>
+<div class="section"><h2>BIBLIOTECA DO GITHUB</h2><p class="hint">Os modelos salvos no GitHub aparecem aqui na categoria escolhida. Selecione um item para carregá-lo na cena.</p><button id="refreshGitHubLibrary" class="wide">↻ Atualizar biblioteca</button><div id="githubLibraryList" class="status">Biblioteca ainda não carregada.</div></div>
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
-<details class="add-group" open><summary>Importar modelo GLB / preparar Rig</summary><div class="group-content"><p class="hint">Importe qualquer criatura em .GLB para a cena. Depois salve um pacote de preparação e envie esse pacote para análise e criação do Rig de movimento.</p><button id="importAnyGLB" class="wide primary">＋ Importar modelo 3D (.GLB)</button><input id="anyModelFile" type="file" accept=".glb,model/gltf-binary" hidden><label for="rigPackageName">Nome do arquivo</label><input id="rigPackageName" type="text" value="modelo_para_rig" maxlength="64" placeholder="Ex.: onca_pintada"><label for="rigPackageCategory">Categoria / pasta</label><select id="rigPackageCategory" class="wide"><option value="Animais">Animais</option><option value="Formas geometricas e anatomia">Formas geométricas e anatomia</option><option value="Humanoides">Humanoides</option><option value="Ferramentas e armas">Ferramentas e armas</option><option value="Ambiente">Ambiente</option></select><button id="chooseRigFolder" class="wide">Escolher pasta de destino</button><div id="rigFolderStatus" class="hint">Destino: será solicitado ao salvar, se o navegador permitir.</div><button id="saveRigPackage" class="wide primary">Salvar pacote para aplicar Rig (.ZIP)</button><div id="rigPackageStatus" class="status">Nenhum modelo importado nesta sessão.</div><p class="hint">O pacote inclui o GLB preservando a hierarquia, materiais e texturas exportáveis, além de um manifesto com informações para preparar o esqueleto e as animações. O Rig será aplicado em uma etapa posterior, após inspecionar o modelo.</p></div></details><details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Importar minha onça (.GLB)</button><input id="jaguarModelFile" type="file" accept=".glb,model/gltf-binary" hidden><button id="jaguarProceduralPreset" class="wide">＋ Onça procedural (base)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
+<details class="add-group" open><summary>Importar modelo GLB / preparar Rig</summary><div class="group-content"><p class="hint">Importe qualquer criatura em .GLB para a cena. Depois salve um pacote de preparação e envie esse pacote para análise e criação do Rig de movimento.</p><button id="importAnyGLB" class="wide primary">＋ Importar modelo 3D (.GLB)</button><input id="anyModelFile" type="file" accept=".glb,model/gltf-binary" hidden><label for="rigPackageName">Nome do arquivo</label><input id="rigPackageName" type="text" value="modelo_para_rig" maxlength="64" placeholder="Ex.: onca_pintada"><label for="rigPackageCategory">Categoria / pasta</label><select id="rigPackageCategory" class="wide"><option value="Animais">Animais</option><option value="Formas geometricas e anatomia">Formas geométricas e anatomia</option><option value="Humanoides">Humanoides</option><option value="Ferramentas e armas">Ferramentas e armas</option><option value="Ambiente">Ambiente</option></select><button id="chooseRigFolder" class="wide">Escolher pasta de destino</button><div id="rigFolderStatus" class="hint">Destino: será solicitado ao salvar, se o navegador permitir.</div><button id="saveRigPackage" class="wide primary">Salvar pacote para aplicar Rig (.ZIP)</button><div id="rigPackageStatus" class="status">Nenhum modelo importado nesta sessão.</div><p class="hint">O pacote inclui o GLB preservando a hierarquia, materiais e texturas exportáveis, além de um manifesto com informações para preparar o esqueleto e as animações. O Rig será aplicado em uma etapa posterior, após inspecionar o modelo.</p></div></details><details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Importar a onça</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
 <details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
 <details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
 <details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
@@ -880,8 +881,8 @@ function updateJaguarRig(){
  }
 }
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");
-$("jaguarPreset").onclick=()=> $("jaguarModelFile").click();
-$("jaguarProceduralPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada (procedural)");
+$("jaguarPreset").onclick=()=>loadGitHubModel("Animais","nc_a.glb");
+// O preset procedural antigo permanece no código como backup, mas não é oferecido na interface.
 async function importJaguarGLB(file){
  if(!file)return;
  say("Importando modelo original da onça…");
@@ -934,7 +935,6 @@ async function importJaguarGLB(file){
   scene.add(wrapper);
   elementRoots.push(wrapper);
   model.traverse(object=>{if(object.isMesh)parts.push(object)});
-  window.__berofelJaguarRigs=[];
   $("name").value=file.name.replace(/\.glb$/i,"").slice(0,48)||"Modelo importado";
   const finalBounds=new THREE.Box3().setFromObject(wrapper);
   const target=finalBounds.getCenter(new THREE.Vector3());
@@ -952,7 +952,7 @@ async function importJaguarGLB(file){
   say("Não foi possível importar o modelo: "+String(error?.message||error).slice(0,220));
  }
 }
-$("jaguarModelFile").onchange=event=>{const file=event.target.files?.[0];importJaguarGLB(file);event.target.value=""};
+
 $("importAnyGLB").onclick=()=> $("anyModelFile").click();
 $("anyModelFile").onchange=event=>{const file=event.target.files?.[0];importJaguarGLB(file);event.target.value=""};
 let rigDestinationHandle=null;let rigDestinationLabel="";
@@ -1091,6 +1091,7 @@ async function saveSceneToGitHub(){
   if(!response.ok)throw new Error("GitHub ("+response.status+"): "+(result.message||response.statusText));
   const commit=result.commit?.sha||"commit criado";
   status.textContent="Salvo no GitHub! "+path+" • "+(blob.size/1024/1024).toFixed(2)+" MB • commit "+String(commit).slice(0,10);
+  await refreshGitHubLibrary();
   say("Modelo salvo no repositório GitHub. Posso acessar o arquivo "+path+" para continuar a edição.");
   $("githubToken").value="";
  }catch(error){
@@ -1099,6 +1100,39 @@ async function saveSceneToGitHub(){
  }finally{githubSaveBusy=false;button.disabled=false}
 }
 $("saveGitHubProject").onclick=saveSceneToGitHub;
+
+async function refreshGitHubLibrary(){
+ const category=$("githubCategory").value,list=$("githubLibraryList");
+ list.textContent="Consultando modelos de "+category+"…";
+ try{
+  const url="https://api.github.com/repos/berofel/3D-Creator/contents/modelos/"+encodeURIComponent(category)+"?ref=main";
+  const response=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
+  if(response.status===404){list.textContent="Ainda não há modelos nesta categoria.";return}
+  if(!response.ok)throw new Error("GitHub ("+response.status+")");
+  const files=(await response.json()).filter(x=>x.type==="file"&&/\.glb$/i.test(x.name));
+  list.replaceChildren();
+  if(!files.length){list.textContent="Nenhum modelo GLB nesta categoria.";return}
+  for(const item of files){
+   const row=document.createElement("div");row.className="library-item";
+   const button=document.createElement("button");button.className="wide";button.textContent="＋ "+item.name;
+   button.onclick=()=>loadGitHubModel(category,item.name,item.download_url);
+   row.appendChild(button);list.appendChild(row);
+  }
+ }catch(error){list.textContent="Não foi possível carregar a biblioteca: "+String(error.message||error)}
+}
+async function loadGitHubModel(category,filename,downloadUrl){
+ try{
+  say("Baixando "+filename+" da biblioteca do GitHub…");
+  const url=downloadUrl||("https://raw.githubusercontent.com/berofel/3D-Creator/main/modelos/"+encodeURIComponent(category)+"/"+encodeURIComponent(filename));
+  const response=await fetch(url);if(!response.ok)throw new Error("Download HTTP "+response.status);
+  const blob=await response.blob();
+  const file=new File([blob],filename,{type:"model/gltf-binary"});
+  await importJaguarGLB(file);
+ }catch(error){say("Falha ao carregar modelo: "+String(error.message||error))}
+}
+$("refreshGitHubLibrary").onclick=refreshGitHubLibrary;
+$("githubCategory").onchange=refreshGitHubLibrary;
+
 
 $("open").onclick=()=>$("file").click();$("file").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());clear();$("name").value=d.name||"Criatura_importada";for(const p of d.parts||[]){const m=make(p.type||"body",p.position||[0,1,0],p.scale||[1,1,1],p.color||"#65a8a1",p.name);if(p.rotation)m.rotation.fromArray(p.rotation)}say("JSON carregado.")}catch(err){say("Não foi possível abrir esse JSON.")}e.target.value=""};
 
@@ -1379,7 +1413,9 @@ window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma 
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
- requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
+ requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=251",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=253",{updateViaCache:"none"}).catch(()=>{});
+// A biblioteca é carregada automaticamente ao abrir o editor.
+requestAnimationFrame(()=>refreshGitHubLibrary());
 </script></body></html>
