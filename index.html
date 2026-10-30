@@ -909,7 +909,7 @@ async function importJaguarGLB(file){
    }
   });
   if(!meshCount)throw new Error("O GLB não contém objetos de malha compatíveis.");
-  const previous=elementRoots.filter(root=>/onça-pintada/i.test(root.userData?.elementLabel||root.name||""));
+  const previous=elementRoots.filter(root=>/(onça-pintada|onça original)/i.test(root.userData?.elementLabel||root.name||""));
   for(const oldRoot of previous){
    const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
    if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
