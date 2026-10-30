@@ -28,6 +28,19 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     $("rigPlaceBone")?.classList.remove("active-tool");
     renderTree(); $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
   }
+  function inspectTarget(target=state.target){
+    const info={meshes:0,skinnedMeshes:0,existingBones:0};
+    if(target)target.traverse?.(o=>{if(o.isMesh)info.meshes++;if(o.isSkinnedMesh){info.skinnedMeshes++;info.existingBones+=o.skeleton?.bones?.length||0;}});
+    return info;
+  }
+  function updateBindingStatus(){
+    const info=inspectTarget();
+    const status=$("rigBindingStatus");
+    if(status)status.textContent=info.skinnedMeshes
+      ? info.skinnedMeshes+" malha(s) já possuem skinning e "+info.existingBones+" osso(s) nativo(s). O rig visual criado aqui ainda não substitui nem altera esse esqueleto."
+      : info.meshes+" malha(s) detectadas. Este rig é uma estrutura de pose visual; a deformação da malha ainda não foi vinculada.";
+    return info;
+  }
   function attachTarget(){
     const chosen=getSelected?.();
     if(!chosen) throw new Error("Selecione primeiro o modelo ou a criatura na viewport.");
@@ -160,7 +173,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     state.root=new THREE.Group();state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;state.root.userData.berofelSkeletonId="skeleton-"+makeStableId();target.add(state.root);
     const map=[];
     for(const [name,parent,pos] of presets[key].bones){map.push(makeBone(name,parent===null?state.root:map[parent],pos));}
-    rebuildHelper();selectBone(map[0]);say("Preset "+presets[key].label+" criado. Ajuste os ossos manualmente; a malha original não foi deformada.");
+    rebuildHelper();selectBone(map[0]);const info=updateBindingStatus();say("Preset "+presets[key].label+" criado. "+info.meshes+" malha(s) detectadas; "+info.skinnedMeshes+" com skinning nativo. O rig visual não altera a malha.");
   }
   function addBone(){
     if(!state.root){createFromPreset("feline");return;}
@@ -224,7 +237,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       }
       if(!progress)throw new Error("A hierarquia contém um osso sem pai válido ou uma dependência circular.");
     }
-    rebuildHelper();selectBone(state.bones[0]||null);return state.bones.length;
+    rebuildHelper();selectBone(state.bones[0]||null);updateBindingStatus();return state.bones.length;
   }
   function exportData(){
     return {
@@ -254,5 +267,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),importData,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
