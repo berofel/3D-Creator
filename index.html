@@ -529,62 +529,74 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
- // Formas de pele traseira inspiradas somente na ficha técnica interna.
- // A silhueta é uma peça curva e contínua; não cria ossos, pivôs ou pesos.
- const rearThighGeometry=()=>{
-  const sh=new THREE.Shape();
-  sh.moveTo(-.28,-.50);
-  sh.bezierCurveTo(-.42,-.34,-.43,-.08,-.34,.18);
-  sh.bezierCurveTo(-.31,.40,-.19,.51,-.02,.50);
-  sh.bezierCurveTo(.20,.49,.34,.34,.36,.13);
-  sh.bezierCurveTo(.37,-.08,.25,-.28,.16,-.50);
-  sh.lineTo(-.28,-.50);sh.closePath();
-  const g=new THREE.ExtrudeGeometry(sh,{depth:.34,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.035,bevelThickness:.025});
-  g.translate(0,0,-.17);g.computeVertexNormals();return g;
- };
- const rearShinGeometry=()=>{
-  const sh=new THREE.Shape();
-  sh.moveTo(-.22,-.50);
-  sh.bezierCurveTo(-.27,-.28,-.19,-.05,-.13,.16);
-  sh.bezierCurveTo(-.09,.36,-.02,.49,.08,.50);
-  sh.bezierCurveTo(.20,.42,.20,.22,.15,.04);
-  sh.bezierCurveTo(.10,-.17,.17,-.36,.12,-.50);
-  sh.lineTo(-.22,-.50);sh.closePath();
-  const g=new THREE.ExtrudeGeometry(sh,{depth:.23,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.022,bevelThickness:.018});
-  g.translate(0,0,-.115);g.computeVertexNormals();return g;
- };
- // Rig anatômico simplificado: exatamente três blocos funcionais por pata.
- // Dianteira: ombro + braço único + pata. Traseira: fêmur + segmento inferior único + pata.
- const legs=[];
- const specs=[
-  {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
-  {side:-1,z:-.12,phase:Math.PI,hind:true},{side:1,z:-.12,phase:0,hind:true}
+ // Coxa e perna traseira: primeiro define-se um único volume anatômico 3D,
+ // depois ele é dividido exatamente no joelho para acompanhar os pivôs existentes.
+ // As seções controlam largura X e profundidade Z independentemente: não é extrusão plana.
+ const hindLegProfile=[
+  {y:.10,x:.015,rx:.205,rz:.205,z:-.015},
+  {y:-.04,x:.025,rx:.255,rz:.235,z:-.005},
+  {y:-.20,x:.045,rx:.285,rz:.245,z:.005},
+  {y:-.38,x:.055,rx:.275,rz:.235,z:.018},
+  {y:-.55,x:.035,rx:.235,rz:.205,z:.030},
+  {y:-.70,x:.010,rx:.190,rz:.175,z:.045},
+  {y:-.82,x:0,rx:.155,rz:.155,z:.055},
+  {y:-.91,x:-.008,rx:.166,rz:.158,z:.075},
+  {y:-1.02,x:-.018,rx:.174,rz:.162,z:.095},
+  {y:-1.12,x:-.012,rx:.145,rz:.145,z:.105},
+  {y:-1.22,x:0,rx:.112,rz:.125,z:.115}
  ];
- for(const q of specs){
-  const parent=q.hind?rump:body;
-  const pivotPos=q.hind?[q.side*.29,-.18,q.z]:[q.side*.30,1.14,q.z];
-  const pivotName=(q.hind?"Pivô do fêmur traseiro ":"Pivô do ombro dianteiro ")+(q.side<0?"esquerdo":"direito");
-  const scapula=q.hind?null:group(parent,pivotPos,pivotName);
-  // A pata traseira ganha um eixo intermediário de translação diagonal.
-  // O eixo move a origem da articulação em Y/Z; o fêmur gira dentro dele,
-  // evitando que a própria posição do pivô seja arrastada por sua rotação.
-  const hindAxis=q.hind?group(parent,pivotPos,"Eixo diagonal da pata traseira "+(q.side<0?"esquerda":"direita")):null;
-  const hip=q.hind?group(hindAxis,[0,0,0],pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
-  let knee=null,elbow=null,hock=null,forearmMesh=null;
-  if(q.hind){
-   // Fêmur traseiro alongado usando a mesma geometria esculpida e a mesma largura.
-   // O joelho desce junto; o segmento inferior fica mais curto sem alterar o alcance final da pata.
-   // Perfil espelhado em X: a saliência anatômica fica voltada para fora nos dois lados.
-   // Fêmur alongado sem engrossar, afinando em direção ao joelho; alcance final da pata preservado.
-   const thigh=block(hip,"Pele curva — coxa traseira",[0,-.37,-.025],[.39,1.00,.34],COAT3,"sculpt_thigh",[.34,0,q.side*.018]);
-   thigh.geometry.dispose();thigh.geometry=rearThighGeometry();
-   thigh.scale.x*=q.side;
+ const loftValue=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
+ const sampleHindProfile=y=>{
+  let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
+  const a=hindLegProfile[Math.max(0,i-1)],b=hindLegProfile[i],c=hindLegProfile[i+1],d=hindLegProfile[Math.min(hindLegProfile.length-1,i+2)];
+  const t=THREE.MathUtils.clamp((y-b.y)/(c.y-b.y),0,1);
+  return {y,x:loftValue(a.x,b.x,c.x,d.x,t),rx:Math.max(.08,loftValue(a.rx,b.rx,c.rx,d.rx,t)),rz:Math.max(.08,loftValue(a.rz,b.rz,c.rz,d.rz,t)),z:loftValue(a.z,b.z,c.z,d.z,t)};
+ };
+ const createHindLegSegment=(fromY,toY,side,materialColor)=>{
+  const ringCount=14,sides=12,positions=[],indices=[];
+  const rings=[];
+  for(let i=0;i<=ringCount;i++){
+   const y=THREE.MathUtils.lerp(fromY,toY,i/ringCount),s=sampleHindProfile(y);
+   rings.push(s);
+   for(let j=0;j<sides;j++){
+    const a=j/sides*Math.PI*2+Math.PI/12;
+    // Superelipse de seção facetada; a massa lateral é mais cheia que a frente.
+    const sx=Math.sign(Math.cos(a))*Math.pow(Math.abs(Math.cos(a)),.78);
+    const sz=Math.sign(Math.sin(a))*Math.pow(Math.abs(Math.sin(a)),.78);
+    positions.push(side*s.x+sx*s.rx,y,s.z+sz*s.rz);
+   }
+  }
+  for(let r=0;r<ringCount;r++)for(let j=0;j<sides;j++){
+   const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
+   indices.push(a,c,b,b,c,d);
+  }
+  // Tampas fechadas no quadril e no corte do joelho/tornozelo.
+  for(const end of [0,ringCount]){
+   const s=rings[end],center=positions.length/3;
+   positions.push(side*s.x,s.y,s.z);
+   const base=end*sides;
+   for(let j=0;j<sides;j++){
+    const a=base+j,b=base+(j+1)%sides;
+    if(end===0)indices.push(center,b,a);else indices.push(center,a,b);
+   }
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
+  geo.setIndex(indices);geo.computeVertexNormals();
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.94,flatShading:true}));
+  mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
+ };
+ // Os dois segmentos são amostras contíguas do MESMO perfil, sem alterar os pivôs.
+  const thigh=createHindLegSegment(.10,-.82,q.side,COAT3);
+   thigh.name="Volume esculpido contínuo — coxa traseira";
+   thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
+   hip.add(thigh);
    knee=group(hip,[0,-.82,-.105],"Bloco 2 — segmento inferior traseiro");
-   // Segmento de ligação um pouco mais encorpado; o pivô da pata acompanha
-   // a extremidade real da peça para eliminar o vão e elevar a pata.
-   const shin=block(knee,"Pele curva — perna inferior traseira",[0,-.20,.045],[.24,.40,.23],COAT3,"sculpt_shin",[-.12,0,q.side*.012]);
-   shin.geometry.dispose();shin.geometry=rearShinGeometry();
-   shin.scale.x*=q.side;
+   const shin=createHindLegSegment(0,-.40,q.side,COAT3);
+   shin.name="Volume esculpido contínuo — perna inferior traseira";
+   shin.userData={anatomicalSegment:"lower",sharedSculptProfile:true};
+   knee.add(shin);
+
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
    // Braço dianteiro único e reto, como no vídeo: ombro largo, sem cotovelo.
