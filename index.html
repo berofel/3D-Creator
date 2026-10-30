@@ -536,16 +536,15 @@ function jaguarPreset(){
  // Escultura traseira angular: perfil de planos retos e chanfros diagonais.
  // Estações lineares mantêm quebras de plano e evitam o aspecto de tubo/amendoim.
  const hindLegProfile=[
-  // Coxa mais curta visualmente e com mais volume lateral para acompanhar a anca.
-  {y:.10,x:.006,rx:.1025,rz:.190,z:-.018},
-  {y:-.075,x:.018,rx:.135,rz:.225,z:-.008},
-  {y:-.360,x:.025,rx:.1425,rz:.235,z:-.035},
-  {y:-.620,x:-.002,rx:.105,rz:.205,z:-.145},
-  {y:-.820,x:-.018,rx:.066,rz:.145,z:-.215},
-  // Conector inferior permanece mais estreito e separado da massa da coxa.
-  {y:-.960,x:-.020,rx:.071,rz:.135,z:-.198},
-  {y:-1.135,x:-.008,rx:.0625,rz:.125,z:-.176},
-  {y:-1.220,x:0,rx:.0525,rz:.115,z:-.165}
+  // Poucas seções longas: planos diagonais contínuos entre as mudanças anatômicas.
+  // A coxa mantém volume até a primeira quebra; depois afunila em planos largos.
+  {y:.10,x:.006,rx:.105,rz:.190,z:-.018},
+  {y:-.30,x:.022,rx:.140,rz:.230,z:-.020},
+  // Transição diagonal longa até o joelho, sem anéis intermediários.
+  {y:-.82,x:-.018,rx:.066,rz:.145,z:-.215},
+  // Abaixo do joelho, novo bloco mais estreito e inclinado até o tornozelo.
+  {y:-.98,x:-.020,rx:.070,rz:.132,z:-.198},
+  {y:-1.22,x:0,rx:.052,rz:.115,z:-.165}
  ];
  const sampleHindProfile=y=>{
   let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
@@ -560,7 +559,7 @@ function jaguarPreset(){
   if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
   for(const p of stations){
    rings.push(p);
-   // Seção retangular de seis faces, com chanfros mínimos e quinas mais vivas.
+   // Seção prismática de cinco faces úteis: menos cortes transversais e planos diagonais maiores.
    const cutX=p.rx*.025,cutZ=p.rz*.025;
    const corners=[
     [-p.rx,-p.rz],
