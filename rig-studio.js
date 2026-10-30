@@ -83,5 +83,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigRotateMode").onclick=()=>{if(state.selected&&transform)transform.setMode("rotate")};
   $("rigMoveMode").onclick=()=>{if(state.selected&&transform)transform.setMode("translate")};
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData};
+  return {clear:clearRig,getState:()=>state,exportData,update:()=>{if(state.helper)state.helper.update();}};
 }
