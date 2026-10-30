@@ -73,11 +73,11 @@ let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBas
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
 function sculptBlockGeometry(kind){
  const profiles={
-  // Três perfis retangulares em degraus: topo largo, laterais planas
-  // convergindo em direção à barriga e base inferior reta/quadrada.
-  torso_front:[[-.36,-.50],[.36,-.50],[.47,-.34],[.50,.50],[-.50,.50],[-.47,-.34]],
-  torso_mid:[[-.35,-.50],[.35,-.50],[.46,-.34],[.49,.50],[-.49,.50],[-.46,-.34]],
-  torso_rear:[[-.34,-.50],[.34,-.50],[.45,-.34],[.48,.50],[-.48,.50],[-.45,-.34]],
+  // Seção simples de quatro lados: laterais quase retas e afunilamento contínuo,
+  // sem ombros largos nem degrau que crie uma silhueta em "T".
+  torso_front:[[-.47,-.50],[.47,-.50],[.50,.50],[-.50,.50]],
+  torso_mid:[[-.46,-.50],[.46,-.50],[.49,.50],[-.49,.50]],
+  torso_rear:[[-.45,-.50],[.45,-.50],[.48,.50],[-.48,.50]],
   chest:[[-.38,-.42],[.22,-.49],[.43,-.34],[.50,-.12],[.47,.29],[.30,.46],[-.25,.48],[-.46,.27],[-.49,-.18]],
   spine:[[-.31,-.43],[.25,-.45],[.43,-.25],[.38,.30],[.22,.45],[-.25,.42],[-.40,.20],[-.40,-.24]],
   rump:[[-.42,-.38],[.22,-.48],[.45,-.30],[.50,.16],[.37,.40],[.12,.49],[-.35,.39],[-.49,.12]],
@@ -423,21 +423,17 @@ function jaguarPreset(){
   // Cada seção controla separadamente a altura acima (up) e abaixo (down)
   // do eixo, evitando a seção simétrica de um tubo achatado.
   const sections=[
-   {z:1.02,y:1.53,rx:.16,up:.17,down:.19,c:COAT2},
-   {z:.88,y:1.52,rx:.29,up:.24,down:.27,c:COAT2},
-   {z:.69,y:1.50,rx:.41,up:.29,down:.33,c:COAT2},
-   {z:.46,y:1.49,rx:.46,up:.31,down:.35,c:COAT2},
-   {z:.22,y:1.475,rx:.38,up:.27,down:.34,c:COAT3},
-   {z:-.04,y:1.455,rx:.365,up:.245,down:.32,c:COAT3},
-   {z:-.30,y:1.445,rx:.365,up:.235,down:.31,c:COAT3},
-   {z:-.55,y:1.455,rx:.36,up:.245,down:.31,c:COAT3},
-   {z:-.72,y:1.485,rx:.36,up:.285,down:.33,c:COAT2},
-   {z:-.88,y:1.505,rx:.35,up:.30,down:.335,c:COAT2},
-   {z:-1.045,y:1.495,rx:.325,up:.275,down:.315,c:COAT2},
-   {z:-1.20,y:1.475,rx:.18,up:.16,down:.18,c:COAT2}
+   {z:1.02,y:1.51,rx:.24,up:.22,down:.23,c:COAT2},
+   {z:.76,y:1.49,rx:.39,up:.29,down:.31,c:COAT2},
+   {z:.43,y:1.475,rx:.415,up:.30,down:.32,c:COAT2},
+   {z:.12,y:1.46,rx:.405,up:.285,down:.315,c:COAT3},
+   {z:-.22,y:1.45,rx:.40,up:.275,down:.31,c:COAT3},
+   {z:-.55,y:1.46,rx:.40,up:.28,down:.31,c:COAT3},
+   {z:-.86,y:1.48,rx:.395,up:.29,down:.32,c:COAT2},
+   {z:-1.20,y:1.475,rx:.25,up:.22,down:.23,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
-  const rings=[],steps=2;
+  const rings=[],steps=1;
   for(let i=0;i<sections.length-1;i++){
    const a=sections[Math.max(0,i-1)],b=sections[i],c=sections[i+1],d=sections[Math.min(sections.length-1,i+2)];
    for(let k=0;k<steps;k++){
@@ -450,14 +446,14 @@ function jaguarPreset(){
    }
   }
   const last=sections[sections.length-1];rings.push({...last,color:new THREE.Color(last.c)});
-  const sides=8,positions=[],colors=[],indices=[];
+  const sides=6,positions=[],colors=[],indices=[];
   // Superelipse (expoente 4.2): quatro planos largos e cantos chanfrados.
   // Isso cria uma seção quase retangular sem quinas duras nem arredondamento cilíndrico.
   const signedPower=(v,p)=>Math.sign(v)*Math.pow(Math.abs(v),p);
   for(const s of rings)for(let j=0;j<sides;j++){
    const angle=(j/sides)*Math.PI*2+Math.PI/16;
-   const x=signedPower(Math.cos(angle),.62)*s.rx;
-   const vertical=signedPower(Math.sin(angle),.62);
+   const x=signedPower(Math.cos(angle),.78)*s.rx;
+   const vertical=signedPower(Math.sin(angle),.78);
    const y=vertical>=0?vertical*s.up:vertical*s.down;
    positions.push(x,s.y+y,s.z);
    colors.push(s.color.r,s.color.g,s.color.b);
@@ -489,9 +485,9 @@ function jaguarPreset(){
  const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.78,.64,.60],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
  // Tronco modular conforme a ficha técnica: três blocos independentes,
  // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
- block(body,"Bloco esculpido 1 — peitoral alto",[0,1.49,.43],[.91,.90,.78],COAT2,"sculpt_torso_front");
- block(body,"Bloco esculpido 2 — tronco intermediário",[0,1.40,-.18],[.76,.76,.68],COAT3,"sculpt_torso_mid");
- block(body,"Bloco esculpido 3 — quadril baixo",[0,1.34,-.79],[.72,.66,.68],COAT2,"sculpt_torso_rear");
+ block(body,"Bloco esculpido 1 — peitoral alto",[0,1.47,.43],[.84,.82,.78],COAT2,"sculpt_torso_front");
+ block(body,"Bloco esculpido 2 — tronco intermediário",[0,1.43,-.18],[.83,.80,.72],COAT3,"sculpt_torso_mid");
+ block(body,"Bloco esculpido 3 — quadril baixo",[0,1.40,-.79],[.82,.78,.72],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -1233,5 +1229,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=235",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=236",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
