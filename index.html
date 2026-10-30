@@ -529,9 +529,7 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
- // Coxa e perna traseira: primeiro define-se um único volume anatômico 3D,
- // depois ele é dividido exatamente no joelho para acompanhar os pivôs existentes.
- // As seções controlam largura X e profundidade Z independentemente: não é extrusão plana.
+ // Coxa e perna traseira: um único perfil anatômico 3D, dividido no joelho.
  const hindLegProfile=[
   {y:.10,x:.015,rx:.205,rz:.205,z:-.015},
   {y:-.04,x:.025,rx:.255,rz:.235,z:-.005},
@@ -548,46 +546,50 @@ function jaguarPreset(){
  const loftValue=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
  const sampleHindProfile=y=>{
   let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
-  const a=hindLegProfile[Math.max(0,i-1)],b=hindLegProfile[i],c=hindLegProfile[i+1],d=hindLegProfile[Math.min(hindLegProfile.length-1,i+2)];
-  const t=THREE.MathUtils.clamp((y-b.y)/(c.y-b.y),0,1);
-  return {y,x:loftValue(a.x,b.x,c.x,d.x,t),rx:Math.max(.08,loftValue(a.rx,b.rx,c.rx,d.rx,t)),rz:Math.max(.08,loftValue(a.rz,b.rz,c.rz,d.rz,t)),z:loftValue(a.z,b.z,c.z,d.z,t)};
+  const a0=hindLegProfile[Math.max(0,i-1)],b0=hindLegProfile[i],c0=hindLegProfile[i+1],d0=hindLegProfile[Math.min(hindLegProfile.length-1,i+2)];
+  const t=THREE.MathUtils.clamp((y-b0.y)/(c0.y-b0.y),0,1);
+  return {y,x:loftValue(a0.x,b0.x,c0.x,d0.x,t),rx:Math.max(.08,loftValue(a0.rx,b0.rx,c0.rx,d0.rx,t)),rz:Math.max(.08,loftValue(a0.rz,b0.rz,c0.rz,d0.rz,t)),z:loftValue(a0.z,b0.z,c0.z,d0.z,t)};
  };
  const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const ringCount=14,sides=12,positions=[],indices=[];
-  const rings=[];
+  const ringCount=14,sides=12,positions=[],indices=[],rings=[];
   for(let i=0;i<=ringCount;i++){
-   const globalY=THREE.MathUtils.lerp(fromY,toY,i/ringCount),s=sampleHindProfile(globalY),y=globalY-originY;
-   rings.push(s);
+   const globalY=THREE.MathUtils.lerp(fromY,toY,i/ringCount),p=sampleHindProfile(globalY),y=globalY-originY;rings.push(p);
    for(let j=0;j<sides;j++){
-    const a=j/sides*Math.PI*2+Math.PI/12;
-    // Superelipse de seção facetada; a massa lateral é mais cheia que a frente.
-    const sx=Math.sign(Math.cos(a))*Math.pow(Math.abs(Math.cos(a)),.78);
-    const sz=Math.sign(Math.sin(a))*Math.pow(Math.abs(Math.sin(a)),.78);
-    positions.push(side*s.x+sx*s.rx,y,s.z-originZ+sz*s.rz);
+    const angle=j/sides*Math.PI*2+Math.PI/12;
+    const sx=Math.sign(Math.cos(angle))*Math.pow(Math.abs(Math.cos(angle)),.78);
+    const sz=Math.sign(Math.sin(angle))*Math.pow(Math.abs(Math.sin(angle)),.78);
+    positions.push(side*p.x+sx*p.rx,y,p.z-originZ+sz*p.rz);
    }
   }
   for(let r=0;r<ringCount;r++)for(let j=0;j<sides;j++){
    const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
    indices.push(a,c,b,b,c,d);
   }
-  // Tampas fechadas no quadril e no corte do joelho/tornozelo.
   for(const end of [0,ringCount]){
-   const s=rings[end],center=positions.length/3;
-   positions.push(side*s.x,s.y-originY,s.z-originZ);
+   const p=rings[end],center=positions.length/3;positions.push(side*p.x,p.y-originY,p.z-originZ);
    const base=end*sides;
-   for(let j=0;j<sides;j++){
-    const a=base+j,b=base+(j+1)%sides;
-    if(end===0)indices.push(center,b,a);else indices.push(center,a,b);
-   }
+   for(let j=0;j<sides;j++){const a=base+j,b=base+(j+1)%sides;if(end===0)indices.push(center,b,a);else indices.push(center,a,b)}
   }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
-  geo.setIndex(indices);geo.computeVertexNormals();
+  const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.94,flatShading:true}));
   mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
  };
- // Os dois segmentos são amostras contíguas do MESMO perfil, sem alterar os pivôs.
-  const thigh=createHindLegSegment(.10,-.82,q.side,COAT3);
+ // Hierarquia original preservada: exatamente três pontos funcionais por pata.
+ const legs=[];
+ const specs=[
+  {side:-1,z:.48,phase:0,hind:false},{side:1,z:.48,phase:Math.PI,hind:false},
+  {side:-1,z:-.12,phase:Math.PI,hind:true},{side:1,z:-.12,phase:0,hind:true}
+ ];
+ for(const q of specs){
+  const parent=q.hind?rump:body;
+  const pivotPos=q.hind?[q.side*.29,-.18,q.z]:[q.side*.30,1.14,q.z];
+  const pivotName=(q.hind?"Pivô do fêmur traseiro ":"Pivô do ombro dianteiro ")+(q.side<0?"esquerdo":"direito");
+  const scapula=q.hind?null:group(parent,pivotPos,pivotName);
+  const hindAxis=q.hind?group(parent,pivotPos,"Eixo diagonal da pata traseira "+(q.side<0?"esquerda":"direita")):null;
+  const hip=q.hind?group(hindAxis,[0,0,0],pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
+  let knee=null,elbow=null,hock=null,forearmMesh=null;
+  if(q.hind){
+   const thigh=createHindLegSegment(.10,-.82,q.side,COAT3);
    thigh.name="Volume esculpido contínuo — coxa traseira";
    thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
    hip.add(thigh);
@@ -596,7 +598,6 @@ function jaguarPreset(){
    shin.name="Volume esculpido contínuo — perna inferior traseira";
    shin.userData={anatomicalSegment:"lower",sharedSculptProfile:true};
    knee.add(shin);
-
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
    // Braço dianteiro único e reto, como no vídeo: ombro largo, sem cotovelo.
