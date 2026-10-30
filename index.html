@@ -905,14 +905,20 @@ function createImportedJaguarRig(wrapper,model){
  for(const front of [false,true])for(const positiveSide of [false,true]){
   const members=candidates.filter(item=>(item.center.x>=splitX)===front&&(item.center.z>=splitZ)===positiveSide);
   if(!members.length)continue;
+  members.sort((a,b)=>a.center.y-b.center.y);
+  const pawPart=members[0],lowerPart=members[1],upperPart=members[members.length-1];
   const pivot=new THREE.Group();
   pivot.name=(front?"Ombro dianteiro ":"Quadril traseiro ")+(positiveSide?"direito":"esquerdo");
   const x=members.reduce((n,m)=>n+m.center.x,0)/members.length;
   const z=members.reduce((n,m)=>n+m.center.z,0)/members.length;
-  pivot.position.set(x,Math.max(1.15,Math.min(1.8,members.reduce((n,m)=>n+m.center.y,0)/members.length+.38)),z);
+  pivot.position.set(x,Math.max(1.15,Math.min(1.8,upperPart.center.y+.38)),z);
   wrapper.add(pivot);
-  for(const item of members)pivot.attach(item.mesh);
-  groups.push({pivot,front,side:positiveSide?1:-1,basePosition:pivot.position.clone(),baseRotation:pivot.rotation.clone(),phase:(front===positiveSide)?0:Math.PI});
+  pivot.attach(upperPart.mesh);
+  const knee=new THREE.Group();knee.name="Joelho articulado — "+pivot.name;
+  knee.position.copy(lowerPart.center);wrapper.add(knee);knee.attach(lowerPart.mesh);pivot.attach(knee);
+  const paw=new THREE.Group();paw.name="Pata articulada — "+pivot.name;
+  paw.position.copy(pawPart.center);wrapper.add(paw);paw.attach(pawPart.mesh);knee.attach(paw);
+  groups.push({pivot,knee,paw,front,side:positiveSide?1:-1,basePosition:pivot.position.clone(),baseRotation:pivot.rotation.clone(),baseKneeRotation:knee.rotation.clone(),basePawRotation:paw.rotation.clone(),baseKneePosition:knee.position.clone(),basePawPosition:paw.position.clone(),phase:(front===positiveSide)?0:Math.PI});
  }
  if(groups.length!==4){
   // Não deixa um rig parcial preso ao modelo se a distribuição não formar quatro patas.
@@ -932,6 +938,8 @@ function updateImportedJaguarRigs(){
    if(!moving){
     leg.pivot.position.copy(leg.basePosition);
     leg.pivot.rotation.copy(leg.baseRotation);
+    leg.knee.position.copy(leg.baseKneePosition);leg.knee.rotation.copy(leg.baseKneeRotation);
+    leg.paw.position.copy(leg.basePawPosition);leg.paw.rotation.copy(leg.basePawRotation);
     continue;
    }
    const phase=t*rate+leg.phase+(gallop?(leg.front?0:Math.PI*.62):0);
@@ -940,6 +948,12 @@ function updateImportedJaguarRigs(){
    const amplitude=gallop?(leg.front?.48:.58):(leg.front?.28:.34);
    leg.pivot.rotation.z=leg.baseRotation.z+stride*amplitude;
    leg.pivot.position.y=leg.basePosition.y+lift*(gallop?.22:.105);
+   const kneeFlex=Math.max(0,Math.sin(phase+Math.PI*.28))*(gallop?.62:.34);
+   leg.knee.rotation.z=leg.baseKneeRotation.z+kneeFlex;
+   // A pata antecipa a elevação; ao tocar o solo, retorna gradualmente à posição plana.
+   const pawLift=Math.max(0,Math.sin(phase+Math.PI*.10));
+   leg.paw.rotation.z=leg.basePawRotation.z+(pawLift*(gallop?.72:.58))-Math.max(0,-stride)*.08;
+   leg.paw.position.y=leg.basePawPosition.y+lift*(gallop?.10:.045);
    // Pequena flexão lateral evita que as quatro patas pareçam hastes rígidas.
    leg.pivot.rotation.x=leg.baseRotation.x+Math.sin(phase+.45)*.035;
   }
