@@ -13,8 +13,9 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   };
   function clearRig(){
     if(state.root?.parent) state.root.parent.remove(state.root);
-    state.root=null; state.helper=null; state.bones=[]; state.selected=null; state.target=null;
+    state.root=null; state.helper=null; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
     if(transform) transform.detach();
+    $("rigPlaceBone")?.classList.remove("active-tool");
     renderTree(); $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
   }
   function attachTarget(){
@@ -27,10 +28,46 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(state.root){state.helper=new THREE.SkeletonHelper(state.root);state.helper.name="RigStudio_Visualizacao";state.helper.material.color.set(0x19d3b0);state.helper.material.depthTest=false;state.helper.renderOrder=20;scene.add(state.helper);}
   }
   function selectBone(bone){
-    state.selected=bone;
-    if(transform){transform.attach(bone);transform.setMode("translate");}
+    state.selected=bone||null;
+    state.editingBone=false;
+    state.placing=false;
+    if(transform) transform.detach();
     renderTree();
-    $("rigStudioStatus").textContent="Osso selecionado: "+bone.name+". Use Mover/Girar/Escalar na barra principal.";
+    $("rigStudioStatus").textContent=bone
+      ? "Osso selecionado: "+bone.name+". O modelo continua livre para seleção e navegação. Use Mover osso ou Girar osso para editar."
+      : "Nenhum osso selecionado.";
+    $("rigPlaceBone").classList.remove("active-tool");
+  }
+  function setBoneTransform(mode){
+    if(!state.selected){say("Selecione um osso na hierarquia primeiro.");return;}
+    state.placing=false;
+    state.editingBone=true;
+    if(transform){transform.attach(state.selected);transform.setMode(mode);}
+    $("rigPlaceBone").classList.remove("active-tool");
+    $("rigStudioStatus").textContent=(mode==="rotate"?"Rotação":"Movimentação")+" do osso "+state.selected.name+" ativada. Para voltar a selecionar a criatura, clique fora do manipulador ou escolha outro elemento.";
+  }
+  function beginPlacement(){
+    if(!state.root){say("Crie primeiro um preset de Rig.");return;}
+    state.placing=!state.placing;
+    state.editingBone=false;
+    if(transform) transform.detach();
+    $("rigPlaceBone").classList.toggle("active-tool",state.placing);
+    $("rigStudioStatus").textContent=state.placing
+      ? "Posicionamento ativo: clique sobre a superfície da criatura para criar um osso filho do osso selecionado."
+      : "Posicionamento cancelado. Você pode voltar a selecionar e manipular o modelo.";
+  }
+  function placeAtWorld(worldPoint){
+    if(!state.placing||!state.root||!worldPoint)return false;
+    const parent=state.selected||state.root;
+    parent.updateWorldMatrix(true,false);
+    const local=parent.worldToLocal(worldPoint.clone());
+    const bone=makeBone("Osso_"+(state.bones.length+1),parent,local.toArray());
+    state.placing=false;
+    $("rigPlaceBone").classList.remove("active-tool");
+    rebuildHelper();
+    selectBone(bone);
+    say("Osso "+bone.name+" criado no ponto escolhido. A malha original permanece intacta.");
+    return true;
   }
   function renderTree(){
     const box=$("rigBoneList");if(!box)return;box.replaceChildren();
@@ -80,8 +117,10 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigBoneName").addEventListener("change",renameSelected);
   $("rigSaveJson").onclick=()=>{if(!state.root){say("Crie um rig antes de exportar.");return;}const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-rig.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);};
   $("rigClear").onclick=clearRig;
-  $("rigRotateMode").onclick=()=>{if(state.selected&&transform)transform.setMode("rotate")};
-  $("rigMoveMode").onclick=()=>{if(state.selected&&transform)transform.setMode("translate")};
+  $("rigRotateMode").onclick=()=>setBoneTransform("rotate");
+  $("rigMoveMode").onclick=()=>setBoneTransform("translate");
+  $("rigPlaceBone").onclick=beginPlacement;
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,update:()=>{if(state.helper)state.helper.update();}};
+  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,update:()=>{if(state.helper)state.helper.update();}};
 }
