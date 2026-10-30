@@ -1,6 +1,6 @@
 export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   const $ = id => document.getElementById(id);
-  const state = { root:null, helper:null, visualRoot:null, visualParts:[], bones:[], selected:null, target:null, showVisual:true };
+  const state = { root:null, helper:null, visualRoot:null, visualParts:[], bones:[], selected:null, target:null, showVisual:true, ownsRoot:false };
   const presets = {
     feline: {label:"Felino / quadrúpede", bones:[
       ["Root",null,[0,0,0]],["Coluna",0,[0,.85,0]],["Peito",1,[0,.25,.45]],["Pescoço",2,[0,.08,.42]],["Cabeça",3,[0,.02,.34]],["Quadril",1,[0,-.08,-.48]],["Cauda_01",5,[0,.05,-.42]],["Cauda_02",6,[0,0,-.42]],
@@ -21,9 +21,9 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       state.visualRoot.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));});
       geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
     }
-    if(state.root?.parent) state.root.parent.remove(state.root);
+    if(state.ownsRoot&&state.root?.parent) state.root.parent.remove(state.root);
     if(state.helper?.parent)state.helper.parent.remove(state.helper);
-    state.root=null; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
+    state.root=null; state.ownsRoot=false; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
     if(transform) transform.detach();
     $("rigPlaceBone")?.classList.remove("active-tool");
     renderTree(); $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
@@ -168,9 +168,34 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     const bone=new THREE.Bone();bone.name=name;bone.position.set(...position);bone.userData.berofelBoneId=makeStableId();bone.userData.rigStudioBone=true;bone.userData.limits={min:-180,max:180};
     if(parent)parent.add(bone);state.bones.push(bone);return bone;
   }
+  function adoptNativeSkeleton(){
+    const target=attachTarget();
+    const meshes=[];
+    target.traverse?.(o=>{if(o.isSkinnedMesh&&o.skeleton?.bones?.length)meshes.push(o);});
+    if(!meshes.length)throw new Error("O modelo selecionado não possui uma malha SkinnedMesh com esqueleto nativo.");
+    const skeletons=[...new Set(meshes.map(m=>m.skeleton))];
+    if(skeletons.length!==1)throw new Error("O modelo contém mais de um esqueleto. Selecione um conjunto com um único skeleton para evitar misturar hierarquias.");
+    const skeleton=skeletons[0],bones=skeleton.bones.slice(),boneSet=new Set(bones);
+    const roots=bones.filter(b=>!b.parent?.isBone||!boneSet.has(b.parent));
+    if(roots.length!==1)throw new Error("O esqueleto possui "+roots.length+" raízes. A adoção automática exige uma única raiz; nenhum osso foi alterado.");
+    if(bones.some(b=>!b?.isBone))throw new Error("O skeleton contém referências inválidas.");
+    clearRig();
+    state.target=target;state.root=roots[0];state.ownsRoot=false;state.bones=bones;
+    state.root.userData.berofelSkeletonId=state.root.userData.berofelSkeletonId||("native-skeleton-"+makeStableId());
+    for(const bone of bones){
+      bone.userData.berofelBoneId=bone.userData.berofelBoneId||makeStableId();
+      bone.userData.rigStudioBone=true;
+      if(!bone.userData.limits)bone.userData.limits={min:-180,max:180};
+    }
+    rebuildHelper();selectBone(state.root);
+    const status=$("rigBindingStatus");
+    if(status)status.textContent=meshes.length+" malha(s) usando o mesmo skeleton nativo. Ossos originais adotados diretamente; pesos, geometria, materiais e skinning não foram modificados.";
+    say("Esqueleto nativo conectado ao Rig Studio: "+bones.length+" ossos. A malha continua usando seu skinning original.");
+    return bones.length;
+  }
   function createFromPreset(key){
     const target=attachTarget();clearRig();state.target=target;
-    state.root=new THREE.Group();state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;state.root.userData.berofelSkeletonId="skeleton-"+makeStableId();target.add(state.root);
+    state.root=new THREE.Group();state.ownsRoot=true;state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;state.root.userData.berofelSkeletonId="skeleton-"+makeStableId();target.add(state.root);
     const map=[];
     for(const [name,parent,pos] of presets[key].bones){map.push(makeBone(name,parent===null?state.root:map[parent],pos));}
     rebuildHelper();selectBone(map[0]);const info=updateBindingStatus();say("Preset "+presets[key].label+" criado. "+info.meshes+" malha(s) detectadas; "+info.skinnedMeshes+" com skinning nativo. O rig visual não altera a malha.");
@@ -219,7 +244,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     }
     if(pendingCheck.length)throw new Error("A hierarquia contém ciclo ou dependência circular. O rig atual foi preservado.");
     clearRig();state.target=target;
-    state.root=new THREE.Group();state.root.name="RigStudio_Importado";state.root.userData.berofelRigStudio=true;
+    state.root=new THREE.Group();state.ownsRoot=true;state.root.name="RigStudio_Importado";state.root.userData.berofelRigStudio=true;
     state.root.userData.berofelSkeletonId=data.skeletonId||("skeleton-"+makeStableId());target.add(state.root);
     const map=new Map(),pending=data.bones.slice();
     while(pending.length){
@@ -256,7 +281,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       }))
     };
   }
-  $("rigCreatePreset").onclick=()=>{try{createFromPreset($("rigPreset").value)}catch(e){say(e.message)}};
+  $("rigCreatePreset").onclick=()=>{try{createFromPreset($("rigPreset").value)}catch(e){say(e.message)}};\n  $("rigAdoptSkeleton")?.addEventListener("click",()=>{try{adoptNativeSkeleton()}catch(e){say(e.message)}});
   $("rigAddBone").onclick=addBone;$("rigMirrorBone").onclick=mirrorSelected;$("rigDeleteBone").onclick=deleteSelected;$("rigRenameBone").onclick=renameSelected;
   $("rigBoneName").addEventListener("change",renameSelected);
   $("rigSaveJson").onclick=()=>{if(!state.root){say("Crie um rig antes de exportar.");return;}const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-rig.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);};
@@ -267,5 +292,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
