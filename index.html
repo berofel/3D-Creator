@@ -75,9 +75,9 @@ function sculptBlockGeometry(kind){
  const profiles={
   // Três perfis retangulares em degraus: topo largo, laterais planas
   // convergindo em direção à barriga e base inferior reta/quadrada.
-  torso_front:[[-.34,-.50],[.34,-.50],[.40,-.36],[.46,.30],[.50,.50],[-.50,.50],[-.46,.30],[-.40,-.36]],
-  torso_mid:[[-.33,-.50],[.33,-.50],[.39,-.34],[.45,.32],[.49,.50],[-.49,.50],[-.45,.32],[-.39,-.34]],
-  torso_rear:[[-.31,-.50],[.31,-.50],[.37,-.34],[.43,.32],[.47,.50],[-.47,.50],[-.43,.32],[-.37,-.34]],
+  torso_front:[[-.36,-.50],[.36,-.50],[.47,-.34],[.50,.50],[-.50,.50],[-.47,-.34]],
+  torso_mid:[[-.35,-.50],[.35,-.50],[.46,-.34],[.49,.50],[-.49,.50],[-.46,-.34]],
+  torso_rear:[[-.34,-.50],[.34,-.50],[.45,-.34],[.48,.50],[-.48,.50],[-.45,-.34]],
   chest:[[-.38,-.42],[.22,-.49],[.43,-.34],[.50,-.12],[.47,.29],[.30,.46],[-.25,.48],[-.46,.27],[-.49,-.18]],
   spine:[[-.31,-.43],[.25,-.45],[.43,-.25],[.38,.30],[.22,.45],[-.25,.42],[-.40,.20],[-.40,-.24]],
   rump:[[-.42,-.38],[.22,-.48],[.45,-.30],[.50,.16],[.37,.40],[.12,.49],[-.35,.39],[-.49,.12]],
@@ -102,9 +102,9 @@ function sculptBlockGeometry(kind){
   // profundidade variável. Não é BoxGeometry nem um prisma com bevel automático.
   const n=pts.length,positions=[],indices=[];
   const configs={
-   torso_front:[{z:-.50,sx:.91,sy:.91,dx:-.015,dy:0},{z:-.43,sx:1,sy:1,dx:0,dy:0},{z:.34,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.88,sy:.94,dx:.015,dy:-.01}],
-   torso_mid:[{z:-.50,sx:.91,sy:.94,dx:0,dy:0},{z:-.42,sx:1,sy:1,dx:0,dy:0},{z:.40,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.90,sy:.94,dx:0,dy:0}],
-   torso_rear:[{z:-.50,sx:.90,sy:.92,dx:0,dy:0},{z:-.41,sx:1,sy:1,dx:0,dy:0},{z:.38,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.86,sy:.94,dx:-.015,dy:0}]
+   torso_front:[{z:-.50,sx:.98,sy:.98,dx:0,dy:0},{z:-.43,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.96,sy:.99,dx:0,dy:0}],
+   torso_mid:[{z:-.50,sx:.98,sy:.99,dx:0,dy:0},{z:-.42,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.97,sy:.99,dx:0,dy:0}],
+   torso_rear:[{z:-.50,sx:.98,sy:.99,dx:0,dy:0},{z:-.41,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.96,sy:.99,dx:0,dy:0}]
   };
   const rings=configs[kind];
   for(const r of rings)for(const [x,y] of pts)positions.push(x*r.sx+r.dx,y*r.sy+r.dy,r.z);
@@ -437,7 +437,7 @@ function jaguarPreset(){
    {z:-1.20,y:1.475,rx:.18,up:.16,down:.18,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
-  const rings=[],steps=5;
+  const rings=[],steps=2;
   for(let i=0;i<sections.length-1;i++){
    const a=sections[Math.max(0,i-1)],b=sections[i],c=sections[i+1],d=sections[Math.min(sections.length-1,i+2)];
    for(let k=0;k<steps;k++){
@@ -450,14 +450,14 @@ function jaguarPreset(){
    }
   }
   const last=sections[sections.length-1];rings.push({...last,color:new THREE.Color(last.c)});
-  const sides=16,positions=[],colors=[],indices=[];
+  const sides=8,positions=[],colors=[],indices=[];
   // Superelipse (expoente 4.2): quatro planos largos e cantos chanfrados.
   // Isso cria uma seção quase retangular sem quinas duras nem arredondamento cilíndrico.
   const signedPower=(v,p)=>Math.sign(v)*Math.pow(Math.abs(v),p);
   for(const s of rings)for(let j=0;j<sides;j++){
    const angle=(j/sides)*Math.PI*2+Math.PI/16;
-   const x=signedPower(Math.cos(angle),.42)*s.rx;
-   const vertical=signedPower(Math.sin(angle),.42);
+   const x=signedPower(Math.cos(angle),.62)*s.rx;
+   const vertical=signedPower(Math.sin(angle),.62);
    const y=vertical>=0?vertical*s.up:vertical*s.down;
    positions.push(x,s.y+y,s.z);
    colors.push(s.color.r,s.color.g,s.color.b);
@@ -1233,5 +1233,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=234",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=235",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
