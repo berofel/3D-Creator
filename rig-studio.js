@@ -259,7 +259,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
         "Influências por osso (vértices / peso médio):"];
       for(const bone of report.bones)lines.push("• "+bone.name+": "+bone.vertices+" / "+bone.averageWeight.toFixed(3));
       for(const mesh of report.details)lines.push("• Malha "+mesh.name+": "+(mesh.weightedVertices??0)+"/"+mesh.vertices+" vértices; "+(mesh.skinned?mesh.boneCount+" ossos":"sem atributos de skinning"));
-      output.textContent=lines.join("\\n");
+      output.textContent=lines.join("\n");
       return report;
     }catch(err){if(output)output.textContent="Falha no diagnóstico: "+err.message;throw err;}
   }
