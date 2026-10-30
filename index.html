@@ -553,23 +553,22 @@ function jaguarPreset(){
   return {y,x:mix("x"),rx:mix("rx"),rz:mix("rz"),z:mix("z")};
  };
  const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const positions=[],indices=[],rings=[],sides=6;
+  // Pata como silhueta lateral extrudada: espessura constante e faces internas/externas planas.
+  // Toda a anatomia e as curvas ficam no perfil Y/Z; a vista frontal não recebe relevo.
+  const positions=[],indices=[],rings=[],sides=4,halfThickness=.075;
   const stations=hindLegProfile.filter(p=>p.y<=fromY+1e-6&&p.y>=toY-1e-6);
   if(!stations.length||Math.abs(stations[0].y-fromY)>1e-5)stations.unshift(sampleHindProfile(fromY));
   if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
   for(const p of stations){
    rings.push(p);
-   // Seção prismática de cinco faces úteis: menos cortes transversais e planos diagonais maiores.
-   const cutX=p.rx*.025,cutZ=p.rz*.025;
+   // Quatro cantos retos: espessura fixa no eixo X, contorno variável somente na lateral.
    const corners=[
-    [-p.rx,-p.rz],
-    [p.rx-cutX,-p.rz],
-    [p.rx,-p.rz+cutZ],
-    [p.rx,p.rz-cutZ],
-    [p.rx-cutX,p.rz],
-    [-p.rx,p.rz]
+    [-halfThickness,-p.rz],
+    [ halfThickness,-p.rz],
+    [ halfThickness, p.rz],
+    [-halfThickness, p.rz]
    ];
-   for(const [x,z] of corners)positions.push(side*(p.x+x),p.y-originY,p.z-originZ+z);
+   for(const [x,z] of corners)positions.push(side*x,p.y-originY,p.z-originZ+z);
   }
   for(let r=0;r<rings.length-1;r++)for(let j=0;j<sides;j++){
    const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
