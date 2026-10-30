@@ -363,6 +363,52 @@ function jaguarPreset(){
  const block=(parent,name,pos,size,color,type="body",rot=[0,0,0])=>{
   const m=make(type,pos,size,color,name);m.rotation.set(...rot);parent.add(m);return m;
  };
+ // Superfície contínua do tronco: loft facetado de seção transversal.
+ // Os volumes articulados originais permanecem como suporte interno do rig;
+ // a pele externa atravessa as emendas sem arredondar a silhueta.
+ const createTorsoTransitionSurface=()=>{
+  const sections=[
+   {z:.91,y:1.55,rx:.25,ry:.25,c:COAT2},
+   {z:.78,y:1.49,rx:.39,ry:.35,c:COAT2},
+   {z:.56,y:1.48,rx:.435,ry:.39,c:COAT2},
+   {z:.30,y:1.47,rx:.425,ry:.36,c:COAT3},
+   {z:.04,y:1.47,rx:.405,ry:.315,c:COAT3},
+   {z:-.22,y:1.47,rx:.405,ry:.31,c:COAT3},
+   {z:-.48,y:1.47,rx:.425,ry:.34,c:COAT3},
+   {z:-.73,y:1.47,rx:.445,ry:.37,c:COAT2},
+   {z:-.96,y:1.47,rx:.425,ry:.365,c:COAT2},
+   {z:-1.16,y:1.46,rx:.34,ry:.31,c:COAT2},
+   {z:-1.27,y:1.45,rx:.20,ry:.20,c:COAT2}
+  ];
+  const sides=8,positions=[],colors=[],indices=[];
+  const palette=sections.map(s=>new THREE.Color(s.c));
+  for(let ring=0;ring<sections.length;ring++){
+   const s=sections[ring],col=palette[ring];
+   for(let j=0;j<sides;j++){
+    const a=(j/sides)*Math.PI*2+Math.PI/8;
+    positions.push(Math.cos(a)*s.rx,s.y+Math.sin(a)*s.ry,s.z);
+    colors.push(col.r,col.g,col.b);
+   }
+  }
+  for(let ring=0;ring<sections.length-1;ring++){
+   for(let j=0;j<sides;j++){
+    const a=ring*sides+j,b=ring*sides+(j+1)%sides;
+    const c=(ring+1)*sides+j,d=(ring+1)*sides+(j+1)%sides;
+    indices.push(a,b,c,b,d,c);
+   }
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
+  geo.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
+  geo.setIndex(indices);geo.computeVertexNormals();
+  const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,flatShading:true,side:THREE.DoubleSide});
+  const surface=new THREE.Mesh(geo,mat);
+  surface.name="Superfície contínua — transição peitoral/tronco/anca";
+  surface.castShadow=true;surface.receiveShadow=true;
+  surface.userData={id:++counter,type:"jaguar_torso_surface",name:surface.name,continuousAnatomy:true};
+  body.add(surface);parts.push(surface);
+  return surface;
+ };
  // Tronco central mais cheio, com transições discretas entre peitoral e anca.
  // Mantém o eixo como peça articulada independente, mas aumenta sua seção e
  // seu comprimento para reduzir o efeito de "cintura estrangulada".
@@ -371,6 +417,7 @@ function jaguarPreset(){
  block(spine,"Eixo central esculpido",[0,0,0],[.80,.56,.90],COAT3,"sculpt_spine");
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
  block(rump,"Anca esculpida",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);
+ createTorsoTransitionSurface();
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
