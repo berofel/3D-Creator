@@ -563,7 +563,7 @@ function jaguarPreset(){
   }
   for(let r=0;r<ringCount;r++)for(let j=0;j<sides;j++){
    const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
-   indices.push(a,c,b,b,c,d);
+   indices.push(a,b,c,b,d,c);
   }
   for(const end of [0,ringCount]){
    const p=rings[end],center=positions.length/3;positions.push(side*p.x,p.y-originY,p.z-originZ);
