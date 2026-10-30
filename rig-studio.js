@@ -194,7 +194,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     return bones.length;
   }
   function inspectWeights(){
-    const target=state.target||getSelected?.();
+    const target=getSelected?.()||state.target;
     if(!target)throw new Error("Selecione um modelo ou conecte seu esqueleto nativo antes do diagnóstico.");
     const meshes=[];
     target.traverse?.(o=>{if(o.isSkinnedMesh)meshes.push(o);});
@@ -214,7 +214,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
         continue;
       }
       const bones=mesh.skeleton?.bones||[];
-      const localCounts=new Map();let localWeighted=0;
+      let localWeighted=0;
       for(let v=0;v<Math.min(vertexCount,indices.count,weights.count);v++){
         let sum=0,hasWeight=false;
         for(let k=0;k<4;k++){
@@ -229,7 +229,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
             let stat=boneStats.get(id);
             if(!stat){stat={id,name:bone.name||id,vertices:0,totalWeight:0,influences:0};boneStats.set(id,stat);}
             stat.vertices++;stat.totalWeight+=weight;stat.influences++;
-            localCounts.set(id,(localCounts.get(id)||0)+1);
+
           }
         }
         if(hasWeight)localWeighted++;
