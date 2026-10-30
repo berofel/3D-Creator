@@ -529,49 +529,51 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
- // Coxa e perna traseira: um único perfil anatômico 3D, dividido no joelho.
+ // Escultura traseira angular: perfil de planos retos e chanfros diagonais.
+ // Estações lineares mantêm quebras de plano e evitam o aspecto de tubo/amendoim.
  const hindLegProfile=[
-  {y:.10,x:.015,rx:.205,rz:.205,z:-.015},
-  {y:-.04,x:.025,rx:.255,rz:.235,z:-.005},
-  {y:-.20,x:.045,rx:.285,rz:.245,z:.005},
-  {y:-.38,x:.055,rx:.275,rz:.235,z:.018},
-  {y:-.55,x:.035,rx:.235,rz:.205,z:.030},
-  {y:-.70,x:.010,rx:.190,rz:.175,z:.045},
-  {y:-.82,x:0,rx:.155,rz:.155,z:.055},
-  {y:-.91,x:-.008,rx:.166,rz:.158,z:.075},
-  {y:-1.02,x:-.018,rx:.174,rz:.162,z:.095},
-  {y:-1.12,x:-.012,rx:.145,rz:.145,z:.105},
-  {y:-1.22,x:0,rx:.112,rz:.125,z:.115}
+  {y:.10,x:.012,rx:.215,rz:.205,z:-.018},
+  {y:-.045,x:.028,rx:.270,rz:.235,z:-.004},
+  {y:-.205,x:.050,rx:.305,rz:.252,z:.012},
+  {y:-.385,x:.052,rx:.286,rz:.235,z:.028},
+  {y:-.555,x:.032,rx:.238,rz:.200,z:.045},
+  {y:-.705,x:.010,rx:.190,rz:.170,z:.064},
+  {y:-.820,x:0,rx:.158,rz:.151,z:.078},
+  {y:-.910,x:-.010,rx:.171,rz:.157,z:.098},
+  {y:-1.025,x:-.018,rx:.180,rz:.164,z:.116},
+  {y:-1.135,x:-.010,rx:.145,rz:.143,z:.128},
+  {y:-1.220,x:0,rx:.112,rz:.122,z:.136}
  ];
- const loftValue=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
  const sampleHindProfile=y=>{
   let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
-  const a0=hindLegProfile[Math.max(0,i-1)],b0=hindLegProfile[i],c0=hindLegProfile[i+1],d0=hindLegProfile[Math.min(hindLegProfile.length-1,i+2)];
-  const t=THREE.MathUtils.clamp((y-b0.y)/(c0.y-b0.y),0,1);
-  return {y,x:loftValue(a0.x,b0.x,c0.x,d0.x,t),rx:Math.max(.08,loftValue(a0.rx,b0.rx,c0.rx,d0.rx,t)),rz:Math.max(.08,loftValue(a0.rz,b0.rz,c0.rz,d0.rz,t)),z:loftValue(a0.z,b0.z,c0.z,d0.z,t)};
+  const a0=hindLegProfile[i],b0=hindLegProfile[i+1],t=THREE.MathUtils.clamp((y-a0.y)/(b0.y-a0.y),0,1);
+  const mix=k=>THREE.MathUtils.lerp(a0[k],b0[k],t);
+  return {y,x:mix("x"),rx:mix("rx"),rz:mix("rz"),z:mix("z")};
  };
  const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const ringCount=14,sides=12,positions=[],indices=[],rings=[];
-  for(let i=0;i<=ringCount;i++){
-   const globalY=THREE.MathUtils.lerp(fromY,toY,i/ringCount),p=sampleHindProfile(globalY),y=globalY-originY;rings.push(p);
-   for(let j=0;j<sides;j++){
-    const angle=j/sides*Math.PI*2+Math.PI/12;
-    const sx=Math.sign(Math.cos(angle))*Math.pow(Math.abs(Math.cos(angle)),.78);
-    const sz=Math.sign(Math.sin(angle))*Math.pow(Math.abs(Math.sin(angle)),.78);
-    positions.push(side*p.x+sx*p.rx,y,p.z-originZ+sz*p.rz);
-   }
+  const positions=[],indices=[],rings=[],sides=8,chamfer=.23;
+  const stations=hindLegProfile.filter(p=>p.y<=fromY+1e-6&&p.y>=toY-1e-6);
+  if(!stations.length||Math.abs(stations[0].y-fromY)>1e-5)stations.unshift(sampleHindProfile(fromY));
+  if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
+  for(const p of stations){
+   rings.push(p);const cx=p.rx*chamfer,cz=p.rz*chamfer;
+   const corners=[
+    [-p.rx+cx,-p.rz],[p.rx-cx,-p.rz],[p.rx,-p.rz+cz],[p.rx,p.rz-cz],
+    [p.rx-cx,p.rz],[-p.rx+cx,p.rz],[-p.rx,p.rz-cz],[-p.rx,-p.rz+cz]
+   ];
+   for(const [x,z] of corners)positions.push(side*p.x+x,p.y-originY,p.z-originZ+z);
   }
-  for(let r=0;r<ringCount;r++)for(let j=0;j<sides;j++){
+  for(let r=0;r<rings.length-1;r++)for(let j=0;j<sides;j++){
    const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
    indices.push(a,b,c,b,d,c);
   }
-  for(const end of [0,ringCount]){
+  for(const end of [0,rings.length-1]){
    const p=rings[end],center=positions.length/3;positions.push(side*p.x,p.y-originY,p.z-originZ);
    const base=end*sides;
-   for(let j=0;j<sides;j++){const a=base+j,b=base+(j+1)%sides;if(end===0)indices.push(center,b,a);else indices.push(center,a,b)}
+   for(let j=0;j<sides;j++){const u=base+j,v=base+(j+1)%sides;if(end===0)indices.push(center,v,u);else indices.push(center,u,v)}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
-  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.94,flatShading:true}));
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.88,metalness:0,flatShading:true}));
   mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
  };
  // Hierarquia original preservada: exatamente três pontos funcionais por pata.
@@ -1224,5 +1226,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=227",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=228",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
