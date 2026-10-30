@@ -433,5 +433,6 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
   $("rigInspectWeights")?.addEventListener("click",()=>{try{showWeightReport()}catch(e){say(e.message)}});
   $("rigWeightViewToggle")?.addEventListener("click",()=>{try{if(state.weightOverlays.length)clearWeightOverlay();else showWeightOverlay();}catch(e){say(e.message);}});
-  $("rigWeightBoneSelect")?.addEventListener("change",()=>{if(state.weightOverlays.length){try{showWeightOverlay()}catch(e){say(e.message);}}});\n  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  $("rigWeightBoneSelect")?.addEventListener("change",()=>{if(state.weightOverlays.length){try{showWeightOverlay()}catch(e){say(e.message);}}});
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
