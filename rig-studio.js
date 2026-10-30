@@ -13,6 +13,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   };
   function clearRig(){
     if(state.root?.parent) state.root.parent.remove(state.root);
+    if(state.helper?.parent)state.helper.parent.remove(state.helper);
     state.root=null; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
     if(transform) transform.detach();
     $("rigPlaceBone")?.classList.remove("active-tool");
