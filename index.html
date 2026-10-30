@@ -429,11 +429,9 @@ function jaguarPreset(){
  for(const side of [-1,1]){
   for(const [z,y] of [[-.68,1.61],[-.43,1.70],[-.18,1.60],[.06,1.69],[.29,1.58],[.50,1.65],[-.58,1.38],[-.30,1.43],[-.04,1.36],[.22,1.43],[.43,1.36]]){
    const onPiston=z<-.30;
-   const parent=onPiston?spine:body;
-   const localY=onPiston?y-1.47:y;
-   const localZ=onPiston?z+.19:z;
    spotIndex++;
-   block(parent,"Mancha lateral "+spotIndex,[side*(onPiston? .326:.36),localY,localZ],[.018,spotIndex%3===0? .075:.06,spotIndex%4===0? .095:.075],spotIndex%3===0?SPOT1:SPOT2,"body",[0,0,spotIndex%2? .10:-.08]);
+   // As manchas acompanham a superfície externa contínua do tronco.
+   block(body,"Mancha lateral "+spotIndex,[side*.414,y,z],[.018,spotIndex%3===0? .075:.06,spotIndex%4===0? .095:.075],spotIndex%3===0?SPOT1:SPOT2,"body",[0,0,spotIndex%2? .10:-.08]);
   }
   for(const z of [-.42,-.18,.04]){
    block(spine,"Mancha dorsal",[side*.18,.22,z+.19],[.065,.018,.075],SPOT1);
