@@ -1,4 +1,4 @@
-const CACHE="berofel-3d-create-v221";
+const CACHE="berofel-3d-create-v222";
 self.addEventListener("install",e=>e.waitUntil((async()=>{await caches.open(CACHE);await self.skipWaiting()})()));
 self.addEventListener("activate",e=>e.waitUntil((async()=>{for(const key of await caches.keys())if(key!==CACHE)await caches.delete(key);await self.clients.claim()})()));
 self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;const url=new URL(e.request.url);if(url.origin!==location.origin)return;if(e.request.mode==="navigate"||url.pathname.endsWith(".html")||url.pathname.endsWith("/")){e.respondWith(fetch(e.request).then(r=>{if(r.ok)caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r}).catch(()=>caches.match(e.request)));return}e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{if(r.ok)caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r})))});
