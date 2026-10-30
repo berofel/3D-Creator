@@ -179,7 +179,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     while(pending.length){
       let progress=false;
       for(let i=pending.length-1;i>=0;i--){
-        const item=pending[i],parent=item.parentId?map.get(item.parentId):state.root;
+        const item=pending[i],parent=item.parentId?map.get(item.parentId):(item.parent?state.bones.find(b=>b.name===item.parent):state.root);
         if(!parent)continue;
         const bone=new THREE.Bone();bone.name=item.name||"Osso";bone.userData.berofelBoneId=item.id||makeStableId();
         bone.userData.rigStudioBone=true;bone.userData.limits=item.limits||{min:-180,max:180};
