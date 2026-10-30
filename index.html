@@ -597,35 +597,33 @@ function jaguarPreset(){
   const hip=q.hind?group(hindAxis,[0,0,0],pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
   let knee=null,elbow=null,hock=null,forearmMesh=null;
   if(q.hind){
-   // Coxa traseira: trapezoide lateral robusto, com afunilamento discreto.
-   // A peça é fina de frente e larga no perfil lateral; sem relevo nas faces externas.
+   // Fêmur principal encurtado para abrir espaço à ligação diagonal.
    const thigh=createHindLegSegment([
-    {z:.205,y:.10},{z:.205,y:-.20},{z:.195,y:-.55},{z:.182,y:-.82},
-    {z:-.182,y:-.82},{z:-.195,y:-.55},{z:-.205,y:-.20},{z:-.205,y:.10}
-   ],q.side,COAT3,"Fêmur traseiro — trapezoide lateral",.16);
-   thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
+    {z:.205,y:.10},{z:.205,y:-.16},{z:.195,y:-.39},{z:.182,y:-.60},
+    {z:-.182,y:-.60},{z:-.195,y:-.39},{z:-.205,y:-.16},{z:-.205,y:.10}
+   ],q.side,COAT3,"Fêmur traseiro — trapezoide lateral encurtado",.16);
+   thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true,shortened:true};
    hip.add(thigh);
-   // Ligação diagonal curta e embutida: metade do comprimento visual anterior.
-   // A extremidade superior começa dentro do fêmur; só a quina inferior aparece
-   // na região dianteira do joelho, mantendo a mesma inclinação anatômica.
+   // Ligação diagonal longa e robusta, embutida no fêmur. Perfil lateral amplo,
+   // mas lâmina frontal fina e constante para manter a leitura de bloco esculpido.
    const diagonal=createHindLegSegment([
-    {z:-.075,y:-.655},{z:-.205,y:-.865},{z:-.285,y:-.815},{z:-.155,y:-.605}
-   ],q.side,COAT3,"Ligação diagonal traseira — embutida no fêmur",.16);
-   diagonal.userData={anatomicalSegment:"upper",sameRigAsThigh:true,insetIntoThigh:true,reducedLength:.5};
+    {z:-.105,y:-.455},{z:-.405,y:-.925},{z:-.565,y:-.825},{z:-.255,y:-.365}
+   ],q.side,COAT3,"Ligação diagonal traseira — bloco robusto",.18);
+   diagonal.userData={anatomicalSegment:"middle",sameRigAsThigh:true,insetIntoThigh:true,robustProfile:true};
    hip.add(diagonal);
-   // A canela nasce dentro da ponta inferior da diagonal; a emenda fica oculta.
-   knee=group(hip,[0,-.855,-.265],"Articulação do joelho traseiro");
+   // A canela retangular entra na extremidade inferior da diagonal e desce até a pata.
+   knee=group(hip,[0,-.875,-.485],"Articulação do joelho traseiro");
    const shin=createHindLegSegment([
-    {z:.105,y:0},{z:.105,y:-.39},{z:-.105,y:-.39},{z:-.105,y:0}
-   ],q.side,COAT3,"Canela traseira — retângulo vertical",.16);
-   shin.userData={anatomicalSegment:"lower",verticalBlock:true};
+    {z:.145,y:.015},{z:.145,y:-.535},{z:-.145,y:-.535},{z:-.145,y:.015}
+   ],q.side,COAT3,"Canela traseira — retângulo robusto",.18);
+   shin.userData={anatomicalSegment:"lower",verticalBlock:true,robustProfile:true,insetTop:true};
    knee.add(shin);
   }else{
    // Sem peça decorativa sobre o ombro: o volume nasce diretamente
    // do peitoral e a perna mantém apenas seu braço articulado principal.
    forearmMesh=createFlatSideBlock("Perfil lateral extrudado — perna dianteira",-0.415,.015,1.08,.25,.16,COAT3);
   }
-  const wrist=group(q.hind?knee:hip,q.hind?[0,-.39,0]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.535,0]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   // A pata recua para encaixar sobre o pivô e cobrir a junção com o segundo bloco.
   // Uma única peça larga mantém a lateral limpa; a leitura das divisões fica nas quinas.
   const paw=group(wrist,[0,0,-.055],"Pata");
@@ -1247,5 +1245,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=243",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=244",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
