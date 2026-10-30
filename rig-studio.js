@@ -170,6 +170,29 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   function renameSelected(){
     if(!state.selected)return;const value=$("rigBoneName").value.trim();if(value)state.selected.name=value;renderTree();
   }
+  function importData(data){
+    if(!data||data.format!=="BerofelRigStudio"||!Array.isArray(data.bones))throw new Error("Arquivo de rig inválido.");
+    const target=attachTarget();clearRig();state.target=target;
+    state.root=new THREE.Group();state.root.name="RigStudio_Importado";state.root.userData.berofelRigStudio=true;
+    state.root.userData.berofelSkeletonId=data.skeletonId||("skeleton-"+makeStableId());target.add(state.root);
+    const map=new Map(),pending=data.bones.slice();
+    while(pending.length){
+      let progress=false;
+      for(let i=pending.length-1;i>=0;i--){
+        const item=pending[i],parent=item.parentId?map.get(item.parentId):state.root;
+        if(!parent)continue;
+        const bone=new THREE.Bone();bone.name=item.name||"Osso";bone.userData.berofelBoneId=item.id||makeStableId();
+        bone.userData.rigStudioBone=true;bone.userData.limits=item.limits||{min:-180,max:180};
+        bone.position.fromArray(item.position||[0,0,0]);
+        if(item.quaternion)bone.quaternion.fromArray(item.quaternion);
+        else if(item.rotation)bone.rotation.set(...item.rotation);
+        bone.scale.fromArray(item.scale||[1,1,1]);parent.add(bone);
+        map.set(item.id,bone);state.bones.push(bone);pending.splice(i,1);progress=true;
+      }
+      if(!progress)throw new Error("A hierarquia contém um osso sem pai válido ou uma dependência circular.");
+    }
+    rebuildHelper();selectBone(state.bones[0]||null);return state.bones.length;
+  }
   function exportData(){
     return {
       format:"BerofelRigStudio",
@@ -191,11 +214,12 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigAddBone").onclick=addBone;$("rigMirrorBone").onclick=mirrorSelected;$("rigDeleteBone").onclick=deleteSelected;$("rigRenameBone").onclick=renameSelected;
   $("rigBoneName").addEventListener("change",renameSelected);
   $("rigSaveJson").onclick=()=>{if(!state.root){say("Crie um rig antes de exportar.");return;}const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-rig.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);};
-  $("rigClear").onclick=clearRig;\n  $("rigToggleVisual")?.addEventListener("click",()=>{state.showVisual=!state.showVisual;if(state.visualRoot)state.visualRoot.visible=state.showVisual;$("rigToggleVisual").textContent=state.showVisual?"Ocultar silhueta":"Mostrar silhueta";});
+  $("rigClear").onclick=clearRig;
+  $("rigToggleVisual")?.addEventListener("click",()=>{state.showVisual=!state.showVisual;if(state.visualRoot)state.visualRoot.visible=state.showVisual;$("rigToggleVisual").textContent=state.showVisual?"Ocultar silhueta":"Mostrar silhueta";});
   $("rigRotateMode").onclick=()=>setBoneTransform("rotate");
   $("rigMoveMode").onclick=()=>setBoneTransform("translate");
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),importData,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
