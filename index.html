@@ -78,6 +78,7 @@ function sculptBlockGeometry(kind){
   rump:[[-.42,-.38],[.22,-.48],[.45,-.30],[.50,.16],[.37,.40],[.12,.49],[-.35,.39],[-.49,.12]],
   shoulder:[[-.40,-.42],[.18,-.48],[.45,-.22],[.42,.25],[.22,.46],[-.25,.42],[-.46,.16]],
   hip:[[-.43,-.42],[.05,-.50],[.40,-.34],[.49,-.05],[.38,.35],[.08,.48],[-.34,.36],[-.50,.05]],
+  neck:[[-.34,-.48],[.22,-.45],[.42,-.18],[.35,.24],[.20,.48],[-.24,.43],[-.42,.10]],
   thigh:[[-.30,-.50],[.20,-.48],[.43,-.22],[.36,.25],[.18,.49],[-.23,.43],[-.42,.12]],
   shin:[[-.25,-.50],[.18,-.48],[.30,-.22],[.23,.34],[.12,.50],[-.17,.44],[-.31,.08]],
   forelimb:[[-.30,-.50],[.25,-.50],[.34,-.34],[.29,.32],[.18,.50],[-.20,.48],[-.34,.20]],
@@ -393,18 +394,18 @@ function jaguarPreset(){
  }
  // Pescoço/cabeça baixos e compactos.
  const neck=group(body,[0,1.55,.72],"Pescoço móvel");
- block(neck,"Pescoço inclinado",[0,.08,.20],[.52,.50,.57],COAT2,"faceted",[-.12,0,0]);
+ block(neck,"Pescoço inclinado",[0,.08,.20],[.52,.50,.57],COAT2,"sculpt_neck",[-.12,0,0]);
  const head=group(neck,[0,.22,.49],"Cabeça móvel");
  block(head,"Crânio felino",[0,.14,.15],[.51,.40,.49],COAT3,"sculpt_skull");
- block(head,"Bochecha esquerda",[-.17,.01,.28],[.18,.19,.22],COAT);
- block(head,"Bochecha direita",[.17,.01,.28],[.18,.19,.22],COAT);
+ block(head,"Bochecha esquerda",[-.17,.01,.28],[.18,.19,.22],COAT,"sculpt_cheek");
+ block(head,"Bochecha direita",[.17,.01,.28],[.18,.19,.22],COAT,"sculpt_cheek");
  block(head,"Mandíbula inferior",[0,-.105,.30],[.34,.13,.29],COAT2,"sculpt_jaw");
  block(head,"Bochecha volumétrica esquerda",[-.16,.015,.28],[.19,.18,.22],COAT,"sculpt_cheek");
  block(head,"Bochecha volumétrica direita",[.16,.015,.28],[.19,.18,.22],COAT,"sculpt_cheek");
  block(head,"Almofada do focinho esquerda",[-.075,-.035,.425],[.13,.105,.14],CREAM,"faceted");
  block(head,"Almofada do focinho direita",[.075,-.035,.425],[.13,.105,.14],CREAM,"faceted");
  block(head,"Focinho claro",[0,-.04,.43],[.34,.19,.25],CREAM,"sculpt_muzzle");
- block(head,"Nariz",[0,.01,.565],[.13,.08,.06],NOSE,"ellipsoid");
+ block(head,"Nariz",[0,.01,.565],[.13,.08,.06],NOSE,"sculpt_nose");
  for(const side of [-1,1]){
   block(head,"Orelha",[side*.20,.38,.05],[.16,.16,.14],COAT2,"sculpt_ear",[0,0,side*-.12]);
   block(head,"Interior da orelha",[side*.20,.39,.125],[.075,.075,.02],DARK);
