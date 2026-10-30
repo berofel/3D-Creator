@@ -552,37 +552,39 @@ function jaguarPreset(){
   const mix=k=>THREE.MathUtils.lerp(a0[k],b0[k],t);
   return {y,x:mix("x"),rx:mix("rx"),rz:mix("rz"),z:mix("z")};
  };
+ const createSideExtrudedProfile=(points,thickness,materialColor,name)=>{
+  // Perfil desenhado no plano lateral YZ e extrudado com espessura constante no eixo X.
+  // As duas faces largas são planas; somente o contorno lateral conserva as quinas anatômicas.
+  const shape=new THREE.Shape();
+  points.forEach((p,i)=>{if(i===0)shape.moveTo(p.z,p.y);else shape.lineTo(p.z,p.y)});
+  shape.closePath();
+  const geo=new THREE.ExtrudeGeometry(shape,{depth:thickness,bevelEnabled:false,curveSegments:1,steps:1});
+  const a=geo.attributes.position;
+  for(let i=0;i<a.count;i++){
+   const x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+   a.setXYZ(i,z-thickness/2,y,x);
+  }
+  geo.computeVertexNormals();
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.96,metalness:0,flatShading:true,side:THREE.DoubleSide}));
+  mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
+ };
  const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const positions=[],indices=[],rings=[],sides=6;
   const stations=hindLegProfile.filter(p=>p.y<=fromY+1e-6&&p.y>=toY-1e-6);
   if(!stations.length||Math.abs(stations[0].y-fromY)>1e-5)stations.unshift(sampleHindProfile(fromY));
   if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
-  for(const p of stations){
-   rings.push(p);
-   // Seção prismática de cinco faces úteis: menos cortes transversais e planos diagonais maiores.
-   const cutX=p.rx*.025,cutZ=p.rz*.025;
-   const corners=[
-    [-p.rx,-p.rz],
-    [p.rx-cutX,-p.rz],
-    [p.rx,-p.rz+cutZ],
-    [p.rx,p.rz-cutZ],
-    [p.rx-cutX,p.rz],
-    [-p.rx,p.rz]
-   ];
-   for(const [x,z] of corners)positions.push(side*(p.x+x),p.y-originY,p.z-originZ+z);
-  }
-  for(let r=0;r<rings.length-1;r++)for(let j=0;j<sides;j++){
-   const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
-   indices.push(a,b,c,b,d,c);
-  }
-  for(const end of [0,rings.length-1]){
-   const p=rings[end],center=positions.length/3;positions.push(side*p.x,p.y-originY,p.z-originZ);
-   const base=end*sides;
-   for(let j=0;j<sides;j++){const u=base+j,v=base+(j+1)%sides;if(end===0)indices.push(center,v,u);else indices.push(center,u,v)}
-  }
-  const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
-  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.9,metalness:0,flatShading:true}));
-  mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
+  // O perfil lateral usa a largura anatômica em Z; X passa a ser uma lâmina plana e constante.
+  const points=[];
+  for(const p of stations)points.push({z:p.z-originZ+p.rz,y:p.y-originY});
+  for(let i=stations.length-1;i>=0;i--){const p=stations[i];points.push({z:p.z-originZ-p.rz,y:p.y-originY})}
+  return createSideExtrudedProfile(points,.16,materialColor,"Perfil lateral extrudado — "+(fromY>.0?"coxa traseira":"segmento inferior traseiro"));
+ };
+ const createFlatSideBlock=(name,yCenter,zCenter,height,length,thickness,color)=>{
+  const hy=height/2,hz=length/2;
+  const points=[
+   {z:zCenter-hz,y:yCenter-hy},{z:zCenter+hz,y:yCenter-hy},
+   {z:zCenter+hz,y:yCenter+hy},{z:zCenter-hz,y:yCenter+hy}
+  ];
+  return createSideExtrudedProfile(points,thickness,color,name);
  };
 // Hierarquia original preservada: exatamente três pontos funcionais por pata.
  const legs=[];
@@ -611,13 +613,13 @@ function jaguarPreset(){
   }else{
    // Sem peça decorativa sobre o ombro: o volume nasce diretamente
    // do peitoral e a perna mantém apenas seu braço articulado principal.
-   forearmMesh=block(hip,"Bloco 2 — braço dianteiro único",[0,-.415,.015],[.25,1.08,.25],COAT3,"sculpt_forelimb",[.02,0,q.side*-.018]);
+   forearmMesh=createFlatSideBlock("Perfil lateral extrudado — perna dianteira",-0.415,.015,1.08,.25,.16,COAT3);
   }
   const wrist=group(q.hind?knee:hip,q.hind?[0,-.40,.07]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   // A pata recua para encaixar sobre o pivô e cobrir a junção com o segundo bloco.
   // Uma única peça larga mantém a lateral limpa; a leitura das divisões fica nas quinas.
   const paw=group(wrist,[0,0,-.055],"Pata");
-  block(paw,"Pata larga",[0,-.025,.025],[.29,.14,.32],PAW,"sculpt_paw");
+  const pawProfile=createFlatSideBlock("Perfil lateral extrudado — pata",-.025,.025,.14,.32,.16,PAW);paw.add(pawProfile);
   legs.push({hip,axis:hindAxis,scapula,forearmMesh: q.hind?null:forearmMesh,baseForearmPos:!q.hind?forearmMesh.position.clone():null,baseForearmScale:!q.hind?forearmMesh.scale.clone():null,elbow,knee,hock,baseKneeRot:knee?knee.rotation.clone():null,baseHockRot:null,baseElbowRot:null,baseScapulaRot:scapula?scapula.rotation.clone():null,baseScapulaPos:scapula?scapula.position.clone():null,wrist,paw,basePawPos:paw.position.clone(),basePawRot:paw.rotation.clone(),phase:q.phase,hind:q.hind,side:q.side,baseAxisPos:hindAxis?hindAxis.position.clone():null,baseHip:hip.position.clone(),baseWrist:wrist.position.clone(),baseHipRot:hip.rotation.clone(),baseWristRot:wrist.rotation.clone()});
  }
  // Cauda presa à anca, com balanço secundário.
@@ -1235,5 +1237,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=236",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=241",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
