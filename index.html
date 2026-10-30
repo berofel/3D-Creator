@@ -986,6 +986,7 @@ async function importJaguarGLB(file){
   for(const oldRoot of previous){
    const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
    if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
+   window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>rig.wrapper!==oldRoot);
    parts=parts.filter(part=>!descendants.includes(part));
    oldRoot.traverse(object=>{
     if(!object.isMesh)return;
@@ -995,7 +996,7 @@ async function importJaguarGLB(file){
    elementRoots=elementRoots.filter(root=>root!==oldRoot);
   }
   scene.add(wrapper);
-  const importedRig=createImportedJaguarRig(wrapper,model);
+  const importedRig=/nc_a\\.glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
   if(importedRig){window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig)}
   elementRoots.push(wrapper);
   model.traverse(object=>{if(object.isMesh)parts.push(object)});
