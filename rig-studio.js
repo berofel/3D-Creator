@@ -1,6 +1,6 @@
 export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   const $ = id => document.getElementById(id);
-  const state = { root:null, helper:null, visualRoot:null, visualParts:[], weightOverlays:[], bones:[], selected:null, target:null, showVisual:true, ownsRoot:false };
+  const state = { root:null, helper:null, visualRoot:null, visualParts:[], weightOverlays:[], weightPaint:null, bones:[], selected:null, target:null, showVisual:true, ownsRoot:false };
   const presets = {
     feline: {label:"Felino / quadrúpede", bones:[
       ["Root",null,[0,0,0]],["Coluna",0,[0,.85,0]],["Peito",1,[0,.25,.45]],["Pescoço",2,[0,.08,.42]],["Cabeça",3,[0,.02,.34]],["Quadril",1,[0,-.08,-.48]],["Cauda_01",5,[0,.05,-.42]],["Cauda_02",6,[0,0,-.42]],
@@ -269,6 +269,123 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(status)status.textContent="Visualizando influência de "+(bone?.name||selectedId)+" em "+overlays.length+" malha(s). Azul: sem influência; vermelho: influência forte. Somente leitura.";
     const button=$("rigWeightViewToggle");if(button)button.textContent="Ocultar influência na malha";
   }
+  function beginWeightPaint(){
+    if(state.weightPaint) return;
+    const target=getSelected?.()||state.target;
+    if(!target)throw new Error("Selecione a criatura com esqueleto nativo.");
+    const bone=state.selected||state.bones.find(b=>(b.userData?.berofelBoneId||b.name)===$("rigWeightBoneSelect")?.value);
+    if(!bone)throw new Error("Selecione um osso nativo antes de pintar.");
+    const meshes=[];
+    target.traverse?.(mesh=>{
+      if(!mesh.isSkinnedMesh||!mesh.skeleton)return;
+      const boneIndex=mesh.skeleton.bones.indexOf(bone);
+      if(boneIndex<0)return;
+      const original=mesh.geometry,working=original.clone();
+      const indices=working.attributes.skinIndex,weights=working.attributes.skinWeight;
+      if(!indices||!weights||indices.itemSize!==4||weights.itemSize!==4) {working.dispose();return;}
+      mesh.geometry=working;
+      meshes.push({mesh,original,working,boneIndex});
+    });
+    if(!meshes.length)throw new Error("O osso selecionado não pertence a nenhuma malha com skinning compatível.");
+    state.weightPaint={bone,meshes,mode:"add",radius:.22,strength:.25,undo:[],redo:[],maxHistory:20};
+    $("rigWeightPaintStart").textContent="Encerrar pintura";
+    $("rigWeightPaintStatus").textContent="Pintura temporária ativa. Clique na superfície da malha para aplicar influência; confirme para gravar ou cancele para restaurar.";
+  }
+  function weightPaintSnapshot(){
+    const p=state.weightPaint;
+    return p.meshes.map(item=>({
+      indices:new item.working.attributes.skinIndex.array.slice(),
+      weights:item.working.attributes.skinWeight.array.slice()
+    }));
+  }
+  function restoreWeightPaintSnapshot(snapshot){
+    const p=state.weightPaint;if(!p)return;
+    p.meshes.forEach((item,i)=>{
+      item.working.attributes.skinIndex.array.set(snapshot[i].indices);
+      item.working.attributes.skinWeight.array.set(snapshot[i].weights);
+      item.working.attributes.skinIndex.needsUpdate=true;
+      item.working.attributes.skinWeight.needsUpdate=true;
+    });
+  }
+  function paintWeightsAt(point){
+    const p=state.weightPaint;if(!p) return 0;
+    const before=weightPaintSnapshot(),center=point.clone(),vertex=new THREE.Vector3();
+    let changed=0;
+    for(const item of p.meshes){
+      const mesh=item.mesh,geometry=item.working;
+      mesh.updateWorldMatrix(true,false);
+      const indices=geometry.attributes.skinIndex,weights=geometry.attributes.skinWeight;
+      const count=geometry.attributes.position?.count||0;
+      for(let v=0;v<count;v++){
+        mesh.getVertexPosition(v,vertex);
+        const distance=vertex.distanceTo(center);
+        if(distance>p.radius)continue;
+        const falloff=Math.pow(Math.max(0,1-distance/p.radius),1.5);
+        const amount=Math.min(.95,p.strength*falloff);
+        if(amount<=.001)continue;
+        const entries=[];
+        let selectedWeight=0;
+        for(let k=0;k<4;k++){
+          const idx=indices.getComponent(v,k),w=Math.max(0,weights.getComponent(v,k));
+          if(idx===item.boneIndex)selectedWeight+=w;
+          if(w>1e-6)entries.push({idx,w});
+        }
+        if(p.mode==="erase"){
+          if(selectedWeight<=1e-6)continue;
+          for(const e of entries)if(e.idx===item.boneIndex)e.w*=1-amount;
+        }else{
+          if(selectedWeight>0){
+            for(const e of entries)if(e.idx===item.boneIndex)e.w=Math.min(1,e.w+amount);
+          }else{
+            const candidate={idx:item.boneIndex,w:amount};
+            if(entries.length>=4){
+              let smallest=0;for(let i=1;i<entries.length;i++)if(entries[i].w<entries[smallest].w)smallest=i;
+              if(entries[smallest].w>=amount)continue;
+              entries.splice(smallest,1);
+            }
+            entries.push(candidate);
+          }
+        }
+        const filtered=entries.filter(e=>e.w>1e-5).sort((a,b)=>b.w-a.w).slice(0,4);
+        const sum=filtered.reduce((n,e)=>n+e.w,0);
+        for(let k=0;k<4;k++){
+          const entry=filtered[k];
+          indices.setComponent(v,k,entry?entry.idx:0);
+          weights.setComponent(v,k,entry&&sum>0?entry.w/sum:0);
+        }
+        changed++;
+      }
+      indices.needsUpdate=true;weights.needsUpdate=true;
+    }
+    if(changed){
+      p.undo.push(before);if(p.undo.length>p.maxHistory)p.undo.shift();p.redo.length=0;
+      $("rigWeightPaintStatus").textContent=changed+" vértice(s) afetado(s) nesta pincelada. Alterações ainda temporárias.";
+    }
+    return changed;
+  }
+  function undoWeightPaint(){
+    const p=state.weightPaint;if(!p||!p.undo.length)return;
+    p.redo.push(weightPaintSnapshot());restoreWeightPaintSnapshot(p.undo.pop());
+    $("rigWeightPaintStatus").textContent="Última pincelada desfeita.";
+  }
+  function redoWeightPaint(){
+    const p=state.weightPaint;if(!p||!p.redo.length)return;
+    p.undo.push(weightPaintSnapshot());restoreWeightPaintSnapshot(p.redo.pop());
+    $("rigWeightPaintStatus").textContent="Pincelada refeita.";
+  }
+  function finishWeightPaint(commit){
+    const p=state.weightPaint;if(!p)return;
+    for(const item of p.meshes){
+      if(!commit){item.mesh.geometry=item.original;item.working.dispose();}
+      else {item.working.attributes.skinIndex.needsUpdate=true;item.working.attributes.skinWeight.needsUpdate=true;}
+    }
+    state.weightPaint=null;
+    $("rigWeightPaintStart").textContent="Iniciar pintura";
+    $("rigWeightPaintStatus").textContent=commit
+      ?"Pesos aplicados à geometria de trabalho. O modelo, materiais e texturas não foram substituídos."
+      :"Pintura cancelada. Geometrias e pesos originais restaurados.";
+    if(commit)showWeightReport();
+  }
   function inspectWeights(){
     const target=getSelected?.()||state.target;
     if(!target)throw new Error("Selecione um modelo ou conecte seu esqueleto nativo antes do diagnóstico.");
@@ -442,5 +559,13 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigInspectWeights")?.addEventListener("click",()=>{try{showWeightReport()}catch(e){say(e.message)}});
   $("rigWeightViewToggle")?.addEventListener("click",()=>{try{if(state.weightOverlays.length)clearWeightOverlay();else showWeightOverlay();}catch(e){say(e.message);}});
   $("rigWeightBoneSelect")?.addEventListener("change",()=>{if(state.weightOverlays.length){try{showWeightOverlay()}catch(e){say(e.message);}}});
-  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  $("rigWeightPaintStart")?.addEventListener("click",()=>{try{if(state.weightPaint)finishWeightPaint(true);else beginWeightPaint();}catch(e){say(e.message);}});
+  $("rigWeightPaintCancel")?.addEventListener("click",()=>finishWeightPaint(false));
+  $("rigWeightPaintUndo")?.addEventListener("click",undoWeightPaint);
+  $("rigWeightPaintRedo")?.addEventListener("click",redoWeightPaint);
+  $("rigWeightPaintMode")?.addEventListener("change",e=>{if(state.weightPaint)state.weightPaint.mode=e.target.value;});
+  $("rigWeightBrushSize")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.radius=Math.max(.02,Math.min(2,Number(e.target.value)||.22));});
+  $("rigWeightBrushStrength")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.strength=Math.max(.01,Math.min(.95,Number(e.target.value)||.25));});
+
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
