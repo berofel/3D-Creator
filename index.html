@@ -914,6 +914,11 @@ async function importJaguarGLB(file){
    const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
    if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
    parts=parts.filter(part=>!descendants.includes(part));
+   oldRoot.traverse(object=>{
+    if(!object.isMesh)return;
+    object.geometry?.dispose();
+    for(const material of (Array.isArray(object.material)?object.material:[object.material]))material?.dispose();
+   });
    elementRoots=elementRoots.filter(root=>root!==oldRoot);
   }
   scene.add(wrapper);
@@ -1311,5 +1316,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=244",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=245",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
