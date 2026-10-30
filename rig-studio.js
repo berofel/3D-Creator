@@ -12,6 +12,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     dragon: {label:"Dragão", bones:[["Root",null,[0,0,0]],["Coluna",0,[0,.7,0]],["Peito",1,[0,.15,.4]],["Pescoço",2,[0,.08,.4]],["Cabeça",3,[0,0,.32]],["Quadril",1,[0,0,-.42]],["Cauda_01",5,[0,0,-.38]],["Cauda_02",6,[0,0,-.38]],["Asa_E",2,[-.3,.12,0]],["Asa_E_Ponta",8,[-.55,0,-.08]],["Asa_D",2,[.3,.12,0]],["Asa_D_Ponta",10,[.55,0,-.08]],["Perna_E",5,[-.2,-.35,-.05]],["Canela_E",12,[0,-.35,0]],["Perna_D",5,[.2,-.35,-.05]],["Canela_D",14,[0,-.35,0]]]}
   };
   function clearRig(){
+    clearWeightOverlay();
     if(state.helper?.parent)state.helper.parent.remove(state.helper);
     if(state.helper?.geometry)state.helper.geometry.dispose();
     if(state.helper?.material){if(Array.isArray(state.helper.material))state.helper.material.forEach(m=>m.dispose());else state.helper.material.dispose();}
@@ -26,7 +27,9 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     state.root=null; state.ownsRoot=false; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
     if(transform) transform.detach();
     $("rigPlaceBone")?.classList.remove("active-tool");
-    renderTree(); $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
+    renderTree();
+    renderWeightBoneOptions();
+    $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
   }
   function inspectTarget(target=state.target){
     const info={meshes:0,skinnedMeshes:0,existingBones:0};
@@ -118,11 +121,16 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     selectBone(bone);return true;
   }
   function selectBone(bone){
+    const refreshOverlay=state.weightOverlays.length>0;
+    if(refreshOverlay)clearWeightOverlay();
     state.selected=bone||null;
     state.editingBone=false;
     state.placing=false;
     if(transform) transform.detach();
     renderTree();
+    renderWeightBoneOptions();
+    if(bone&&$("rigWeightBoneSelect"))$("rigWeightBoneSelect").value=bone.userData?.berofelBoneId||bone.name;
+    if(refreshOverlay&&bone){try{showWeightOverlay()}catch(err){say("Não foi possível atualizar o heatmap: "+err.message);}}
     $("rigStudioStatus").textContent=bone
       ? "Osso selecionado: "+bone.name+". O modelo continua livre para seleção e navegação. Use Mover osso ou Girar osso para editar."
       : "Nenhum osso selecionado.";
@@ -226,7 +234,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(!selectedId)throw new Error("Escolha um osso para visualizar.");
     const overlays=[];
     target.traverse?.(mesh=>{
-      if(!mesh.isSkinnedMesh||!mesh.skeleton)return;
+      if(!mesh.isSkinnedMesh||!mesh.skeleton||!mesh.parent)return;
       const boneIndex=mesh.skeleton.bones.findIndex(b=>(b.userData?.berofelBoneId||b.name)===selectedId);
       if(boneIndex<0)return;
       const source=mesh.geometry,indices=source?.attributes?.skinIndex,weights=source?.attributes?.skinWeight;
@@ -251,7 +259,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       overlay.bindMatrixInverse.copy(mesh.bindMatrixInverse);
       overlay.position.copy(mesh.position);overlay.quaternion.copy(mesh.quaternion);overlay.scale.copy(mesh.scale);
       overlay.frustumCulled=false;overlay.renderOrder=30;
-      mesh.parent?.add(overlay);
+      mesh.parent.add(overlay);
       overlays.push({mesh:overlay,source:mesh});
     });
     if(!overlays.length)throw new Error("Não encontrei uma SkinnedMesh com pesos para o osso escolhido. Conecte o esqueleto nativo correto.");
