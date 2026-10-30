@@ -73,6 +73,9 @@ let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBas
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
 function sculptBlockGeometry(kind){
  const profiles={
+  torso_front:[[-.50,-.48],[.40,-.48],[.49,-.36],[.49,.34],[.40,.47],[-.42,.47],[-.50,.35],[-.50,-.22],[-.40,-.30],[-.40,-.40]],
+  torso_mid:[[-.44,-.50],[.40,-.50],[.48,-.40],[.48,.42],[.38,.50],[-.38,.50],[-.48,.40],[-.48,-.34]],
+  torso_rear:[[-.48,-.46],[.48,-.46],[.48,.44],[.34,.50],[-.38,.50],[-.50,.40],[-.50,.10],[-.34,.02],[-.34,-.18],[-.44,-.20]],
   chest:[[-.38,-.42],[.22,-.49],[.43,-.34],[.50,-.12],[.47,.29],[.30,.46],[-.25,.48],[-.46,.27],[-.49,-.18]],
   spine:[[-.31,-.43],[.25,-.45],[.43,-.25],[.38,.30],[.22,.45],[-.25,.42],[-.40,.20],[-.40,-.24]],
   rump:[[-.42,-.38],[.22,-.48],[.45,-.30],[.50,.16],[.37,.40],[.12,.49],[-.35,.39],[-.49,.12]],
@@ -435,7 +438,11 @@ function jaguarPreset(){
  const spineCore=block(spine,"Núcleo interno do eixo central",[0,0,0],[.80,.56,.90],COAT3,"sculpt_spine");spineCore.visible=false;
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
  const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
- createTorsoTransitionSurface();
+ // Tronco modular conforme a ficha técnica: três blocos independentes,
+ // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
+ block(body,"Bloco tronco 1 — peitoral frontal",[0,1.49,.43],[.88,.76,.78],COAT2,"sculpt_torso_front");
+ block(body,"Bloco tronco 2 — seção média",[0,1.455,-.18],[.82,.59,.68],COAT3,"sculpt_torso_mid");
+ block(body,"Bloco tronco 3 — traseiro/anca",[0,1.47,-.82],[.90,.70,.68],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -1128,5 +1135,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=222",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=223",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
