@@ -141,7 +141,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   }
   function createFromPreset(key){
     const target=attachTarget();clearRig();state.target=target;
-    state.root=new THREE.Group();state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;target.add(state.root);
+    state.root=new THREE.Group();state.root.name="RigStudio_"+key;state.root.userData.berofelRigStudio=true;state.root.userData.berofelSkeletonId="skeleton-"+makeStableId();target.add(state.root);
     const map=[];
     for(const [name,parent,pos] of presets[key].bones){map.push(makeBone(name,parent===null?state.root:map[parent],pos));}
     rebuildHelper();selectBone(map[0]);say("Preset "+presets[key].label+" criado. Ajuste os ossos manualmente; a malha original não foi deformada.");
@@ -171,7 +171,21 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(!state.selected)return;const value=$("rigBoneName").value.trim();if(value)state.selected.name=value;renderTree();
   }
   function exportData(){
-    return {format:"BerofelRigStudio",version:1,preset:$("rigPreset").value,bones:state.bones.map(b=>({name:b.name,parent:b.parent?.isBone?b.parent.name:null,position:b.position.toArray(),rotation:[b.rotation.x,b.rotation.y,b.rotation.z],limits:b.userData.limits||{min:-180,max:180}}))};
+    return {
+      format:"BerofelRigStudio",
+      version:2,
+      skeletonId:state.root?.userData.berofelSkeletonId||null,
+      preset:$("#rigPreset").value,
+      bones:state.bones.map(b=>({
+        id:b.userData.berofelBoneId,
+        name:b.name,
+        parentId:b.parent?.isBone?b.parent.userData.berofelBoneId:null,
+        position:b.position.toArray(),
+        quaternion:b.quaternion.toArray(),
+        scale:b.scale.toArray(),
+        limits:b.userData.limits||{min:-180,max:180}
+      }))
+    };
   }
   $("rigCreatePreset").onclick=()=>{try{createFromPreset($("rigPreset").value)}catch(e){say(e.message)}};
   $("rigAddBone").onclick=addBone;$("rigMirrorBone").onclick=mirrorSelected;$("rigDeleteBone").onclick=deleteSelected;$("rigRenameBone").onclick=renameSelected;
@@ -183,5 +197,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
