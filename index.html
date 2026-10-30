@@ -363,12 +363,12 @@ function jaguarPreset(){
  const block=(parent,name,pos,size,color,type="body",rot=[0,0,0])=>{
   const m=make(type,pos,size,color,name);m.rotation.set(...rot);parent.add(m);return m;
  };
- // O tronco central fica estreito e encaixado entre o peitoral e a anca.
- // A coluna funciona como um pistão curto: ligeiramente menor que a anca,
- // com movimento longitudinal e vertical próprio, sem atravessar o contorno dela.
+ // Tronco central mais cheio, com transições discretas entre peitoral e anca.
+ // Mantém o eixo como peça articulada independente, mas aumenta sua seção e
+ // seu comprimento para reduzir o efeito de "cintura estrangulada".
  block(body,"Peitoral esculpido", [0,1.48,.43],[.84,.76,.78],COAT2,"sculpt_chest");
  const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
- block(spine,"Eixo central esculpido",[0,0,0],[.61,.43,.76],COAT3,"sculpt_spine");
+ block(spine,"Eixo central esculpido",[0,0,0],[.74,.56,.90],COAT3,"sculpt_spine");
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
  block(rump,"Anca esculpida",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
