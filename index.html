@@ -568,15 +568,11 @@ function jaguarPreset(){
   const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.96,metalness:0,flatShading:true,side:THREE.DoubleSide}));
   mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
  };
- const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const stations=hindLegProfile.filter(p=>p.y<=fromY+1e-6&&p.y>=toY-1e-6);
-  if(!stations.length||Math.abs(stations[0].y-fromY)>1e-5)stations.unshift(sampleHindProfile(fromY));
-  if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
-  // O perfil lateral usa a largura anatômica em Z; X passa a ser uma lâmina plana e constante.
-  const points=[];
-  for(const p of stations)points.push({z:p.z-originZ+p.rz,y:p.y-originY});
-  for(let i=stations.length-1;i>=0;i--){const p=stations[i];points.push({z:p.z-originZ-p.rz,y:p.y-originY})}
-  return createSideExtrudedProfile(points,.16,materialColor,"Perfil lateral extrudado — "+(fromY>.0?"coxa traseira":"segmento inferior traseiro"));
+ const createHindLegSegment=(points,side,materialColor,name,thickness=.16)=>{
+  // Peça lateral em perfil: largura anatômica no eixo Z e lâmina constante no eixo X.
+  const mesh=createSideExtrudedProfile(points,thickness,materialColor,name);
+  mesh.position.x=0;
+  return mesh;
  };
  const createFlatSideBlock=(name,yCenter,zCenter,height,length,thickness,color)=>{
   const hy=height/2,hz=length/2;
@@ -601,21 +597,33 @@ function jaguarPreset(){
   const hip=q.hind?group(hindAxis,[0,0,0],pivotName):group(scapula,[0,-.025,0],"Braço dianteiro único "+(q.side<0?"esquerdo":"direito"));
   let knee=null,elbow=null,hock=null,forearmMesh=null;
   if(q.hind){
-   const thigh=createHindLegSegment(.10,-.82,q.side,COAT3);
-   thigh.name="Volume esculpido contínuo — coxa traseira";
+   // Coxa traseira: trapezoide lateral robusto, com afunilamento discreto.
+   // A peça é fina de frente e larga no perfil lateral; sem relevo nas faces externas.
+   const thigh=createHindLegSegment([
+    {z:.205,y:.10},{z:.205,y:-.20},{z:.195,y:-.55},{z:.182,y:-.82},
+    {z:-.182,y:-.82},{z:-.195,y:-.55},{z:-.205,y:-.20},{z:-.205,y:.10}
+   ],q.side,COAT3,"Fêmur traseiro — trapezoide lateral",.16);
    thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
    hip.add(thigh);
-   knee=group(hip,[0,-.82,-.105],"Bloco 2 — segmento inferior traseiro");
-   const shin=createHindLegSegment(-.82,-1.22,q.side,COAT3,-.82,-.105);
-   shin.name="Volume esculpido contínuo — perna inferior traseira";
-   shin.userData={anatomicalSegment:"lower",sharedSculptProfile:true};
+   // Extensão diagonal para trás: visualmente separada, mas solidária ao fêmur no rig.
+   const diagonal=createHindLegSegment([
+    {z:-.105,y:-.72},{z:-.345,y:-1.00},{z:-.465,y:-.91},{z:-.225,y:-.63}
+   ],q.side,COAT3,"Extensão diagonal traseira — solidária ao fêmur",.16);
+   diagonal.userData={anatomicalSegment:"upper",sameRigAsThigh:true};
+   hip.add(diagonal);
+   // A articulação funcional começa depois da peça diagonal. A canela desce reta.
+   knee=group(hip,[0,-1.00,-.405],"Articulação do joelho traseiro");
+   const shin=createHindLegSegment([
+    {z:.105,y:0},{z:.105,y:-.39},{z:-.105,y:-.39},{z:-.105,y:0}
+   ],q.side,COAT3,"Canela traseira — retângulo vertical",.16);
+   shin.userData={anatomicalSegment:"lower",verticalBlock:true};
    knee.add(shin);
   }else{
    // Sem peça decorativa sobre o ombro: o volume nasce diretamente
    // do peitoral e a perna mantém apenas seu braço articulado principal.
    forearmMesh=createFlatSideBlock("Perfil lateral extrudado — perna dianteira",-0.415,.015,1.08,.25,.16,COAT3);
   }
-  const wrist=group(q.hind?knee:hip,q.hind?[0,-.40,.07]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
+  const wrist=group(q.hind?knee:hip,q.hind?[0,-.39,0]:[0,-.965,.045],"Bloco 3 — pivô da pata "+(q.side<0?"esquerda":"direita"));
   // A pata recua para encaixar sobre o pivô e cobrir a junção com o segundo bloco.
   // Uma única peça larga mantém a lateral limpa; a leitura das divisões fica nas quinas.
   const paw=group(wrist,[0,0,-.055],"Pata");
@@ -1237,5 +1245,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=241",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=242",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
