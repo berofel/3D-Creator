@@ -320,6 +320,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
       const count=geometry.attributes.position?.count||0;
       for(let v=0;v<count;v++){
         mesh.getVertexPosition(v,vertex);
+        vertex.applyMatrix4(mesh.matrixWorld);
         const distance=vertex.distanceTo(center);
         if(distance>p.radius)continue;
         const falloff=Math.pow(Math.max(0,1-distance/p.radius),1.5);
@@ -350,6 +351,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
         }
         const filtered=entries.filter(e=>e.w>1e-5).sort((a,b)=>b.w-a.w).slice(0,4);
         const sum=filtered.reduce((n,e)=>n+e.w,0);
+        if(sum<=1e-8)continue;
         for(let k=0;k<4;k++){
           const entry=filtered[k];
           indices.setComponent(v,k,entry?entry.idx:0);
