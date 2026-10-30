@@ -655,6 +655,7 @@ function jaguarPreset(){
  select(null);setSkinMode("bones");setAnimation("idle");say("Onça pronta em respiração: peito, cabeça e cauda em movimento suave.");
 }
 function updateJaguarRig(){
+ updateImportedJaguarRigs();
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
  const t=animClock,rate=gallop?5.5:2.475; // +10% de velocidade, preservando poses e sincronismo
  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
@@ -883,6 +884,124 @@ function updateJaguarRig(){
 $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");
 $("jaguarPreset").onclick=()=>loadGitHubModel("Animais","nc_a.glb");
 // O preset procedural antigo permanece no código como backup, mas não é oferecido na interface.
+function createImportedJaguarRig(wrapper,model){
+ // O nc_a.glb não possui armature. O rig usa pivôs externos e mantém as malhas,
+ // materiais, texturas e transformações originais; não altera a geometria.
+ wrapper.updateMatrixWorld(true);
+ const candidates=[];
+ model.traverse(object=>{
+  if(!object.isMesh)return;
+  const box=new THREE.Box3().setFromObject(object);
+  const center=box.getCenter(new THREE.Vector3());
+  wrapper.worldToLocal(center);
+  if(center.y<1.55)candidates.push({mesh:object,center});
+ });
+ if(candidates.length<8)return null;
+ const xs=candidates.map(x=>x.center.x).sort((a,b)=>a-b);
+ const splitX=(xs[0]+xs[xs.length-1])*.5;
+ const zs=candidates.map(x=>x.center.z).sort((a,b)=>a-b);
+ const splitZ=zs[Math.floor(zs.length/2)];
+ const groups=[];
+ for(const front of [false,true])for(const positiveSide of [false,true]){
+  const members=candidates.filter(item=>(item.center.x>=splitX)===front&&(item.center.z>=splitZ)===positiveSide);
+  if(!members.length)continue;
+  members.sort((a,b)=>a.center.y-b.center.y);
+  const pawPart=members[0],lowerPart=members[1],upperPart=members[members.length-1];
+  const pivot=new THREE.Group();
+  pivot.name=(front?"Ombro dianteiro ":"Quadril traseiro ")+(positiveSide?"direito":"esquerdo");
+  const x=members.reduce((n,m)=>n+m.center.x,0)/members.length;
+  const z=members.reduce((n,m)=>n+m.center.z,0)/members.length;
+  pivot.position.set(x,Math.max(1.15,Math.min(1.8,upperPart.center.y+.38)),z);
+  wrapper.add(pivot);
+  pivot.attach(upperPart.mesh);
+  const knee=new THREE.Group();knee.name="Joelho articulado — "+pivot.name;
+  knee.position.copy(lowerPart.center);wrapper.add(knee);knee.attach(lowerPart.mesh);pivot.attach(knee);
+  const paw=new THREE.Group();paw.name="Pata articulada — "+pivot.name;
+  paw.position.copy(pawPart.center);wrapper.add(paw);paw.attach(pawPart.mesh);knee.attach(paw);
+  groups.push({pivot,knee,paw,front,side:positiveSide?1:-1,basePosition:pivot.position.clone(),baseRotation:pivot.rotation.clone(),baseKneeRotation:knee.rotation.clone(),basePawRotation:paw.rotation.clone(),baseKneePosition:knee.position.clone(),basePawPosition:paw.position.clone(),phase:(front===positiveSide)?0:Math.PI});
+ }
+ if(groups.length!==4){
+  // Não deixa um rig parcial preso ao modelo se a distribuição não formar quatro patas.
+  for(const group of groups){
+   for(const child of [...group.pivot.children])wrapper.attach(child);
+   wrapper.remove(group.pivot);
+  }
+  return null;
+ }
+ return {wrapper,legs:groups,baseWrapperPosition:wrapper.position.clone(),baseWrapperRotation:wrapper.rotation.clone()};
+}
+function updateImportedJaguarRigs(){
+ const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
+ const t=animClock,rate=gallop?5.5:2.475,cycle=t*rate;
+ const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
+ const hermite=(keys,x)=>{
+  const last=keys.length-1;x=Math.max(0,Math.min(1,x));let i=0;
+  while(i<last-1&&x>keys[i+1][0])i++;
+  const slope=j=>{
+   if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
+   if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
+   const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]),right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+   if(left*right<=0)return 0;
+   const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
+   return (left*dr+right*dl)/(dl+dr);
+  };
+  const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0,u=(x-t0)/dt,u2=u*u,u3=u2*u,m0=slope(i),m1=slope(i+1);
+  return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
+ };
+ const DEG45=Math.PI/4;
+ for(const rig of (window.__berofelImportedJaguarRigs||[])){
+  let foreLoad=0,hindLoad=0;
+  for(const leg of rig.legs){
+   if(mode==="idle"||mode==="stop"){
+    leg.pivot.position.copy(leg.basePosition);leg.pivot.rotation.copy(leg.baseRotation);
+    leg.knee.position.copy(leg.baseKneePosition);leg.knee.rotation.copy(leg.baseKneeRotation);
+    leg.paw.position.copy(leg.basePawPosition);leg.paw.rotation.copy(leg.basePawRotation);
+    continue;
+   }
+   const hind=!leg.front;
+   const p=((cycle/(Math.PI*2)+(gallop?(hind?.5:0):(leg.phase/Math.PI)*.5))%1+1)%1;
+   let hipAngle=0,kneeAngle=0,pawWorldAngle=0;
+   if(hind){
+    hipAngle=hermite([[0,.38],[.23,-.52],[.42,-.44],[.52,-.08],[.69,.38],[1,.38]],p);
+    kneeAngle=hermite([[0,0],[.23,.10],[.42,.10],[.52,0],[.69,0],[1,0]],p);
+    const slide=hermite([[0,-.012],[.23,.055],[.42,.055],[.52,.055],[.69,-.012],[1,-.012]],p);
+    const lift=hermite([[0,0],[.23,.022],[.42,0],[.52,0],[.69,0],[1,0]],p);
+    if(p<.42)pawWorldAngle=DEG45;
+    else if(p<.52)pawWorldAngle=DEG45*(1-smooth((p-.42)/.10));
+    else if(p<.69)pawWorldAngle=0;
+    else pawWorldAngle=DEG45*smooth((p-.69)/.31);
+    leg.pivot.position.set(leg.basePosition.x+slide,leg.basePosition.y+lift,leg.basePosition.z);
+    leg.pivot.rotation.set(leg.baseRotation.x,leg.baseRotation.y,leg.baseRotation.z+hipAngle*(gallop?1.08:1));
+    leg.knee.rotation.set(leg.baseKneeRotation.x,leg.baseKneeRotation.y,leg.baseKneeRotation.z+kneeAngle);
+    leg.paw.rotation.set(leg.basePawRotation.x,leg.basePawRotation.y,leg.basePawRotation.z+pawWorldAngle-hipAngle-kneeAngle);
+    hindLoad+=smooth(p/.12)*(1-smooth((p-.44)/.08));
+   }else{
+    const shoulderZ=hermite([[0,-.015],[.08,-.035],[.22,.005],[.34,.035],[.43,.015],[.52,0],[1,-.015]],p);
+    const shoulderY=hermite([[0,0],[.10,.012],[.24,.055],[.34,.07],[.43,.025],[.50,-.012],[.58,0],[1,0]],p);
+    const swing=hermite([[0,.38],[.27,-.52],[.49,-.44],[.63,-.08],[.80,.38],[1,.38]],p);
+    const pawAngle=hermite([[0,DEG45],[.42,DEG45],[.52,0],[.69,0],[.99,DEG45],[1,DEG45]],p);
+    leg.pivot.position.set(leg.basePosition.x+shoulderZ,leg.basePosition.y+shoulderY,leg.basePosition.z);
+    leg.pivot.rotation.set(leg.baseRotation.x,leg.baseRotation.y,leg.baseRotation.z+swing);
+    leg.knee.rotation.copy(leg.baseKneeRotation);
+    leg.paw.rotation.set(leg.basePawRotation.x,leg.basePawRotation.y,leg.basePawRotation.z+pawAngle-swing);
+    foreLoad+=hermite([[0,0],[.12,.22],[.28,.62],[.48,1],[.68,.86],[.84,.42],[1,0]],p);
+   }
+   if(p>=.24&&p<.69){
+    rig.wrapper.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(leg.paw);
+    if(!bounds.isEmpty()){
+     const correction=Math.max(-.025,Math.min(.025,-bounds.min.y));
+     leg.paw.position.y+=correction/Math.max(.001,rig.wrapper.scale.y);
+    }
+   }
+  }
+  foreLoad/=2;hindLoad/=2;
+  const bodyReact=smooth(hindLoad*.95);
+  rig.wrapper.position.y=(rig.baseWrapperPosition?.y||0)+Math.sin(t*2.1)*.006+(moving?Math.sin(cycle*2)*.003*bodyReact:0);
+  rig.wrapper.rotation.x=(rig.baseWrapperRotation?.x||0)+(moving?(hindLoad-foreLoad)*.004:0);
+  rig.wrapper.rotation.z=(rig.baseWrapperRotation?.z||0)+(moving?Math.sin(cycle+.3)*(gallop?.012:.003)*bodyReact:0);
+ }
+}
 async function importJaguarGLB(file){
  if(!file)return;
  say("Importando modelo original da onça…");
@@ -924,6 +1043,7 @@ async function importJaguarGLB(file){
   for(const oldRoot of previous){
    const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
    if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
+   window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>rig.wrapper!==oldRoot);
    parts=parts.filter(part=>!descendants.includes(part));
    oldRoot.traverse(object=>{
     if(!object.isMesh)return;
@@ -933,6 +1053,8 @@ async function importJaguarGLB(file){
    elementRoots=elementRoots.filter(root=>root!==oldRoot);
   }
   scene.add(wrapper);
+  const importedRig=/nc_a\\.glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
+  if(importedRig){window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig)}
   elementRoots.push(wrapper);
   model.traverse(object=>{if(object.isMesh)parts.push(object)});
   $("name").value=file.name.replace(/\.glb$/i,"").slice(0,48)||"Modelo importado";
@@ -944,7 +1066,7 @@ async function importJaguarGLB(file){
   camera.near=Math.max(.01,span/100);camera.far=Math.max(1000,span*30);
   camera.lookAt(target);camera.updateProjectionMatrix();orbit.update();
   select(wrapper);renderParts();
-  const animationNote=gltf.animations?.length?" Foram encontradas "+gltf.animations.length+" animação(ões), ainda não ligadas aos controles do editor.":"";
+  const animationNote=importedRig?" Rig de movimento de quatro patas preparado e ligado aos controles Caminhar/Correr.":" Não foi possível identificar quatro grupos de patas para preparar o rig automaticamente.";
   say("Modelo GLB importado: "+meshCount+" malha(s). Geometria e materiais preservados."+animationNote);
   const packageStatus=$("rigPackageStatus");if(packageStatus)packageStatus.textContent="Modelo carregado: "+file.name+" • "+meshCount+" malha(s). Pronto para salvar o pacote de Rig.";
  }catch(error){
@@ -1415,7 +1537,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=253",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=255",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 </script></body></html>
