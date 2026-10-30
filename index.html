@@ -423,13 +423,16 @@ function jaguarPreset(){
   // Cada seção controla separadamente a altura acima (up) e abaixo (down)
   // do eixo, evitando a seção simétrica de um tubo achatado.
   const sections=[
+   // Peitoral: maior seção nos quatro cantos (largura e altura), sem degrau abrupto.
    {z:1.02,y:1.51,rx:.24,up:.22,down:.23,c:COAT2},
-   {z:.76,y:1.49,rx:.39,up:.29,down:.31,c:COAT2},
-   {z:.43,y:1.475,rx:.415,up:.30,down:.32,c:COAT2},
-   {z:.12,y:1.46,rx:.405,up:.285,down:.315,c:COAT3},
-   {z:-.22,y:1.45,rx:.40,up:.275,down:.31,c:COAT3},
-   {z:-.55,y:1.46,rx:.40,up:.28,down:.31,c:COAT3},
-   {z:-.86,y:1.48,rx:.395,up:.29,down:.32,c:COAT2},
+   {z:.76,y:1.49,rx:.425,up:.315,down:.335,c:COAT2},
+   {z:.43,y:1.475,rx:.45,up:.325,down:.345,c:COAT2},
+   // Tronco intermediário: ligeiramente menor em largura e altura que o peitoral.
+   {z:.12,y:1.46,rx:.405,up:.29,down:.31,c:COAT3},
+   {z:-.22,y:1.45,rx:.395,up:.285,down:.30,c:COAT3},
+   {z:-.55,y:1.46,rx:.39,up:.28,down:.295,c:COAT3},
+   // Quadril: terceiro nível do funil, menor que o tronco em todos os lados.
+   {z:-.86,y:1.48,rx:.355,up:.255,down:.27,c:COAT2},
    {z:-1.20,y:1.475,rx:.25,up:.22,down:.23,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
@@ -485,9 +488,11 @@ function jaguarPreset(){
  const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.78,.64,.60],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
  // Tronco modular conforme a ficha técnica: três blocos independentes,
  // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
- block(body,"Bloco esculpido 1 — peitoral alto",[0,1.47,.43],[.84,.82,.78],COAT2,"sculpt_torso_front");
- block(body,"Bloco esculpido 2 — tronco intermediário",[0,1.43,-.18],[.83,.80,.72],COAT3,"sculpt_torso_mid");
- block(body,"Bloco esculpido 3 — quadril baixo",[0,1.40,-.79],[.82,.78,.72],COAT2,"sculpt_torso_rear");
+ // Os três volumes encaixam com sobreposição curta: peitoral > tronco > quadril
+ // em largura, altura e comprimento, criando um funil discreto nos quatro cantos.
+ block(body,"Bloco esculpido 1 — peitoral dominante",[0,1.47,.43],[.90,.86,.78],COAT2,"sculpt_torso_front");
+ block(body,"Bloco esculpido 2 — tronco intermediário",[0,1.43,-.18],[.82,.78,.70],COAT3,"sculpt_torso_mid");
+ block(body,"Bloco esculpido 3 — quadril encaixado",[0,1.40,-.79],[.72,.70,.62],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
