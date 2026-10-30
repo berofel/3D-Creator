@@ -571,7 +571,7 @@ function jaguarPreset(){
  const createHindLegSegment=(points,side,materialColor,name,thickness=.16)=>{
   // Peça lateral em perfil: largura anatômica no eixo Z e lâmina constante no eixo X.
   const mesh=createSideExtrudedProfile(points,thickness,materialColor,name);
-  mesh.position.x=side*.29;
+  mesh.position.x=0;
   return mesh;
  };
  const createFlatSideBlock=(name,yCenter,zCenter,height,length,thickness,color)=>{
