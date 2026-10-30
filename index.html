@@ -44,7 +44,7 @@ details.add-group .group-content button{margin-top:6px}
 <div class="tool-row"><button id="moveElement" title="Alternar mover elemento inteiro">Mover tudo: OFF</button><button id="viewFront" title="Vista frontal">Vista frontal</button><button id="viewSide" title="Vista lateral">Vista lateral</button><button id="viewBack" title="Vista traseira">Vista traseira</button><button id="view3d" title="Voltar à câmera 3D">3D</button><button id="mirrorX" title="Duplicar peça espelhada no eixo X">Espelhar X</button></div>
 <div class="compact-select"><span class="tool-caption">ANIMAÇÃO</span><select id="quickAnimation" aria-label="Animação da criatura selecionada"><option value="idle">Respirar</option><option value="walk">Caminhar</option><option value="gallop">Correr</option><option value="chop">Cortar árvore</option><option value="stop">Parar</option></select><button id="quickAnimationPlay">▶</button></div>
 </div></main><aside class="side">
-<div class="section"><h2>REFERÊNCIA — ONÇA-PINTADA</h2><p class="hint">Compare a malha no visor com a ficha geométrica e a pose completa. Toque nas imagens para ampliar.</p><a href="https://raw.githubusercontent.com/berofel/3D-Creator/main/references/jaguar/877294147_1647342847088467_526962676682494075_n.webp" target="_blank" rel="noopener"><img alt="Ficha técnica geométrica da onça-pintada" src="https://raw.githubusercontent.com/berofel/3D-Creator/main/references/jaguar/877294147_1647342847088467_526962676682494075_n.webp" style="width:100%;border-radius:9px;border:1px solid var(--line);margin:5px 0"></a><a href="https://raw.githubusercontent.com/berofel/3D-Creator/main/references/jaguar/IMG_2755.png" target="_blank" rel="noopener"><img alt="Referência da onça-pintada em movimento" src="https://raw.githubusercontent.com/berofel/3D-Creator/main/references/jaguar/IMG_2755.png" style="width:100%;border-radius:9px;border:1px solid var(--line);margin:5px 0"></a></div><div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
+<div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
 <details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
 <details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
@@ -529,6 +529,30 @@ function jaguarPreset(){
   block(head,"Marca facial",[side*.27,.07,.25],[.03,.09,.05],SPOT1);
   block(head,"Bigode",[side*.22,-.035,.46],[.11,.014,.014],CREAM);
  }
+ // Formas de pele traseira inspiradas somente na ficha técnica interna.
+ // A silhueta é uma peça curva e contínua; não cria ossos, pivôs ou pesos.
+ const rearThighGeometry=()=>{
+  const sh=new THREE.Shape();
+  sh.moveTo(-.28,-.50);
+  sh.bezierCurveTo(-.42,-.34,-.43,-.08,-.34,.18);
+  sh.bezierCurveTo(-.31,.40,-.19,.51,-.02,.50);
+  sh.bezierCurveTo(.20,.49,.34,.34,.36,.13);
+  sh.bezierCurveTo(.37,-.08,.25,-.28,.16,-.50);
+  sh.lineTo(-.28,-.50);sh.closePath();
+  const g=new THREE.ExtrudeGeometry(sh,{depth:.34,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.035,bevelThickness:.025});
+  g.translate(0,0,-.17);g.computeVertexNormals();return g;
+ };
+ const rearShinGeometry=()=>{
+  const sh=new THREE.Shape();
+  sh.moveTo(-.22,-.50);
+  sh.bezierCurveTo(-.27,-.28,-.19,-.05,-.13,.16);
+  sh.bezierCurveTo(-.09,.36,-.02,.49,.08,.50);
+  sh.bezierCurveTo(.20,.42,.20,.22,.15,.04);
+  sh.bezierCurveTo(.10,-.17,.17,-.36,.12,-.50);
+  sh.lineTo(-.22,-.50);sh.closePath();
+  const g=new THREE.ExtrudeGeometry(sh,{depth:.23,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.022,bevelThickness:.018});
+  g.translate(0,0,-.115);g.computeVertexNormals();return g;
+ };
  // Rig anatômico simplificado: exatamente três blocos funcionais por pata.
  // Dianteira: ombro + braço único + pata. Traseira: fêmur + segmento inferior único + pata.
  const legs=[];
@@ -552,12 +576,15 @@ function jaguarPreset(){
    // O joelho desce junto; o segmento inferior fica mais curto sem alterar o alcance final da pata.
    // Perfil espelhado em X: a saliência anatômica fica voltada para fora nos dois lados.
    // Fêmur alongado sem engrossar, afinando em direção ao joelho; alcance final da pata preservado.
-   const thigh=block(hip,"Bloco 1 — fêmur traseiro largo",[0,-.37,-.025],[.39,1.00,.34],COAT3,"sculpt_thigh",[.34,0,q.side*.018]);
+   const thigh=block(hip,"Pele curva — coxa traseira",[0,-.37,-.025],[.39,1.00,.34],COAT3,"sculpt_thigh",[.34,0,q.side*.018]);
+   thigh.geometry.dispose();thigh.geometry=rearThighGeometry();
    thigh.scale.x*=q.side;
    knee=group(hip,[0,-.82,-.105],"Bloco 2 — segmento inferior traseiro");
    // Segmento de ligação um pouco mais encorpado; o pivô da pata acompanha
    // a extremidade real da peça para eliminar o vão e elevar a pata.
-   block(knee,"Segmento inferior traseiro único",[0,-.20,.045],[.24,.40,.23],COAT3,"sculpt_shin",[-.12,0,q.side*.012]);
+   const shin=block(knee,"Pele curva — perna inferior traseira",[0,-.20,.045],[.24,.40,.23],COAT3,"sculpt_shin",[-.12,0,q.side*.012]);
+   shin.geometry.dispose();shin.geometry=rearShinGeometry();
+   shin.scale.x*=q.side;
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
    // Braço dianteiro único e reto, como no vídeo: ombro largo, sem cotovelo.
@@ -1184,5 +1211,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=225",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=226",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
