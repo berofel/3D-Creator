@@ -50,6 +50,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <div class="tool-row"><button id="moveElement" title="Alternar mover elemento inteiro">Mover tudo: OFF</button><button id="viewFront" title="Vista frontal">Vista frontal</button><button id="viewSide" title="Vista lateral">Vista lateral</button><button id="viewBack" title="Vista traseira">Vista traseira</button><button id="view3d" title="Voltar à câmera 3D">3D</button><button id="mirrorX" title="Duplicar peça espelhada no eixo X">Espelhar X</button></div>
 <div class="compact-select"><span class="tool-caption">ANIMAÇÃO</span><select id="quickAnimation" aria-label="Animação da criatura selecionada"><option value="idle">Respirar</option><option value="walk">Caminhar</option><option value="gallop">Correr</option><option value="chop">Cortar árvore</option><option value="stop">Parar</option></select><button id="quickAnimationPlay">▶</button></div>
 </div></main><aside class="side">
+<div class="section"><h2>PROJETO NO GITHUB</h2><p class="hint">Salve a cena 3D completa diretamente no repositório berofel/3D-Creator. O arquivo GLB preserva hierarquia, geometria, materiais e texturas. Depois do envio, posso abrir esse mesmo arquivo pelo GitHub para continuar a edição.</p><label for="githubToken">Token de acesso do GitHub (não é salvo)</label><input id="githubToken" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_... ou github_pat_..."><label for="githubCategory">Pasta do modelo</label><select id="githubCategory" class="wide"><option value="Animais">Animais</option><option value="Formas-geometricas-e-anatomia">Formas geométricas e anatomia</option><option value="Humanoides">Humanoides</option><option value="Ferramentas-e-armas">Ferramentas e armas</option><option value="Ambiente">Ambiente</option></select><button id="saveGitHubProject" class="wide primary">Salvar modelo no GitHub</button><div id="githubSaveStatus" class="status">Ainda não enviado ao GitHub.</div><p class="hint">Crie um Fine-grained personal access token limitado ao repositório 3D-Creator, com Contents: Read and write. O token fica apenas na memória desta aba e desaparece ao recarregar a página. Não o envie no chat.</p></div>
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
 <details class="add-group" open><summary>Importar modelo GLB / preparar Rig</summary><div class="group-content"><p class="hint">Importe qualquer criatura em .GLB para a cena. Depois salve um pacote de preparação e envie esse pacote para análise e criação do Rig de movimento.</p><button id="importAnyGLB" class="wide primary">＋ Importar modelo 3D (.GLB)</button><input id="anyModelFile" type="file" accept=".glb,model/gltf-binary" hidden><label for="rigPackageName">Nome do arquivo</label><input id="rigPackageName" type="text" value="modelo_para_rig" maxlength="64" placeholder="Ex.: onca_pintada"><label for="rigPackageCategory">Categoria / pasta</label><select id="rigPackageCategory" class="wide"><option value="Animais">Animais</option><option value="Formas geometricas e anatomia">Formas geométricas e anatomia</option><option value="Humanoides">Humanoides</option><option value="Ferramentas e armas">Ferramentas e armas</option><option value="Ambiente">Ambiente</option></select><button id="chooseRigFolder" class="wide">Escolher pasta de destino</button><div id="rigFolderStatus" class="hint">Destino: será solicitado ao salvar, se o navegador permitir.</div><button id="saveRigPackage" class="wide primary">Salvar pacote para aplicar Rig (.ZIP)</button><div id="rigPackageStatus" class="status">Nenhum modelo importado nesta sessão.</div><p class="hint">O pacote inclui o GLB preservando a hierarquia, materiais e texturas exportáveis, além de um manifesto com informações para preparar o esqueleto e as animações. O Rig será aplicado em uma etapa posterior, após inspecionar o modelo.</p></div></details><details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Importar minha onça (.GLB)</button><input id="jaguarModelFile" type="file" accept=".glb,model/gltf-binary" hidden><button id="jaguarProceduralPreset" class="wide">＋ Onça procedural (base)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
@@ -1050,6 +1051,55 @@ function resetScene(){
 $("moveElement").onclick=()=>{moveWholeElement=!moveWholeElement;$("moveElement").textContent=moveWholeElement?"Mover tudo: ON":"Mover tudo: OFF";$("moveElement").classList.toggle("active-tool",moveWholeElement);say(moveWholeElement?"Modo mover elemento inteiro: clique numa peça do modelo para mover o conjunto.":"Modo mover peça: clique numa peça para editar somente ela.")};
 $("quickAnimationPlay").onclick=()=>{const mode=$("quickAnimation").value;if(mode==="chop"){treePlay();$("treeStatus").textContent="Animação de corte iniciada."}else{setAnimation(mode);$("animStatus").textContent="Animação selecionada: "+$("quickAnimation").selectedOptions[0].text}};$("quickAnimation").onchange=()=>{if($("quickAnimation").value==="chop")say("Selecione/crie o humanoide e a árvore para executar o corte.");else setAnimation($("quickAnimation").value)};$("exportAnimation").onchange=()=>{const mode=$("exportAnimation").value;if(["idle","walk","gallop"].includes(mode)){setAnimation(mode);$("quickAnimation").value=mode;$("animStatus").textContent="Animação selecionada para preview e exportação: "+mode;}};$("fit").onclick=fit;$("toolMove").onclick=()=>setTool("translate");$("toolRotate").onclick=()=>setTool("rotate");$("toolScale").onclick=()=>setTool("scale");$("viewFront").onclick=()=>setOrthographicView("front");$("viewSide").onclick=()=>setOrthographicView("side");$("viewBack").onclick=()=>setOrthographicView("back");$("mirrorX").onclick=mirrorSelectedX;$("view3d").onclick=fit;$("new").onclick=resetScene;$("remove").onclick=()=>{if(!selected)return;const p=selected;if(p.userData?.berofelElementRoot){if(p.parent)p.parent.remove(p);elementRoots=elementRoots.filter(x=>x!==p);const descendants=[];p.traverse(o=>{if(o.isMesh)descendants.push(o)});parts=parts.filter(x=>!descendants.includes(x));for(const m of descendants){m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}if(window.__berofelHumanoidRig&&p.name==="Homem")window.__berofelHumanoidRig=null;say("Elemento inteiro removido.")}else{if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(x=>x.dispose());else p.material?.dispose();parts=parts.filter(x=>x!==p);say("Peça removida.")}selected=null;transform.detach();renderParts()};
 $("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
+
+let githubSaveBusy=false;
+function githubSlug(value){return String(value||"modelo").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,64)||"modelo"}
+function blobToBase64(blob){
+ return blob.arrayBuffer().then(buffer=>{
+  const bytes=new Uint8Array(buffer);let binary="";const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  return btoa(binary);
+ });
+}
+async function saveSceneToGitHub(){
+ const button=$("saveGitHubProject"),status=$("githubSaveStatus"),token=$("githubToken").value.trim();
+ if(githubSaveBusy)return;
+ if(!token){status.textContent="Informe o token do GitHub para autorizar o envio."; $("githubToken").focus();return}
+ if(!exportRoots().length){status.textContent="A cena está vazia. Importe ou crie um modelo antes de salvar.";return}
+ githubSaveBusy=true;button.disabled=true;
+ try{
+  status.textContent="Preparando a cena completa em GLB…";
+  const bundle=buildExportBundle([selectedExportAnimation()]);
+  const blob=await parseExportGLB(bundle.scene,bundle.animations);
+  if(blob.size>95*1024*1024)throw new Error("O GLB ultrapassa 95 MB. Reduza o tamanho das texturas ou da geometria antes de enviar.");
+  const category=$("githubCategory").value;
+  const filename=githubSlug($("name").value||"modelo")+".glb";
+  const path="modelos/"+category+"/"+filename;
+  const api="https://api.github.com/repos/berofel/3D-Creator/contents/"+path.split("/").map(encodeURIComponent).join("/");
+  const headers={"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"};
+  status.textContent="Verificando a versão existente no GitHub…";
+  let existingSha=null;
+  const check=await fetch(api+"?ref=main",{headers});
+  if(check.ok){const current=await check.json();existingSha=current.sha}
+  else if(check.status!==404){const detail=await check.json().catch(()=>({}));throw new Error("GitHub ("+check.status+"): "+(detail.message||check.statusText))}
+  status.textContent="Enviando "+filename+" ("+(blob.size/1024/1024).toFixed(2)+" MB)…";
+  const content=await blobToBase64(blob);
+  const payload={message:(existingSha?"Atualiza":"Adiciona")+" modelo 3D: "+filename,content,branch:"main"};
+  if(existingSha)payload.sha=existingSha;
+  const response=await fetch(api,{method:"PUT",headers,body:JSON.stringify(payload)});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error("GitHub ("+response.status+"): "+(result.message||response.statusText));
+  const commit=result.commit?.sha||"commit criado";
+  status.textContent="Salvo no GitHub! "+path+" • "+(blob.size/1024/1024).toFixed(2)+" MB • commit "+String(commit).slice(0,10);
+  say("Modelo salvo no repositório GitHub. Posso acessar o arquivo "+path+" para continuar a edição.");
+  $("githubToken").value="";
+ }catch(error){
+  console.error("Falha ao salvar modelo no GitHub",error);
+  status.textContent="Não foi possível salvar: "+String(error?.message||error).slice(0,280);
+ }finally{githubSaveBusy=false;button.disabled=false}
+}
+$("saveGitHubProject").onclick=saveSceneToGitHub;
+
 $("open").onclick=()=>$("file").click();$("file").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());clear();$("name").value=d.name||"Criatura_importada";for(const p of d.parts||[]){const m=make(p.type||"body",p.position||[0,1,0],p.scale||[1,1,1],p.color||"#65a8a1",p.name);if(p.rotation)m.rotation.fromArray(p.rotation)}say("JSON carregado.")}catch(err){say("Não foi possível abrir esse JSON.")}e.target.value=""};
 
 // Exportação preservando as raízes e hierarquias reais. A implementação anterior
@@ -1331,5 +1381,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=250",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=251",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
