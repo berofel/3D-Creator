@@ -428,12 +428,13 @@ function jaguarPreset(){
    {z:.76,y:1.49,rx:.425,up:.315,down:.335,c:COAT2},
    {z:.43,y:1.475,rx:.45,up:.325,down:.345,c:COAT2},
    // Tronco intermediário: ligeiramente menor em largura e altura que o peitoral.
-   {z:.12,y:1.46,rx:.405,up:.29,down:.31,c:COAT3},
-   {z:-.22,y:1.45,rx:.395,up:.285,down:.30,c:COAT3},
-   {z:-.55,y:1.46,rx:.39,up:.28,down:.295,c:COAT3},
-   // Quadril: terceiro nível do funil, menor que o tronco em todos os lados.
-   {z:-.86,y:1.48,rx:.355,up:.255,down:.27,c:COAT2},
-   {z:-1.20,y:1.475,rx:.25,up:.22,down:.23,c:COAT2}
+   // Mantém dorso e topo do tronco; estreita os flancos e aprofunda somente a linha inferior.
+   {z:.12,y:1.46,rx:.395,up:.29,down:.355,c:COAT3},
+   {z:-.22,y:1.45,rx:.375,up:.285,down:.39,c:COAT3},
+   {z:-.55,y:1.46,rx:.355,up:.28,down:.415,c:COAT3},
+   // Quadril mais estreito que o tronco e com barriga inferior ainda mais profunda.
+   {z:-.86,y:1.48,rx:.315,up:.255,down:.435,c:COAT2},
+   {z:-1.20,y:1.475,rx:.22,up:.22,down:.30,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
   const rings=[],steps=1;
