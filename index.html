@@ -423,15 +423,15 @@ function jaguarPreset(){
   const sections=[
    {z:1.02,y:1.53,rx:.16,up:.17,down:.19,c:COAT2},
    {z:.88,y:1.52,rx:.29,up:.24,down:.27,c:COAT2},
-   {z:.69,y:1.50,rx:.395,up:.29,down:.33,c:COAT2},
-   {z:.46,y:1.49,rx:.445,up:.31,down:.35,c:COAT2},
-   {z:.22,y:1.475,rx:.432,up:.27,down:.34,c:COAT3},
-   {z:-.04,y:1.455,rx:.415,up:.245,down:.32,c:COAT3},
-   {z:-.30,y:1.445,rx:.414,up:.235,down:.31,c:COAT3},
-   {z:-.55,y:1.455,rx:.405,up:.245,down:.31,c:COAT3},
-   {z:-.72,y:1.485,rx:.405,up:.285,down:.33,c:COAT2},
-   {z:-.88,y:1.505,rx:.395,up:.30,down:.335,c:COAT2},
-   {z:-1.045,y:1.495,rx:.365,up:.275,down:.315,c:COAT2},
+   {z:.69,y:1.50,rx:.41,up:.29,down:.33,c:COAT2},
+   {z:.46,y:1.49,rx:.46,up:.31,down:.35,c:COAT2},
+   {z:.22,y:1.475,rx:.38,up:.27,down:.34,c:COAT3},
+   {z:-.04,y:1.455,rx:.365,up:.245,down:.32,c:COAT3},
+   {z:-.30,y:1.445,rx:.365,up:.235,down:.31,c:COAT3},
+   {z:-.55,y:1.455,rx:.36,up:.245,down:.31,c:COAT3},
+   {z:-.72,y:1.485,rx:.36,up:.285,down:.33,c:COAT2},
+   {z:-.88,y:1.505,rx:.35,up:.30,down:.335,c:COAT2},
+   {z:-1.045,y:1.495,rx:.325,up:.275,down:.315,c:COAT2},
    {z:-1.20,y:1.475,rx:.18,up:.16,down:.18,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
@@ -487,9 +487,9 @@ function jaguarPreset(){
  const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.78,.64,.60],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
  // Tronco modular conforme a ficha técnica: três blocos independentes,
  // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
- block(body,"Bloco esculpido 1 — peitoral frontal",[0,1.49,.43],[.88,.76,.78],COAT2,"sculpt_torso_front");
- block(body,"Bloco esculpido 2 — tronco médio",[0,1.455,-.18],[.82,.59,.68],COAT3,"sculpt_torso_mid");
- block(body,"Bloco esculpido 3 — traseiro e anca",[0,1.49,-.79],[.82,.58,.68],COAT2,"sculpt_torso_rear");
+ block(body,"Bloco esculpido 1 — peitoral frontal",[0,1.49,.43],[.91,.76,.78],COAT2,"sculpt_torso_front");
+ block(body,"Bloco esculpido 2 — tronco médio",[0,1.455,-.18],[.72,.59,.68],COAT3,"sculpt_torso_mid");
+ block(body,"Bloco esculpido 3 — traseiro e anca",[0,1.49,-.79],[.72,.58,.68],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -1231,5 +1231,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=232",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=233",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
