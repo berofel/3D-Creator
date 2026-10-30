@@ -532,17 +532,19 @@ function jaguarPreset(){
  // Escultura traseira angular: perfil de planos retos e chanfros diagonais.
  // Estações lineares mantêm quebras de plano e evitam o aspecto de tubo/amendoim.
  const hindLegProfile=[
-  {y:.10,x:.012,rx:.215,rz:.205,z:-.018},
-  {y:-.045,x:.028,rx:.270,rz:.235,z:-.004},
-  {y:-.205,x:.050,rx:.305,rz:.252,z:.012},
-  {y:-.385,x:.052,rx:.286,rz:.235,z:.028},
-  {y:-.555,x:.032,rx:.238,rz:.200,z:.045},
-  {y:-.705,x:.010,rx:.190,rz:.170,z:.064},
-  {y:-.820,x:0,rx:.158,rz:.151,z:.078},
-  {y:-.910,x:-.010,rx:.171,rz:.157,z:.098},
-  {y:-1.025,x:-.018,rx:.180,rz:.164,z:.116},
-  {y:-1.135,x:-.010,rx:.145,rz:.143,z:.128},
-  {y:-1.220,x:0,rx:.112,rz:.122,z:.136}
+  // Coxa: pernil retangular, com face interna plana e queda posterior em dois planos.
+  {y:.10,x:.006,rx:.205,rz:.165,z:-.018},
+  {y:-.075,x:.018,rx:.270,rz:.190,z:-.008},
+  {y:-.265,x:.028,rx:.285,rz:.195,z:-.018},
+  {y:-.445,x:.020,rx:.250,rz:.178,z:-.065},
+  {y:-.585,x:.002,rx:.205,rz:.155,z:-.132},
+  {y:-.715,x:-.012,rx:.158,rz:.132,z:-.188},
+  {y:-.820,x:-.018,rx:.132,rz:.118,z:-.215},
+  // Segmento inferior: retângulo estreito, com face interna quase lisa.
+  {y:-.910,x:-.020,rx:.142,rz:.125,z:-.205},
+  {y:-1.025,x:-.018,rx:.145,rz:.128,z:-.190},
+  {y:-1.135,x:-.008,rx:.125,rz:.115,z:-.176},
+  {y:-1.220,x:0,rx:.105,rz:.105,z:-.165}
  ];
  const sampleHindProfile=y=>{
   let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
@@ -551,17 +553,23 @@ function jaguarPreset(){
   return {y,x:mix("x"),rx:mix("rx"),rz:mix("rz"),z:mix("z")};
  };
  const createHindLegSegment=(fromY,toY,side,materialColor,originY=0,originZ=0)=>{
-  const positions=[],indices=[],rings=[],sides=8,chamfer=.23;
+  const positions=[],indices=[],rings=[],sides=6;
   const stations=hindLegProfile.filter(p=>p.y<=fromY+1e-6&&p.y>=toY-1e-6);
   if(!stations.length||Math.abs(stations[0].y-fromY)>1e-5)stations.unshift(sampleHindProfile(fromY));
   if(Math.abs(stations[stations.length-1].y-toY)>1e-5)stations.push(sampleHindProfile(toY));
   for(const p of stations){
-   rings.push(p);const cx=p.rx*chamfer,cz=p.rz*chamfer;
+   rings.push(p);
+   // Seção retangular assimétrica: face interna inteiriça; somente arestas externas recebem pequenos cortes.
+   const cutX=p.rx*.075,cutZ=p.rz*.075;
    const corners=[
-    [-p.rx+cx,-p.rz],[p.rx-cx,-p.rz],[p.rx,-p.rz+cz],[p.rx,p.rz-cz],
-    [p.rx-cx,p.rz],[-p.rx+cx,p.rz],[-p.rx,p.rz-cz],[-p.rx,-p.rz+cz]
+    [-p.rx,-p.rz],
+    [p.rx-cutX,-p.rz],
+    [p.rx,-p.rz+cutZ],
+    [p.rx,p.rz-cutZ],
+    [p.rx-cutX,p.rz],
+    [-p.rx,p.rz]
    ];
-   for(const [x,z] of corners)positions.push(side*p.x+x,p.y-originY,p.z-originZ+z);
+   for(const [x,z] of corners)positions.push(side*(p.x+x),p.y-originY,p.z-originZ+z);
   }
   for(let r=0;r<rings.length-1;r++)for(let j=0;j<sides;j++){
    const a=r*sides+j,b=r*sides+(j+1)%sides,c=(r+1)*sides+j,d=(r+1)*sides+(j+1)%sides;
@@ -573,7 +581,7 @@ function jaguarPreset(){
    for(let j=0;j<sides;j++){const u=base+j,v=base+(j+1)%sides;if(end===0)indices.push(center,v,u);else indices.push(center,u,v)}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
-  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.88,metalness:0,flatShading:true}));
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:materialColor,roughness:.9,metalness:0,flatShading:true}));
   mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
  };
  // Hierarquia original preservada: exatamente três pontos funcionais por pata.
@@ -1226,5 +1234,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=228",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=229",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
