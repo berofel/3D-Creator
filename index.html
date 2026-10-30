@@ -605,14 +605,16 @@ function jaguarPreset(){
    ],q.side,COAT3,"Fêmur traseiro — trapezoide lateral",.16);
    thigh.userData={anatomicalSegment:"upper",sharedSculptProfile:true};
    hip.add(thigh);
-   // Extensão diagonal para trás: visualmente separada, mas solidária ao fêmur no rig.
+   // Ligação diagonal curta e embutida: metade do comprimento visual anterior.
+   // A extremidade superior começa dentro do fêmur; só a quina inferior aparece
+   // na região dianteira do joelho, mantendo a mesma inclinação anatômica.
    const diagonal=createHindLegSegment([
-    {z:-.105,y:-.72},{z:-.345,y:-1.00},{z:-.465,y:-.91},{z:-.225,y:-.63}
-   ],q.side,COAT3,"Extensão diagonal traseira — solidária ao fêmur",.16);
-   diagonal.userData={anatomicalSegment:"upper",sameRigAsThigh:true};
+    {z:-.075,y:-.655},{z:-.205,y:-.865},{z:-.285,y:-.815},{z:-.155,y:-.605}
+   ],q.side,COAT3,"Ligação diagonal traseira — embutida no fêmur",.16);
+   diagonal.userData={anatomicalSegment:"upper",sameRigAsThigh:true,insetIntoThigh:true,reducedLength:.5};
    hip.add(diagonal);
-   // A articulação funcional começa depois da peça diagonal. A canela desce reta.
-   knee=group(hip,[0,-1.00,-.405],"Articulação do joelho traseiro");
+   // A canela nasce dentro da ponta inferior da diagonal; a emenda fica oculta.
+   knee=group(hip,[0,-.855,-.265],"Articulação do joelho traseiro");
    const shin=createHindLegSegment([
     {z:.105,y:0},{z:.105,y:-.39},{z:-.105,y:-.39},{z:-.105,y:0}
    ],q.side,COAT3,"Canela traseira — retângulo vertical",.16);
@@ -1245,5 +1247,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=242",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=243",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
