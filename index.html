@@ -367,19 +367,22 @@ function jaguarPreset(){
  // Os volumes articulados originais permanecem como suporte interno do rig;
  // a pele externa atravessa as emendas sem arredondar a silhueta.
  const createTorsoTransitionSurface=()=>{
+  // Seções anatômicas: retângulo largo de cantos facetados, não um tubo elíptico.
+  // O tronco é comprido e baixo; o peitoral abre em cunha e a anca ganha altura
+  // gradualmente. rx controla a largura lateral; ry controla a altura do dorso à barriga.
   const sections=[
-   {z:.98,y:1.54,rx:.18,ry:.20,c:COAT2},
-   {z:.84,y:1.51,rx:.31,ry:.30,c:COAT2},
-   {z:.66,y:1.49,rx:.405,ry:.37,c:COAT2},
-   {z:.43,y:1.48,rx:.445,ry:.395,c:COAT2},
-   {z:.18,y:1.475,rx:.425,ry:.365,c:COAT3},
-   {z:-.08,y:1.47,rx:.407,ry:.335,c:COAT3},
-   {z:-.34,y:1.47,rx:.408,ry:.33,c:COAT3},
-   {z:-.58,y:1.47,rx:.43,ry:.35,c:COAT3},
-   {z:-.80,y:1.47,rx:.452,ry:.385,c:COAT2},
-   {z:-1.00,y:1.465,rx:.43,ry:.37,c:COAT2},
-   {z:-1.17,y:1.455,rx:.34,ry:.31,c:COAT2},
-   {z:-1.29,y:1.45,rx:.17,ry:.18,c:COAT2}
+   {z:1.02,y:1.53,rx:.16,ry:.18,c:COAT2},
+   {z:.88,y:1.52,rx:.29,ry:.25,c:COAT2},
+   {z:.69,y:1.50,rx:.395,ry:.31,c:COAT2},
+   {z:.46,y:1.49,rx:.445,ry:.335,c:COAT2},
+   {z:.22,y:1.475,rx:.432,ry:.305,c:COAT3},
+   {z:-.04,y:1.455,rx:.415,ry:.285,c:COAT3},
+   {z:-.30,y:1.445,rx:.414,ry:.275,c:COAT3},
+   {z:-.55,y:1.455,rx:.43,ry:.285,c:COAT3},
+   {z:-.78,y:1.48,rx:.455,ry:.335,c:COAT2},
+   {z:-.99,y:1.475,rx:.435,ry:.325,c:COAT2},
+   {z:-1.17,y:1.46,rx:.34,ry:.275,c:COAT2},
+   {z:-1.31,y:1.45,rx:.16,ry:.16,c:COAT2}
   ];
   const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
   const rings=[],steps=5;
@@ -393,10 +396,15 @@ function jaguarPreset(){
    }
   }
   const last=sections[sections.length-1];rings.push({...last,color:new THREE.Color(last.c)});
-  const sides=12,positions=[],colors=[],indices=[];
+  const sides=16,positions=[],colors=[],indices=[];
+  // Superelipse (expoente 4.2): quatro planos largos e cantos chanfrados.
+  // Isso cria uma seção quase retangular sem quinas duras nem arredondamento cilíndrico.
+  const signedPower=(v,p)=>Math.sign(v)*Math.pow(Math.abs(v),p);
   for(const s of rings)for(let j=0;j<sides;j++){
-   const angle=(j/sides)*Math.PI*2+Math.PI/12;
-   positions.push(Math.cos(angle)*s.rx,s.y+Math.sin(angle)*s.ry,s.z);
+   const angle=(j/sides)*Math.PI*2+Math.PI/16;
+   const x=signedPower(Math.cos(angle),.48)*s.rx;
+   const y=signedPower(Math.sin(angle),.48)*s.ry;
+   positions.push(x,s.y+y,s.z);
    colors.push(s.color.r,s.color.g,s.color.b);
   }
   for(let ring=0;ring<rings.length-1;ring++)for(let j=0;j<sides;j++){
@@ -1117,5 +1125,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=221",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=222",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
