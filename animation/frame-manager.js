@@ -11,9 +11,12 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function remove(){if(frames.length<2)return;const i=frames.findIndex(x=>x.id===selectedId);if(i<0)return;frames.splice(i,1);selectedId=frames[Math.max(0,i-1)].id;render();persist();}
   function updateCurrent(){const f=frames.find(x=>x.id===selectedId);if(!f)return;f.pose=capture(f.label).pose;render();persist();}
   function exportData(){return{format:"BerofelMotionFrames",version:2,skeletonId:getSkeletonId?.()||null,frames:clone(frames)};}
+  function importData(data){if(!data||data.format!=="BerofelMotionFrames"||!Array.isArray(data.frames))throw new Error("Arquivo de poses inválido.");const active=getSkeletonId?.()||null;if(data.skeletonId&&active&&data.skeletonId!==active)throw new Error("Importe primeiro o rig correspondente a este arquivo de poses.");frames=clone(data.frames);nextId=Math.max(1,...frames.map(f=>Number(String(f.id).replace("frame-",""))+1||1));selectedId=frames[0]?.id||null;render();persist();}
   $("frameAdd")?.addEventListener("click",()=>{try{add();$("frameStatus").textContent="Pose salva."; }catch(e){$("frameStatus").textContent=e.message;}});
   $("frameDuplicate")?.addEventListener("click",()=>duplicate());$("frameDelete")?.addEventListener("click",remove);$("frameUpdate")?.addEventListener("click",updateCurrent);
+  $("frameImport")?.addEventListener("click",()=>$("frameImportFile")?.click());
+  $("frameImportFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{importData(JSON.parse(await file.text()));$("frameStatus").textContent="Quadros importados."; }catch(err){$("frameStatus").textContent=err.message;}finally{e.target.value="";}});
   $("frameExport")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-poses.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
   try{const s=JSON.parse(localStorage.getItem("berofel.motion.frames.v1")||"null");if(s?.version===1&&Array.isArray(s.frames)){frames=s.frames;nextId=s.nextId||1;selectedId=frames[0]?.id||null;}}catch{}render();
-  return{add,duplicate,remove,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
+  return{add,duplicate,remove,importData,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
 }
