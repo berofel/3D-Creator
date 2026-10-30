@@ -12,6 +12,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     dragon: {label:"Dragão", bones:[["Root",null,[0,0,0]],["Coluna",0,[0,.7,0]],["Peito",1,[0,.15,.4]],["Pescoço",2,[0,.08,.4]],["Cabeça",3,[0,0,.32]],["Quadril",1,[0,0,-.42]],["Cauda_01",5,[0,0,-.38]],["Cauda_02",6,[0,0,-.38]],["Asa_E",2,[-.3,.12,0]],["Asa_E_Ponta",8,[-.55,0,-.08]],["Asa_D",2,[.3,.12,0]],["Asa_D_Ponta",10,[.55,0,-.08]],["Perna_E",5,[-.2,-.35,-.05]],["Canela_E",12,[0,-.35,0]],["Perna_D",5,[.2,-.35,-.05]],["Canela_D",14,[0,-.35,0]]]}
   };
   function clearRig(){
+    rebuildHelper();
     if(state.root?.parent) state.root.parent.remove(state.root);
     if(state.helper?.parent)state.helper.parent.remove(state.helper);
     state.root=null; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
@@ -26,7 +27,14 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   }
   function rebuildHelper(){
     if(state.helper?.parent)state.helper.parent.remove(state.helper);
+    if(state.helper?.geometry)state.helper.geometry.dispose();
+    if(state.helper?.material){if(Array.isArray(state.helper.material))state.helper.material.forEach(m=>m.dispose());else state.helper.material.dispose();}
     if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot);
+    if(state.visualRoot){
+      const geometries=new Set(),materials=new Set();
+      state.visualRoot.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));});
+      geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
+    }
     state.visualParts=[];
     if(!state.root)return;
     state.helper=new THREE.SkeletonHelper(state.root);
@@ -171,8 +179,25 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(!state.selected)return;const value=$("rigBoneName").value.trim();if(value)state.selected.name=value;renderTree();
   }
   function importData(data){
-    if(!data||data.format!=="BerofelRigStudio"||!Array.isArray(data.bones))throw new Error("Arquivo de rig inválido.");
-    const target=attachTarget();clearRig();state.target=target;
+    if(!data||data.format!=="BerofelRigStudio"||!Array.isArray(data.bones)||!data.bones.length)throw new Error("Arquivo de rig inválido ou sem ossos.");
+    const ids=new Set(),names=new Set(),items=data.bones;
+    for(const item of items){
+      if(!item||typeof item!=="object"||typeof item.name!=="string"||!item.name.trim())throw new Error("O arquivo contém um osso sem nome válido.");
+      if(item.id){if(ids.has(item.id))throw new Error("O arquivo contém IDs de osso duplicados.");ids.add(item.id);}
+      if(names.has(item.name)&&items.some(x=>!x.id))throw new Error("Há nomes duplicados em um rig antigo; renomeie os ossos antes de importar.");
+      names.add(item.name);
+      for(const key of ["position","scale"])if(item[key]!==undefined&&(!Array.isArray(item[key])||item[key].length!==3||!item[key].every(Number.isFinite)))throw new Error("Transformação inválida no osso "+item.name+".");
+      if(item.quaternion!==undefined&&(!Array.isArray(item.quaternion)||item.quaternion.length!==4||!item.quaternion.every(Number.isFinite)))throw new Error("Rotação inválida no osso "+item.name+".");
+    }
+    const known=new Set(items.map(x=>x.id||x.name));
+    for(const item of items){const parent=item.parentId||item.parent;if(parent&&!known.has(parent))throw new Error("O osso "+item.name+" aponta para um pai inexistente.");}
+    const target=attachTarget();
+    const pendingCheck=items.slice(),resolved=new Set();let passes=0;
+    while(pendingCheck.length&&passes++<=items.length){
+      for(let i=pendingCheck.length-1;i>=0;i--){const item=pendingCheck[i],parent=item.parentId||item.parent;if(!parent||resolved.has(parent)){resolved.add(item.id||item.name);pendingCheck.splice(i,1);}}
+    }
+    if(pendingCheck.length)throw new Error("A hierarquia contém ciclo ou dependência circular. O rig atual foi preservado.");
+    clearRig();state.target=target;
     state.root=new THREE.Group();state.root.name="RigStudio_Importado";state.root.userData.berofelRigStudio=true;
     state.root.userData.berofelSkeletonId=data.skeletonId||("skeleton-"+makeStableId());target.add(state.root);
     const map=new Map(),pending=data.bones.slice();
