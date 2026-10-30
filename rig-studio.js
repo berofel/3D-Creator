@@ -1,6 +1,6 @@
 export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   const $ = id => document.getElementById(id);
-  const state = { root:null, helper:null, bones:[], selected:null, target:null };
+  const state = { root:null, helper:null, visualRoot:null, visualParts:[], bones:[], selected:null, target:null, showVisual:true };
   const presets = {
     feline: {label:"Felino / quadrúpede", bones:[
       ["Root",null,[0,0,0]],["Coluna",0,[0,.85,0]],["Peito",1,[0,.25,.45]],["Pescoço",2,[0,.08,.42]],["Cabeça",3,[0,.02,.34]],["Quadril",1,[0,-.08,-.48]],["Cauda_01",5,[0,.05,-.42]],["Cauda_02",6,[0,0,-.42]],
@@ -13,7 +13,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   };
   function clearRig(){
     if(state.root?.parent) state.root.parent.remove(state.root);
-    state.root=null; state.helper=null; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
+    state.root=null; state.helper=null; if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot); state.visualRoot=null; state.visualParts=[]; state.bones=[]; state.selected=null; state.target=null; state.editingBone=false; state.placing=false;
     if(transform) transform.detach();
     $("rigPlaceBone")?.classList.remove("active-tool");
     renderTree(); $("rigStudioStatus").textContent="Rig removido. O modelo e suas malhas permanecem intactos.";
@@ -24,8 +24,68 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     return chosen;
   }
   function rebuildHelper(){
-    if(state.helper && state.helper.parent) state.helper.parent.remove(state.helper);
-    if(state.root){state.helper=new THREE.SkeletonHelper(state.root);state.helper.name="RigStudio_Visualizacao";state.helper.material.color.set(0x19d3b0);state.helper.material.depthTest=false;state.helper.renderOrder=20;scene.add(state.helper);}
+    if(state.helper?.parent)state.helper.parent.remove(state.helper);
+    if(state.visualRoot?.parent)state.visualRoot.parent.remove(state.visualRoot);
+    state.visualParts=[];
+    if(!state.root)return;
+    state.helper=new THREE.SkeletonHelper(state.root);
+    state.helper.name="RigStudio_Linhas";
+    state.helper.material.color.set(0x8fffe6);
+    state.helper.material.depthTest=false;
+    state.helper.renderOrder=19;
+    scene.add(state.helper);
+    state.visualRoot=new THREE.Group();
+    state.visualRoot.name="RigStudio_SilhuetaDosOssos";
+    state.visualRoot.renderOrder=20;
+    scene.add(state.visualRoot);
+    const jointGeo=new THREE.SphereGeometry(.065,12,10);
+    const boneGeo=new THREE.CylinderGeometry(.038,.052,1,10,1,false);
+    for(const bone of state.bones){
+      if(!bone.userData.berofelBoneId)bone.userData.berofelBoneId=makeStableId();
+      const joint=new THREE.Mesh(jointGeo,new THREE.MeshBasicMaterial({color:0x36e0c1,depthTest:false}));
+      joint.userData.rigBoneId=bone.userData.berofelBoneId;
+      joint.renderOrder=21;state.visualRoot.add(joint);
+      state.visualParts.push({mesh:joint,bone,kind:"joint"});
+      for(const child of bone.children.filter(c=>c.isBone)){
+        const segment=new THREE.Mesh(boneGeo,new THREE.MeshBasicMaterial({color:0x16b99e,depthTest:false}));
+        segment.userData.rigBoneId=child.userData.berofelBoneId;
+        segment.renderOrder=20;state.visualRoot.add(segment);
+        state.visualParts.push({mesh:segment,bone:child,parentBone:bone,kind:"segment"});
+      }
+    }
+    state.visualRoot.visible=state.showVisual;
+    updateVisuals();
+  }
+  function makeStableId(){
+    return "bone-"+(globalThis.crypto?.randomUUID?.()||("id-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10)));
+  }
+  function updateVisuals(){
+    if(!state.visualRoot||!state.root)return;
+    state.root.updateWorldMatrix(true,true);
+    const up=new THREE.Vector3(0,1,0),a=new THREE.Vector3(),b=new THREE.Vector3(),dir=new THREE.Vector3();
+    for(const item of state.visualParts){
+      const {mesh,bone,kind}=item;
+      if(kind==="joint"){
+        bone.getWorldPosition(a);mesh.position.copy(a);
+        mesh.material.color.set(bone===state.selected?0xffc857:0x36e0c1);
+        mesh.scale.setScalar(bone===state.selected?1.35:1);
+      }else{
+        bone.getWorldPosition(b);item.parentBone.getWorldPosition(a);dir.subVectors(b,a);
+        const length=Math.max(.001,dir.length());
+        mesh.position.copy(a).addScaledVector(dir,.5);
+        mesh.quaternion.setFromUnitVectors(up,dir.normalize());
+        mesh.scale.set(1,length,1);
+        mesh.material.color.set(bone===state.selected?0xffc857:0x16b99e);
+      }
+    }
+  }
+  function getPickTargets(){return state.showVisual?state.visualParts.map(p=>p.mesh):[];}
+  function selectFromIntersection(hit){
+    const id=hit?.object?.userData?.rigBoneId;
+    if(!id)return false;
+    const bone=state.bones.find(b=>b.userData.berofelBoneId===id);
+    if(!bone)return false;
+    selectBone(bone);return true;
   }
   function selectBone(bone){
     state.selected=bone||null;
@@ -75,7 +135,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     $("rigBoneCount").textContent=state.bones.length+" ossos";
   }
   function makeBone(name,parent,position){
-    const bone=new THREE.Bone();bone.name=name;bone.position.set(...position);bone.userData.rigStudioBone=true;bone.userData.limits={min:-180,max:180};
+    const bone=new THREE.Bone();bone.name=name;bone.position.set(...position);bone.userData.berofelBoneId=makeStableId();bone.userData.rigStudioBone=true;bone.userData.limits={min:-180,max:180};
     if(parent)parent.add(bone);state.bones.push(bone);return bone;
   }
   function createFromPreset(key){
@@ -116,11 +176,11 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigAddBone").onclick=addBone;$("rigMirrorBone").onclick=mirrorSelected;$("rigDeleteBone").onclick=deleteSelected;$("rigRenameBone").onclick=renameSelected;
   $("rigBoneName").addEventListener("change",renameSelected);
   $("rigSaveJson").onclick=()=>{if(!state.root){say("Crie um rig antes de exportar.");return;}const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-rig.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);};
-  $("rigClear").onclick=clearRig;
+  $("rigClear").onclick=clearRig;\n  $("rigToggleVisual")?.addEventListener("click",()=>{state.showVisual=!state.showVisual;if(state.visualRoot)state.visualRoot.visible=state.showVisual;$("rigToggleVisual").textContent=state.showVisual?"Ocultar silhueta":"Mostrar silhueta";});
   $("rigRotateMode").onclick=()=>setBoneTransform("rotate");
   $("rigMoveMode").onclick=()=>setBoneTransform("translate");
   $("rigPlaceBone").onclick=beginPlacement;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.placing){state.placing=false;$("rigPlaceBone").classList.remove("active-tool");$("rigStudioStatus").textContent="Posicionamento cancelado."}});
   $("rigStudioStatus").textContent="Escolha um preset ou crie um esqueleto manualmente. Selecione uma criatura antes de iniciar.";
-  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,update:()=>{if(state.helper)state.helper.update();}};
+  return {clear:clearRig,getState:()=>state,exportData,placeAtWorld,getPickTargets,selectFromIntersection,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
