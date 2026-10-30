@@ -489,7 +489,7 @@ function jaguarPreset(){
  // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
  block(body,"Bloco esculpido 1 — peitoral frontal",[0,1.49,.43],[.88,.76,.78],COAT2,"sculpt_torso_front");
  block(body,"Bloco esculpido 2 — tronco médio",[0,1.455,-.18],[.82,.59,.68],COAT3,"sculpt_torso_mid");
- block(body,"Bloco esculpido 3 — traseiro e anca",[0,1.47,-.82],[.90,.70,.68],COAT2,"sculpt_torso_rear");
+ block(body,"Bloco esculpido 3 — traseiro e anca",[0,1.47,-.82],[.90,.60,.78],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -532,16 +532,16 @@ function jaguarPreset(){
  // Escultura traseira angular: perfil de planos retos e chanfros diagonais.
  // Estações lineares mantêm quebras de plano e evitam o aspecto de tubo/amendoim.
  const hindLegProfile=[
-  // Coxa retangular: metade da largura frontal, poucos planos longos e dobra posterior reta.
-  {y:.10,x:.006,rx:.1025,rz:.165,z:-.018},
-  {y:-.075,x:.018,rx:.135,rz:.190,z:-.008},
-  {y:-.360,x:.025,rx:.1425,rz:.190,z:-.035},
-  {y:-.620,x:-.002,rx:.105,rz:.155,z:-.145},
-  {y:-.820,x:-.018,rx:.066,rz:.118,z:-.215},
-  // Conector inferior mais estreito, mantendo a face interna quase lisa.
-  {y:-.960,x:-.020,rx:.071,rz:.125,z:-.198},
-  {y:-1.135,x:-.008,rx:.0625,rz:.115,z:-.176},
-  {y:-1.220,x:0,rx:.0525,rz:.105,z:-.165}
+  // Coxa mais curta visualmente e com mais volume lateral para acompanhar a anca.
+  {y:.10,x:.006,rx:.1025,rz:.190,z:-.018},
+  {y:-.075,x:.018,rx:.135,rz:.225,z:-.008},
+  {y:-.360,x:.025,rx:.1425,rz:.235,z:-.035},
+  {y:-.620,x:-.002,rx:.105,rz:.205,z:-.145},
+  {y:-.820,x:-.018,rx:.066,rz:.145,z:-.215},
+  // Conector inferior permanece mais estreito e separado da massa da coxa.
+  {y:-.960,x:-.020,rx:.071,rz:.135,z:-.198},
+  {y:-1.135,x:-.008,rx:.0625,rz:.125,z:-.176},
+  {y:-1.220,x:0,rx:.0525,rz:.115,z:-.165}
  ];
  const sampleHindProfile=y=>{
   let i=0;while(i<hindLegProfile.length-2&&y<hindLegProfile[i+1].y)i++;
@@ -1231,5 +1231,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=230",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=231",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
