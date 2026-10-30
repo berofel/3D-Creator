@@ -368,61 +368,68 @@ function jaguarPreset(){
  // a pele externa atravessa as emendas sem arredondar a silhueta.
  const createTorsoTransitionSurface=()=>{
   const sections=[
-   {z:.91,y:1.55,rx:.25,ry:.25,c:COAT2},
-   {z:.78,y:1.49,rx:.39,ry:.35,c:COAT2},
-   {z:.56,y:1.48,rx:.435,ry:.39,c:COAT2},
-   {z:.30,y:1.47,rx:.425,ry:.36,c:COAT3},
-   {z:.04,y:1.47,rx:.405,ry:.315,c:COAT3},
-   {z:-.22,y:1.47,rx:.405,ry:.31,c:COAT3},
-   {z:-.48,y:1.47,rx:.425,ry:.34,c:COAT3},
-   {z:-.73,y:1.47,rx:.445,ry:.37,c:COAT2},
-   {z:-.96,y:1.47,rx:.425,ry:.365,c:COAT2},
-   {z:-1.16,y:1.46,rx:.34,ry:.31,c:COAT2},
-   {z:-1.27,y:1.45,rx:.20,ry:.20,c:COAT2}
+   {z:.98,y:1.54,rx:.18,ry:.20,c:COAT2},
+   {z:.84,y:1.51,rx:.31,ry:.30,c:COAT2},
+   {z:.66,y:1.49,rx:.405,ry:.37,c:COAT2},
+   {z:.43,y:1.48,rx:.445,ry:.395,c:COAT2},
+   {z:.18,y:1.475,rx:.425,ry:.365,c:COAT3},
+   {z:-.08,y:1.47,rx:.407,ry:.335,c:COAT3},
+   {z:-.34,y:1.47,rx:.408,ry:.33,c:COAT3},
+   {z:-.58,y:1.47,rx:.43,ry:.35,c:COAT3},
+   {z:-.80,y:1.47,rx:.452,ry:.385,c:COAT2},
+   {z:-1.00,y:1.465,rx:.43,ry:.37,c:COAT2},
+   {z:-1.17,y:1.455,rx:.34,ry:.31,c:COAT2},
+   {z:-1.29,y:1.45,rx:.17,ry:.18,c:COAT2}
   ];
-  const sides=8,positions=[],colors=[],indices=[];
-  const palette=sections.map(s=>new THREE.Color(s.c));
-  for(let ring=0;ring<sections.length;ring++){
-   const s=sections[ring],col=palette[ring];
-   for(let j=0;j<sides;j++){
-    const a=(j/sides)*Math.PI*2+Math.PI/8;
-    positions.push(Math.cos(a)*s.rx,s.y+Math.sin(a)*s.ry,s.z);
-    colors.push(col.r,col.g,col.b);
+  const cat=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
+  const rings=[],steps=5;
+  for(let i=0;i<sections.length-1;i++){
+   const a=sections[Math.max(0,i-1)],b=sections[i],c=sections[i+1],d=sections[Math.min(sections.length-1,i+2)];
+   for(let k=0;k<steps;k++){
+    const t=k/steps;
+    rings.push({z:cat(a.z,b.z,c.z,d.z,t),y:cat(a.y,b.y,c.y,d.y,t),
+     rx:Math.max(.12,cat(a.rx,b.rx,c.rx,d.rx,t)),ry:Math.max(.12,cat(a.ry,b.ry,c.ry,d.ry,t)),
+     color:new THREE.Color(b.c).lerp(new THREE.Color(c.c),t)});
    }
   }
-  for(let ring=0;ring<sections.length-1;ring++){
-   for(let j=0;j<sides;j++){
-    const a=ring*sides+j,b=ring*sides+(j+1)%sides;
-    const c=(ring+1)*sides+j,d=(ring+1)*sides+(j+1)%sides;
-    indices.push(a,b,c,b,d,c);
-   }
+  const last=sections[sections.length-1];rings.push({...last,color:new THREE.Color(last.c)});
+  const sides=12,positions=[],colors=[],indices=[];
+  for(const s of rings)for(let j=0;j<sides;j++){
+   const angle=(j/sides)*Math.PI*2+Math.PI/12;
+   positions.push(Math.cos(angle)*s.rx,s.y+Math.sin(angle)*s.ry,s.z);
+   colors.push(s.color.r,s.color.g,s.color.b);
   }
+  for(let ring=0;ring<rings.length-1;ring++)for(let j=0;j<sides;j++){
+   const a=ring*sides+j,b=ring*sides+(j+1)%sides,c=(ring+1)*sides+j,d=(ring+1)*sides+(j+1)%sides;
+   indices.push(a,b,c,b,d,c);
+  }
+  const front=positions.length/3;positions.push(0,rings[0].y,rings[0].z);colors.push(rings[0].color.r,rings[0].color.g,rings[0].color.b);
+  const back=positions.length/3;positions.push(0,last.y,last.z);colors.push(rings[rings.length-1].color.r,rings[rings.length-1].color.g,rings[rings.length-1].color.b);
+  for(let j=0;j<sides;j++){indices.push(front,(j+1)%sides,j);const base=(rings.length-1)*sides;indices.push(back,base+j,base+(j+1)%sides)}
   const geo=new THREE.BufferGeometry();
   geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
   geo.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
   geo.setIndex(indices);geo.computeVertexNormals();
-  const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,flatShading:true,side:THREE.DoubleSide});
-  const surface=new THREE.Mesh(geo,mat);
-  surface.name="Superfície contínua — transição peitoral/tronco/anca";
+  const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,flatShading:true,side:THREE.DoubleSide});
+  const surface=new THREE.Mesh(geo,mat);surface.name="Pele contínua facetada — peitoral, tronco e anca";
   surface.castShadow=true;surface.receiveShadow=true;
   surface.userData={id:++counter,type:"jaguar_torso_surface",name:surface.name,continuousAnatomy:true};
-  body.add(surface);parts.push(surface);
-  return surface;
+  body.add(surface);parts.push(surface);return surface;
  };
  // Tronco central mais cheio, com transições discretas entre peitoral e anca.
  // Mantém o eixo como peça articulada independente, mas aumenta sua seção e
  // seu comprimento para reduzir o efeito de "cintura estrangulada".
- block(body,"Peitoral esculpido", [0,1.48,.43],[.84,.76,.78],COAT2,"sculpt_chest");
+ const chestCore=block(body,"Núcleo interno do peitoral", [0,1.48,.43],[.84,.76,.78],COAT2,"sculpt_chest");chestCore.visible=false;
  const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
- block(spine,"Eixo central esculpido",[0,0,0],[.80,.56,.90],COAT3,"sculpt_spine");
+ const spineCore=block(spine,"Núcleo interno do eixo central",[0,0,0],[.80,.56,.90],COAT3,"sculpt_spine");spineCore.visible=false;
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
- block(rump,"Anca esculpida",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);
+ const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
  createTorsoTransitionSurface();
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
-  block(body,"Plano do ombro "+(side<0?"esquerdo":"direito"),[side*.30,1.12,.39],[.29,.39,.31],COAT3,"sculpt_shoulder",[0,0,side*-.08]);
-  block(rump,"Músculo da anca "+(side<0?"esquerdo":"direito"),[side*.30,-.02,.02],[.30,.39,.31],COAT3,"sculpt_hip",[0,0,side*-.10]);
+  const shoulderCore=block(body,"Núcleo interno do ombro "+(side<0?"esquerdo":"direito"),[side*.30,1.12,.39],[.29,.39,.31],COAT3,"sculpt_shoulder",[0,0,side*-.08]);shoulderCore.visible=false;
+  const hipCore=block(rump,"Núcleo interno do músculo da anca "+(side<0?"esquerdo":"direito"),[side*.30,-.02,.02],[.30,.39,.31],COAT3,"sculpt_hip",[0,0,side*-.10]);hipCore.visible=false;
  }
  // Manchas ficam sobre as laterais do corpo; são rasas para não parecerem espinhos.
  let spotIndex=0;
@@ -1110,5 +1117,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=220",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=221",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
