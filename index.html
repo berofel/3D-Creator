@@ -71,9 +71,9 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
 <div class="section"><h2>TRANSFORMAR PEÇA</h2><label>Posição X / Y / Z</label><div class="grid"><input id="px" type="number" step=".1" value="0"><input id="py" type="number" step=".1" value="0"><input id="pz" type="number" step=".1" value="0"></div><label>Escala X / Y / Z</label><div class="grid"><input id="sx" type="number" step=".1" min=".1" value="1"><input id="sy" type="number" step=".1" min=".1" value="1"><input id="sz" type="number" step=".1" min=".1" value="1"></div><label>Cor</label><input id="color" type="color" value="#65a8a1"><button id="apply" class="wide primary">Aplicar alterações</button></div>
 <div class="section"><h2>RIG STUDIO — EDITOR DE ESQUELETO</h2>
-<p class="hint">Crie um esqueleto novo sem substituir a malha. Selecione uma criatura na viewport e aplique um preset editável ou construa os ossos manualmente. Esta primeira versão cria a hierarquia de ossos e permite edição/exportação do esqueleto; deformação da pele, pintura de pesos e IK serão etapas posteriores.</p>
+<p class="hint">Conecte um esqueleto nativo de modelos com skinning ou crie um rig visual independente. A conexão nativa reutiliza os ossos existentes sem alterar pesos, geometria, materiais ou texturas.</p>
 <label for="rigPreset">Preset inicial</label><select id="rigPreset"><option value="feline">Felino / quadrúpede</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão / criatura alada</option></select>
-<div class="grid"><button id="rigCreatePreset" class="primary">Criar preset</button><button id="rigAddBone">＋ Adicionar osso</button><button id="rigPlaceBone">＋ Posicionar osso no modelo</button><button id="rigMirrorBone">Espelhar osso</button><button id="rigDeleteBone">Excluir osso</button></div>
+<div class="grid"><button id="rigCreatePreset" class="primary">Criar preset visual</button><button id="rigAdoptSkeleton">Conectar esqueleto nativo</button><button id="rigAddBone">＋ Adicionar osso</button><button id="rigPlaceBone">＋ Posicionar osso no modelo</button><button id="rigMirrorBone">Espelhar osso</button><button id="rigDeleteBone">Excluir osso</button></div>
 <label for="rigBoneName">Nome do osso selecionado</label><input id="rigBoneName" placeholder="Ex.: Femur_D">
 <div class="grid"><button id="rigRenameBone">Renomear</button><button id="rigRotateMode">Girar osso</button><button id="rigMoveMode">Mover osso</button><button id="rigClear">Remover rig</button><button id="rigToggleVisual" class="wide">Ocultar silhueta</button></div>
 <div class="hint" id="rigBoneCount">0 ossos</div><div id="rigBoneList" class="part-list"></div>
@@ -88,8 +88,8 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 </aside></div>
 <script type="module">
 import * as THREE from "three";
-import {createRigStudio} from "./rig-studio.js?v=3";
-import {createFrameManager} from "./animation/frame-manager.js?v=1";
+import {createRigStudio} from "./rig-studio.js?v=4";
+import {createFrameManager} from "./animation/frame-manager.js?v=2";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
 import {GLTFExporter} from "three/addons/exporters/GLTFExporter.js";
@@ -1568,7 +1568,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{rigStudio.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=258",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=259",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 </script></body></html>
