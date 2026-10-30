@@ -62,32 +62,23 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(!playing||!Number.isFinite(delta)||delta<=0)return;
     let remaining=Math.min(delta,.1),guard=0;
     while(remaining>0&&playing&&guard++<100){
-      const from=frames[playIndex],nextIndex=playIndex+1;
-      if(!from||nextIndex>=frames.length){
-        if(loopPlayback){playIndex=0;playElapsed=0;continue;}
-        stopPlayback("Animação concluída.");return;
-      }
+      const from=frames[playIndex];
+      if(!from){stopPlayback("Sequência sem quadro válido.");return;}
+      const wraps=playIndex===frames.length-1;
+      if(wraps&&!loopPlayback){stopPlayback("Animação concluída.");return;}
+      const nextIndex=wraps?0:playIndex+1,to=frames[nextIndex];
       const duration=Math.max(.05,Math.min(30,Number(from.duration)||.5));
       const step=Math.min(remaining,duration-playElapsed);
       playElapsed+=step;remaining-=step;
-      const t=Math.max(0,Math.min(1,playElapsed/duration));
-      const eased=t*t*(3-2*t),to=frames[nextIndex];
+      const t=Math.max(0,Math.min(1,playElapsed/duration)),eased=t*t*(3-2*t);
       const map=new Map((getBones?.()||[]).map(b=>[b.userData?.berofelBoneId,b]));
       const fromPose=new Map(from.pose.map(p=>[p.boneId,p])),toPose=new Map(to.pose.map(p=>[p.boneId,p]));
       for(const [id,b] of map){
         const a=fromPose.get(id),z=toPose.get(id);if(!a||!z)continue;
-        b.position.set(
-          a.position[0]+(z.position[0]-a.position[0])*eased,
-          a.position[1]+(z.position[1]-a.position[1])*eased,
-          a.position[2]+(z.position[2]-a.position[2])*eased
-        );
+        b.position.set(a.position[0]+(z.position[0]-a.position[0])*eased,a.position[1]+(z.position[1]-a.position[1])*eased,a.position[2]+(z.position[2]-a.position[2])*eased);
         const qa=b.quaternion.clone().fromArray(a.quaternion),qz=b.quaternion.clone().fromArray(z.quaternion);
         b.quaternion.slerpQuaternions(qa,qz,eased);
-        b.scale.set(
-          a.scale[0]+(z.scale[0]-a.scale[0])*eased,
-          a.scale[1]+(z.scale[1]-a.scale[1])*eased,
-          a.scale[2]+(z.scale[2]-a.scale[2])*eased
-        );
+        b.scale.set(a.scale[0]+(z.scale[0]-a.scale[0])*eased,a.scale[1]+(z.scale[1]-a.scale[1])*eased,a.scale[2]+(z.scale[2]-a.scale[2])*eased);
         b.updateMatrix();
       }
       for(const b of map.values())b.updateMatrixWorld(true);
