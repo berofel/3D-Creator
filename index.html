@@ -94,8 +94,34 @@ function sculptBlockGeometry(kind){
   paw:[[-.50,-.32],[-.30,-.48],[.34,-.45],[.50,-.18],[.48,.30],[.25,.46],[-.38,.40]],
   tail:[[-.35,-.48],[.35,-.48],[.48,-.20],[.38,.42],[-.30,.48],[-.48,.12]]
  };
- const pts=profiles[kind]||profiles.spine,shape=new THREE.Shape();
- shape.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);shape.closePath();
+ const pts=profiles[kind]||profiles.spine;
+ if(kind==="torso_front"||kind==="torso_mid"||kind==="torso_rear"){
+  // Malha lapidada em 3D: contorno frontal próprio, chanfros reais e
+  // profundidade variável. Não é BoxGeometry nem um prisma com bevel automático.
+  const n=pts.length,positions=[],indices=[];
+  const configs={
+   torso_front:[{z:-.50,sx:.91,sy:.91,dx:-.015,dy:0},{z:-.43,sx:1,sy:1,dx:0,dy:0},{z:.34,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.88,sy:.94,dx:.015,dy:-.01}],
+   torso_mid:[{z:-.50,sx:.91,sy:.94,dx:0,dy:0},{z:-.42,sx:1,sy:1,dx:0,dy:0},{z:.40,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.90,sy:.94,dx:0,dy:0}],
+   torso_rear:[{z:-.50,sx:.90,sy:.92,dx:0,dy:0},{z:-.41,sx:1,sy:1,dx:0,dy:0},{z:.38,sx:1,sy:1,dx:0,dy:0},{z:.50,sx:.86,sy:.94,dx:-.015,dy:0}]
+  };
+  const rings=configs[kind];
+  for(const r of rings)for(const [x,y] of pts)positions.push(x*r.sx+r.dx,y*r.sy+r.dy,r.z);
+  for(let k=0;k<rings.length-1;k++)for(let j=0;j<n;j++){
+   const a=k*n+j,b=k*n+(j+1)%n,c=(k+1)*n+j,d=(k+1)*n+(j+1)%n;
+   indices.push(a,b,c,b,d,c);
+  }
+  const frontShape=new THREE.Shape();frontShape.moveTo(pts[0][0]*rings[0].sx+rings[0].dx,pts[0][1]*rings[0].sy+rings[0].dy);
+  for(let j=1;j<n;j++)frontShape.lineTo(pts[j][0]*rings[0].sx+rings[0].dx,pts[j][1]*rings[0].sy+rings[0].dy);
+  const frontTris=THREE.ShapeUtils.triangulateShape(frontShape.getPoints(),[]);
+  for(const tri of frontTris)indices.push(tri[2],tri[1],tri[0]);
+  const last=rings[rings.length-1],backShape=new THREE.Shape();
+  backShape.moveTo(pts[0][0]*last.sx+last.dx,pts[0][1]*last.sy+last.dy);
+  for(let j=1;j<n;j++)backShape.lineTo(pts[j][0]*last.sx+last.dx,pts[j][1]*last.sy+last.dy);
+  const backTris=THREE.ShapeUtils.triangulateShape(backShape.getPoints(),[]);
+  const base=(rings.length-1)*n;for(const tri of backTris)indices.push(base+tri[0],base+tri[1],base+tri[2]);
+  const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();return geo;
+ }
+ const shape=new THREE.Shape();shape.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);shape.closePath();
  const geo=new THREE.ExtrudeGeometry(shape,{depth:1,steps:1,bevelEnabled:true,bevelSegments:1,bevelSize:.025,bevelThickness:.025,curveSegments:1});
  geo.translate(0,0,-.5);geo.computeVertexNormals();return geo;
 }
@@ -440,9 +466,9 @@ function jaguarPreset(){
  const rumpCore=block(rump,"Núcleo interno da anca",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);rumpCore.visible=false;
  // Tronco modular conforme a ficha técnica: três blocos independentes,
  // cada um com perfil próprio e planos retos; não fundir em um tubo contínuo.
- block(body,"Bloco tronco 1 — peitoral frontal",[0,1.49,.43],[.88,.76,.78],COAT2,"sculpt_torso_front");
- block(body,"Bloco tronco 2 — seção média",[0,1.455,-.18],[.82,.59,.68],COAT3,"sculpt_torso_mid");
- block(body,"Bloco tronco 3 — traseiro/anca",[0,1.47,-.82],[.90,.70,.68],COAT2,"sculpt_torso_rear");
+ block(body,"Bloco esculpido 1 — peitoral frontal",[0,1.49,.43],[.88,.76,.78],COAT2,"sculpt_torso_front");
+ block(body,"Bloco esculpido 2 — tronco médio",[0,1.455,-.18],[.82,.59,.68],COAT3,"sculpt_torso_mid");
+ block(body,"Bloco esculpido 3 — traseiro e anca",[0,1.47,-.82],[.90,.70,.68],COAT2,"sculpt_torso_rear");
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
@@ -1135,5 +1161,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=223",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=224",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
