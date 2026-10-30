@@ -228,7 +228,7 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   }
   function showWeightOverlay(){
     clearWeightOverlay();
-    const target=getSelected?.()||state.target;
+    const target=state.target||getSelected?.();
     if(!target)throw new Error("Selecione a criatura que possui o esqueleto nativo.");
     const select=$("rigWeightBoneSelect");
     const selectedId=select?.value||(state.selected?.userData?.berofelBoneId||state.selected?.name);
@@ -571,5 +571,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigWeightBrushSize")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.radius=Math.max(.02,Math.min(2,Number(e.target.value)||.22));});
   $("rigWeightBrushStrength")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.strength=Math.max(.01,Math.min(.95,Number(e.target.value)||.25));});
 
-  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,getWeightPaintTargets:()=>state.weightPaint?state.weightPaint.meshes.map(item=>item.mesh):[],paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
