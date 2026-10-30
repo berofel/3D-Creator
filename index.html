@@ -46,7 +46,7 @@ details.add-group .group-content button{margin-top:6px}
 </div></main><aside class="side">
 <div class="section"><h2>CRIATURA</h2><label for="name">Nome</label><input id="name" value="Criatura_01" maxlength="48"><p class="hint">Arraste para girar a câmera; use pinça para zoom. Toque numa peça para selecioná-la.</p></div>
 <div class="section"><h2>ADICIONAR</h2><p class="hint">Escolha uma categoria para abrir somente os elementos que precisa.</p>
-<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Onça-pintada (novo)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
+<details class="add-group"><summary>Animais</summary><div class="group-content"><button id="preset" class="wide primary">＋ Cavalo</button><button id="gnuPreset" class="wide">＋ Gnu</button><button id="jaguarPreset" class="wide primary">＋ Importar minha onça (.GLB)</button><input id="jaguarModelFile" type="file" accept=".glb,model/gltf-binary" hidden><button id="jaguarProceduralPreset" class="wide">＋ Onça procedural (base)</button><button data-add="body" class="wide">＋ Tronco</button><button data-add="head" class="wide">＋ Cabeça</button><button data-add="leg" class="wide">＋ Perna</button><button data-add="foot" class="wide">＋ Pata</button><button data-add="tail" class="wide">＋ Cauda</button><button data-add="horn" class="wide">＋ Chifre</button></div></details><details class="add-group"><summary>Formas geométricas e anatomia</summary><div class="group-content"><p class="hint">Blocos chanfrados, volumes facetados e peças anatômicas angulares para um visual low-poly detalhado; formas redondas ficam disponíveis quando necessárias.</p><div class="grid"><button data-add="lowpoly">＋ Bloco chanfrado</button><button data-add="hexprism">＋ Prisma hexagonal</button><button data-add="faceted">＋ Volume facetado</button><button data-add="ellipsoid">＋ Elipsoide</button><button data-add="sphere">＋ Esfera</button><button data-add="capsule">＋ Cápsula</button><button data-add="joint">＋ Articulação</button><button data-add="cylinder">＋ Cilindro</button><button data-add="cone">＋ Cone</button><button data-add="claw">＋ Garra</button><button data-add="ring">＋ Anel</button><button data-add="octahedron">＋ Octaedro</button></div><p class="hint">Fluxo de qualidade: silhueta → volumes principais → articulações → detalhes → inspeção frontal, lateral e em movimento.</p></div></details>
 <details class="add-group"><summary>Integração Blender / Rigging IA</summary><div class="group-content"><p class="hint">O Creature Forge continua no navegador. Estes atalhos orientam a instalação das extensões no Blender; elas não podem ser embutidas legalmente no HTML. O Auto-Rig Pro é comercial e exige licença própria.</p><button id="openAutoRigPro" class="wide">Abrir Auto-Rig Pro / Rig Library</button><button id="openAnimalAnimator" class="wide">Abrir Animal Animator</button><button id="openAddonGuide" class="wide">Manual de integração</button><p class="hint">Fluxo: criar blocos aqui → exportar GLB → preparar rig/animações no Blender → reimportar para validação. A onça é um preset inicial de peças articuladas, não um rig deformável de produção.</p></div></details><details class="add-group"><summary>Humanoides</summary><div class="group-content"><button id="humanPreset" class="wide">＋ Humano</button><button id="ogrePreset" class="wide">＋ Ogro</button></div></details>
 <details class="add-group"><summary>Ferramentas e armas</summary><div class="group-content"><button id="axePreset" class="wide primary">＋ Machado</button><div class="grid"><button data-weapon="haft">＋ Cabo</button><button data-weapon="axeHead">＋ Lâmina</button><button data-weapon="grip">＋ Empunhadura</button><button data-weapon="rune">＋ Detalhe</button></div><label for="weaponMaterial">Material da próxima peça</label><select id="weaponMaterial"><option value="#79523a">Madeira</option><option value="#9aa8b5">Aço</option><option value="#6c7885">Ferro escuro</option><option value="#4a9c91">Metal azulado</option><option value="#b88a43">Bronze</option><option value="#6e5ac7">Cristal mágico</option></select></div></details>
 <details class="add-group"><summary>Ambiente</summary><div class="group-content"><p class="hint">Modelos procedurais: formas compartilhadas e poucos polígonos para preservar desempenho.</p><div class="grid"><button data-tree="pine" class="wide primary">＋ Pinheiro</button><button data-tree="spruce" class="wide">＋ Abeto</button><button data-tree="oak" class="wide">＋ Carvalho</button><button data-tree="birch" class="wide">＋ Bétula</button><button data-tree="apple" class="wide">＋ Macieira</button><button data-tree="cherry" class="wide">＋ Cerejeira</button><button data-tree="orange" class="wide">＋ Laranjeira</button><button data-tree="willow" class="wide">＋ Salgueiro</button></div></div></details></div>
@@ -59,6 +59,7 @@ import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
 import {GLTFExporter} from "three/addons/exporters/GLTFExporter.js";
+import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
 const $=id=>document.getElementById(id), viewport=$("viewport"), scene=new THREE.Scene();
 scene.background=new THREE.Color("#dceaf2");scene.fog=new THREE.Fog("#dceaf2",18,42);
@@ -870,7 +871,77 @@ function updateJaguarRig(){
   }
  }
 }
-$("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");$("jaguarPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada");$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
+$("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");$("gnuPreset").onclick=()=>addElement(gnuPreset,"Gnu");
+$("jaguarPreset").onclick=()=> $("jaguarModelFile").click();
+$("jaguarProceduralPreset").onclick=()=>addElement(jaguarPreset,"Onça-pintada (procedural)");
+async function importJaguarGLB(file){
+ if(!file)return;
+ say("Importando modelo original da onça…");
+ try{
+  const buffer=await file.arrayBuffer();
+  const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,"",resolve,reject));
+  const model=gltf.scene;
+  if(!model)throw new Error("O arquivo GLB não contém uma cena 3D.");
+  const bounds=new THREE.Box3().setFromObject(model);
+  if(bounds.isEmpty())throw new Error("Não foram encontradas malhas 3D no arquivo.");
+  const size=bounds.getSize(new THREE.Vector3());
+  const center=bounds.getCenter(new THREE.Vector3());
+  const uniformScale=size.y>0.0001?3/size.y:1;
+  model.position.set(-center.x,-bounds.min.y,-center.z);
+  const wrapper=new THREE.Group();
+  wrapper.name="Onça original — "+file.name;
+  wrapper.userData.berofelElementRoot=true;
+  wrapper.userData.elementLabel="Onça original";
+  wrapper.userData.importedJaguar=true;
+  wrapper.userData.gltfAnimations=gltf.animations||[];
+  wrapper.scale.setScalar(uniformScale);
+  wrapper.add(model);
+  let meshCount=0;
+  model.traverse(object=>{
+   if(!object.isMesh)return;
+   meshCount++;
+   object.castShadow=true;object.receiveShadow=true;
+   object.userData={...object.userData,id:++counter,type:"imported_glb_mesh",name:object.name||("Malha da onça "+meshCount)};
+   const materials=Array.isArray(object.material)?object.material:[object.material];
+   for(const material of materials){
+    if(material?.map){material.map.colorSpace=THREE.SRGBColorSpace;material.map.needsUpdate=true}
+    if(material)material.needsUpdate=true;
+   }
+  });
+  if(!meshCount)throw new Error("O GLB não contém objetos de malha compatíveis.");
+  const previous=elementRoots.filter(root=>/(onça-pintada|onça original)/i.test(root.userData?.elementLabel||root.name||""));
+  for(const oldRoot of previous){
+   const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
+   if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
+   parts=parts.filter(part=>!descendants.includes(part));
+   oldRoot.traverse(object=>{
+    if(!object.isMesh)return;
+    object.geometry?.dispose();
+    for(const material of (Array.isArray(object.material)?object.material:[object.material]))material?.dispose();
+   });
+   elementRoots=elementRoots.filter(root=>root!==oldRoot);
+  }
+  scene.add(wrapper);
+  elementRoots.push(wrapper);
+  model.traverse(object=>{if(object.isMesh)parts.push(object)});
+  window.__berofelJaguarRigs=[];
+  $("name").value="Onça original";
+  const finalBounds=new THREE.Box3().setFromObject(wrapper);
+  const target=finalBounds.getCenter(new THREE.Vector3());
+  const span=Math.max(...finalBounds.getSize(new THREE.Vector3()).toArray(),1);
+  orbit.target.copy(target);
+  camera.position.set(target.x+span*2.4,target.y+span*1.35,target.z+span*2.8);
+  camera.near=Math.max(.01,span/100);camera.far=Math.max(1000,span*30);
+  camera.lookAt(target);camera.updateProjectionMatrix();orbit.update();
+  select(wrapper);renderParts();
+  const animationNote=gltf.animations?.length?" Foram encontradas "+gltf.animations.length+" animação(ões), ainda não ligadas aos controles do editor.":"";
+  say("Onça original importada: "+meshCount+" malha(s). Geometria e materiais do GLB preservados."+animationNote);
+ }catch(error){
+  console.error("Falha ao importar a onça GLB",error);
+  say("Não foi possível importar a onça: "+String(error?.message||error).slice(0,220));
+ }
+}
+$("jaguarModelFile").onchange=event=>{const file=event.target.files?.[0];importJaguarGLB(file);event.target.value=""};$("openAutoRigPro").onclick=()=>window.open("https://www.lucky3d.fr/auto-rig-pro/","_blank","noopener");$("openAnimalAnimator").onclick=()=>window.open("https://extensions.blender.org/add-ons/animal-animator/","_blank","noopener");$("openAddonGuide").onclick=()=>window.open("https://github.com/berofel/3D-Creator/blob/feature/jaguar-animal-presets/BLENDER_ADDONS_SETUP.md","_blank","noopener");$("showSkin").onclick=()=>setSkinMode("skin");$("showBones").onclick=()=>setSkinMode("bones");$("humanPreset").onclick=()=>addElement(()=>humanoidPreset(false),"Homem");$("ogrePreset").onclick=()=>addElement(()=>humanoidPreset(true),"Ogro");
 function humanoidPreset(isOgre=false){
  clear();clearSkin();const skin=isOgre?"#6f9650":"#d6a27d",cloth=isOgre?"#42533a":"#344f78",leather="#49352c",metal=isOgre?"#6b735b":"#b18a4b";
  const pivot=(parent,pos,name)=>{const g=new THREE.Group();g.name=name;g.position.set(...pos);(parent||scene).add(g);return g};
@@ -1245,5 +1316,5 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>{try{addElement(jaguarPreset,"Onça-pintada — comparação técnica");$("name").value="Onça-pintada — referência";}catch(err){say("Falha ao carregar preset da onça: "+(err?.message||err));}});
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=244",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=246",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
