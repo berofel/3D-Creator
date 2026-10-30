@@ -1,19 +1,25 @@
-# Referência oficial de modelagem — Onça low-poly
+# Referências oficiais de modelagem — Onça low-poly
 
-Esta pasta guarda a ficha técnica original e os recortes de referência usados para reconstruir a onça no 3D Creator.
+Esta pasta contém as duas referências visuais obrigatórias para reconstruir e validar a onça no Berofel 3D Create.
 
-## Fonte de verdade
+## Referências principais
 
-- `ficha_tecnica_original.webp` — imagem original enviada pelo usuário. Não substituir nem editar.
-- `torso_front.webp`, `torso_mid.webp`, `torso_rear.webp` — recortes opcionais do tronco.
-- `head_neck.webp`, `tail.webp`, `front_legs.webp`, `rear_legs.webp` — recortes opcionais das demais peças.
+- `877294147_1647342847088467_526962676682494075_n.webp` — **ficha técnica geométrica oficial**: vistas frontal e lateral dos três blocos do tronco, cabeça com pescoço, cauda e quatro pernas. É a fonte principal para dimensões relativas, contornos, planos e articulações.
+- `IMG_2755.png` — **referência do felino completo em movimento**: silhueta geral, proporção entre tronco e membros, posição da cabeça, cauda e pose.
+- `3D065B96-0535-4D74-A029-C754D4905C4D.png` — referência visual adicional preservada, sem substituir as duas fontes principais.
 
-## Regra obrigatória de modelagem
+## Regra obrigatória
 
-Antes de alterar qualquer peça, consultar a ficha original e comparar as vistas frontal e lateral. Reproduzir silhueta, proporções, planos, cortes e profundidade com geometria própria. Não substituir a escultura por cubos genéricos, simples escalas ou chanfros superficiais.
+Antes de alterar qualquer peça, comparar a geometria com a ficha técnica e com a imagem do felino completo. Conferir vistas frontal, lateral e 3/4. Reproduzir contornos, proporções, planos, recortes, profundidade e articulações com malhas próprias.
 
-Preservar rig, pivôs e animações existentes ao modificar a geometria. Validar cada peça isoladamente antes de integrar ao corpo.
+Não substituir a escultura por cubos genéricos, escalas simples ou chanfros superficiais. Não considerar uma peça concluída apenas porque existe no modelo: a silhueta precisa corresponder à referência.
 
-## Estado
+## Processo de reconstrução
 
-Pasta de referência criada. A imagem original ainda precisa ser adicionada como arquivo binário nesta pasta.
+1. Tronco: peitoral frontal, bloco médio e bloco traseiro/anca, cada um com perfil próprio.
+2. Membros: ombros, coxas, segmentos inferiores, articulações e patas, mantendo assimetria anatômica entre dianteiros e traseiros.
+3. Cabeça e pescoço: crânio facetado, focinho projetado, mandíbula, orelhas e olhos.
+4. Cauda: segmentos curvos articulados e ponta escura.
+5. Validação: comparar cada vista com as imagens originais antes de avançar para a próxima parte.
+
+Preservar controles, hierarquia, pivôs, animações e exportação GLB. Registrar separadamente o que foi implementado e o que ainda não foi validado visualmente em navegador.
