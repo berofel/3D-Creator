@@ -71,10 +71,26 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandard
 const grid=new THREE.GridHelper(30,30,0x7792a4,0xc1d0da);grid.position.y=-.025;scene.add(grid);
 let parts=[],selected=null,counter=0,skinMeshes=[],skinMode="skin";const skinBase=new WeakMap();
 let appendMode=true,moveWholeElement=false,elementRoots=[];window.__berofelHorseRigs=[];window.__berofelHumanoidRigs=[];const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
+function sculptBlockGeometry(kind){
+ const profiles={
+  chest:[[-.38,-.42],[.22,-.49],[.43,-.34],[.50,-.12],[.47,.29],[.30,.46],[-.25,.48],[-.46,.27],[-.49,-.18]],
+  spine:[[-.31,-.43],[.25,-.45],[.43,-.25],[.38,.30],[.22,.45],[-.25,.42],[-.40,.20],[-.40,-.24]],
+  rump:[[-.42,-.38],[.22,-.48],[.45,-.30],[.50,.16],[.37,.40],[.12,.49],[-.35,.39],[-.49,.12]],
+  shoulder:[[-.40,-.42],[.18,-.48],[.45,-.22],[.42,.25],[.22,.46],[-.25,.42],[-.46,.16]]
+ };
+ const pts=profiles[kind]||profiles.spine,shape=new THREE.Shape();
+ shape.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);shape.closePath();
+ const geo=new THREE.ExtrudeGeometry(shape,{depth:1,steps:1,bevelEnabled:true,bevelSegments:1,bevelSize:.045,bevelThickness:.045,curveSegments:1});
+ geo.translate(0,0,-.5);geo.computeVertexNormals();return geo;
+}
 function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){
  const geo=type==="horn"||type==="cone"||type==="claw"?new THREE.ConeGeometry(type==="claw"?.16:.22,type==="claw"?.42:.7,type==="horn"?5:8):
  type==="tail"||type==="cylinder"?new THREE.CylinderGeometry(.38,.48,1,10,1):
- type==="lowpoly"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.36,-.5);sh.lineTo(.36,-.5);sh.lineTo(.5,-.36);sh.lineTo(.5,.36);sh.lineTo(.36,.5);sh.lineTo(-.36,.5);sh.lineTo(-.5,.36);sh.lineTo(-.5,-.36);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():
+ type==="sculpt_chest"?sculptBlockGeometry("chest"):
+type==="sculpt_spine"?sculptBlockGeometry("spine"):
+type==="sculpt_rump"?sculptBlockGeometry("rump"):
+type==="sculpt_shoulder"?sculptBlockGeometry("shoulder"):
+type==="lowpoly"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.36,-.5);sh.lineTo(.36,-.5);sh.lineTo(.5,-.36);sh.lineTo(.5,.36);sh.lineTo(.36,.5);sh.lineTo(-.36,.5);sh.lineTo(-.5,.36);sh.lineTo(-.5,-.36);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():
  type==="hexprism"?(()=>{const g=new THREE.CylinderGeometry(.78,.86,1,6,1,false);g.rotateX(Math.PI/2);return g})():
  type==="faceted"?new THREE.SphereGeometry(1,7,4):
  type==="ring"?new THREE.TorusGeometry(.38,.09,6,12):
@@ -84,7 +100,7 @@ function make(type,pos=[0,1,0],scale=[1,1,1],color="#65a8a1",name){
  type==="facet"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.35,-.5);sh.lineTo(.35,-.5);sh.lineTo(.5,-.28);sh.lineTo(.5,.28);sh.lineTo(.35,.5);sh.lineTo(-.35,.5);sh.lineTo(-.5,.28);sh.lineTo(-.5,-.28);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.05,bevelThickness:.04});g.translate(0,0,-.06);return g})():
  type==="taper"?(()=>{const sh=new THREE.Shape();sh.moveTo(-.34,-.5);sh.lineTo(.34,-.5);sh.lineTo(.50,.5);sh.lineTo(-.50,.5);sh.closePath();const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false,steps:1});g.translate(0,0,-.5);return g})():new THREE.BoxGeometry(1,1,1);
  const organic=type==="sphere"||type==="capsule"||type==="joint";
- const mat=new THREE.MeshStandardMaterial({color,roughness:organic?.9:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:!organic||type==="ellipsoid"||type==="faceted"||type==="hexprism"||type==="lowpoly"});
+ const mat=new THREE.MeshStandardMaterial({color,roughness:organic?.9:.75,transparent:false,opacity:1,side:THREE.DoubleSide,depthWrite:true,flatShading:!organic||type==="ellipsoid"||type==="faceted"||type==="hexprism"||type==="lowpoly"||type.startsWith("sculpt_")});
  const m=new THREE.Mesh(geo,mat);m.position.set(...pos);
  if(type==="capsule")m.scale.set(scale[0],scale[1]/2,scale[2]);else m.scale.set(...scale);
  m.castShadow=true;m.receiveShadow=true;m.userData={id:++counter,type,name:name||type+"_"+counter};scene.add(m);parts.push(m);select(m);renderParts();return m
@@ -339,15 +355,15 @@ function jaguarPreset(){
  // O tronco central fica estreito e encaixado entre o peitoral e a anca.
  // A coluna funciona como um pistão curto: ligeiramente menor que a anca,
  // com movimento longitudinal e vertical próprio, sem atravessar o contorno dela.
- block(body,"Peitoral", [0,1.48,.43],[.84,.76,.78],COAT2,"lowpoly");
+ block(body,"Peitoral esculpido", [0,1.48,.43],[.84,.76,.78],COAT2,"sculpt_chest");
  const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
- block(spine,"Eixo central do tronco",[0,0,0],[.61,.43,.76],COAT3,"lowpoly");
+ block(spine,"Eixo central esculpido",[0,0,0],[.61,.43,.76],COAT3,"sculpt_spine");
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
- block(rump,"Massa da anca",[0,0,0],[.84,.68,.66],COAT2,"lowpoly",[0,0,-.02]);
+ block(rump,"Anca esculpida",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
  // Elipsoides low-poly suavizam a silhueta sem mudar a hierarquia do rig.
  for(const side of [-1,1]){
-  block(body,"Músculo do ombro "+(side<0?"esquerdo":"direito"),[side*.30,1.12,.39],[.29,.39,.31],COAT3,"ellipsoid",[0,0,side*-.08]);
+  block(body,"Plano do ombro "+(side<0?"esquerdo":"direito"),[side*.30,1.12,.39],[.29,.39,.31],COAT3,"sculpt_shoulder",[0,0,side*-.08]);
   block(rump,"Músculo da anca "+(side<0?"esquerdo":"direito"),[side*.30,-.02,.02],[.30,.39,.31],COAT3,"ellipsoid",[0,0,side*-.10]);
  }
  // Manchas ficam sobre as laterais do corpo; são rasas para não parecerem espinhos.
@@ -1031,5 +1047,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=213",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=214",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
