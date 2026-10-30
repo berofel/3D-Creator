@@ -79,7 +79,7 @@ function sculptBlockGeometry(kind){
   shoulder:[[-.40,-.42],[.18,-.48],[.45,-.22],[.42,.25],[.22,.46],[-.25,.42],[-.46,.16]],
   hip:[[-.43,-.42],[.05,-.50],[.40,-.34],[.49,-.05],[.38,.35],[.08,.48],[-.34,.36],[-.50,.05]],
   neck:[[-.34,-.48],[.22,-.45],[.42,-.18],[.35,.24],[.20,.48],[-.24,.43],[-.42,.10]],
-  thigh:[[-.30,-.50],[.20,-.48],[.43,-.22],[.36,.25],[.18,.49],[-.23,.43],[-.42,.12]],
+  thigh:[[-.22,-.50],[.12,-.50],[.31,-.34],[.39,-.08],[.43,.22],[.30,.50],[-.30,.50],[-.43,.22],[-.38,-.08],[-.30,-.34]],
   shin:[[-.25,-.50],[.18,-.48],[.30,-.22],[.23,.34],[.12,.50],[-.17,.44],[-.31,.08]],
   forelimb:[[-.30,-.50],[.25,-.50],[.34,-.34],[.29,.32],[.18,.50],[-.20,.48],[-.34,.20]],
   skull:[[-.38,-.20],[-.26,-.42],[.16,-.48],[.43,-.24],[.48,.13],[.25,.43],[-.16,.47],[-.43,.22]],
@@ -368,7 +368,7 @@ function jaguarPreset(){
  // seu comprimento para reduzir o efeito de "cintura estrangulada".
  block(body,"Peitoral esculpido", [0,1.48,.43],[.84,.76,.78],COAT2,"sculpt_chest");
  const spine=group(body,[0,1.47,-.19],"Tronco | pistão central do amortecedor");
- block(spine,"Eixo central esculpido",[0,0,0],[.74,.56,.90],COAT3,"sculpt_spine");
+ block(spine,"Eixo central esculpido",[0,0,0],[.80,.56,.90],COAT3,"sculpt_spine");
  const rump=group(body,[0,1.47,-.82],"Anca | pivô vertical e horizontal");
  block(rump,"Anca esculpida",[0,0,0],[.84,.68,.66],COAT2,"sculpt_rump",[0,0,-.02]);
  // Volumes orgânicos de transição: escápulas e musculatura da anca.
@@ -435,9 +435,12 @@ function jaguarPreset(){
   if(q.hind){
    // Fêmur traseiro alongado usando a mesma geometria esculpida e a mesma largura.
    // O joelho desce junto; o segmento inferior fica mais curto sem alterar o alcance final da pata.
-   block(hip,"Bloco 1 — fêmur traseiro largo",[0,-.25,-.025],[.42,.82,.36],COAT3,"sculpt_thigh",[.34,0,q.side*.018]);
-   knee=group(hip,[0,-.68,-.105],"Bloco 2 — segmento inferior traseiro");
-   block(knee,"Segmento inferior traseiro único",[0,-.21,.045],[.20,.44,.20],COAT3,"sculpt_shin",[-.12,0,q.side*.012]);
+   // Perfil espelhado em X: a saliência anatômica fica voltada para fora nos dois lados.
+   // Fêmur alongado sem engrossar, afinando em direção ao joelho; alcance final da pata preservado.
+   const thigh=block(hip,"Bloco 1 — fêmur traseiro largo",[0,-.37,-.025],[.42,1.00,.36],COAT3,"sculpt_thigh",[.34,0,q.side*.018]);
+   thigh.scale.x*=q.side;
+   knee=group(hip,[0,-.82,-.105],"Bloco 2 — segmento inferior traseiro");
+   block(knee,"Segmento inferior traseiro único",[0,-.17,.045],[.20,.34,.20],COAT3,"sculpt_shin",[-.12,0,q.side*.012]);
   }else{
    block(scapula,"Bloco 1 — ombro dianteiro",[0,-.035,0],[.31,.34,.30],COAT2,"taper",[-.08,0,q.side*.015]);
    // Braço dianteiro único e reto, como no vídeo: ombro largo, sem cotovelo.
@@ -1060,5 +1063,5 @@ renderer.domElement.addEventListener("webglcontextrestored",()=>{renderFault=fal
 window.addEventListener("error",e=>{showRuntimeIssue("Erro JavaScript fora do renderizador",e.error||e.message||"Erro não identificado")});
 window.addEventListener("unhandledrejection",e=>{showRuntimeIssue("Falha em uma operação assíncrona",e.reason instanceof Error?e.reason:String(e.reason||"Promessa rejeitada"))});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=217",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=218",{updateViaCache:"none"}).catch(()=>{});
 </script></body></html>
