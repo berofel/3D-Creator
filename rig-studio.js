@@ -468,9 +468,10 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     rebuildHelper();selectBone(map[0]);const info=updateBindingStatus();say("Preset "+presets[key].label+" criado. "+info.meshes+" malha(s) detectadas; "+info.skinnedMeshes+" com skinning nativo. O rig visual não altera a malha.");
   }
   function addBone(){
-    if(!state.root){createFromPreset("feline");return;}
+    if(!state.root)throw new Error("Crie ou conecte um rig antes de adicionar um osso.");
     const parent=state.selected||state.bones[0];
-    const bone=makeBone("Osso_"+(state.bones.length+1),parent,[0,.35,0]);rebuildHelper();selectBone(bone);
+    const bone=makeBone("Osso_"+(state.bones.length+1),parent,[0,.35,0]);
+    rebuildHelper();selectBone(bone);return bone;
   }
   function mirrorSelected(){
     const source=state.selected;if(!source)return;
