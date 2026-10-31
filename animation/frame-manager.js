@@ -31,17 +31,71 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     onPoseApplied();
     return{applied:operations.length,missing:frame.pose.length-operations.length};
   }
-  let playing=false,loopPlayback=true,playIndex=0,playElapsed=0;
+  let playing=false,loopPlayback=true,timelineCurrent=0;
   function setStatus(message){const el=$("frameStatus");if(el)el.textContent=message;}
+function getFrameDuration(frame){return Math.max(.05,Math.min(30,Number(frame?.duration)||.5));}
+function getTotalDuration(){return frames.reduce((sum,f)=>sum+getFrameDuration(f),0);}
+function getFrameStart(index){let time=0;for(let i=0;i<index;i++)time+=getFrameDuration(frames[i]);return time;}
+function formatTime(seconds){const value=Math.max(0,Number(seconds)||0),minutes=Math.floor(value/60),whole=Math.floor(value%60),centiseconds=Math.floor((value%1)*100);return String(minutes).padStart(2,"0")+":"+String(whole).padStart(2,"0")+"."+String(centiseconds).padStart(2,"0");}
+function renderTimelineCursor(){
+ const total=getTotalDuration(),time=Math.max(0,Math.min(total,timelineCurrent));
+ const slider=$("timelineScrubber");if(slider)slider.value=String(total?Math.round(time/total*10000):0);
+ const label=$("timelineTime");if(label)label.textContent=formatTime(time);
+ const playhead=$("timelinePlayhead"),canvas=$("timelineCanvas");
+ if(playhead&&canvas){const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));let x=112,remaining=time;for(let i=0;i<widths.length;i++){const d=getFrameDuration(frames[i]);if(remaining<=d){x+=widths[i]*(remaining/d);break;}x+=widths[i];remaining-=d;}playhead.style.left=x+"px";}
+}
+function renderTimeline(){
+ const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");if(!canvas||!ruler||!tracks)return;
+ ruler.replaceChildren();tracks.replaceChildren();
+ if(!frames.length){const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Salve pelo menos uma pose para visualizar as articulações na timeline.";tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;}
+ const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));
+ const columns=widths.map(w=>w+"px").join(" ");
+ ruler.style.gridTemplateColumns=columns;
+ let cursor=0;
+ frames.forEach((f,i)=>{const cell=document.createElement("div");cell.className="timeline-ruler-cell";cell.textContent=formatTime(cursor);cell.title=f.label+" — "+getFrameDuration(f).toFixed(2)+" s";ruler.append(cell);cursor+=getFrameDuration(f);});
+ const bones=getBones?.()||[];
+ if(!bones.length){const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Crie ou conecte um rig para exibir as trilhas de articulação.";tracks.append(empty);}
+ else for(const bone of bones){
+  const row=document.createElement("div");row.className="timeline-track";row.style.gridTemplateColumns="112px "+columns;
+  const label=document.createElement("div");label.className="timeline-track-label";label.textContent=bone.name;label.title=bone.name;row.append(label);
+  frames.forEach(f=>{const cell=document.createElement("div");cell.className="timeline-cell";const key=f.pose.some(p=>p.boneId===bone.userData?.berofelBoneId)?document.createElement("button"):null;if(key){key.type="button";key.className="timeline-key";key.title=bone.name+" — "+f.label;key.setAttribute("aria-label","Selecionar "+f.label+" na articulação "+bone.name);key.addEventListener("click",()=>{stopPlayback("Reprodução pausada para editar.");selectFrame(f.id,true);});cell.append(key);}row.append(cell);});
+  tracks.append(row);
+ }
+ canvas.style.width=(112+widths.reduce((a,b)=>a+b,0))+"px";
+ renderTimelineCursor();
+}
+function interpolatePose(from,to,t){
+ const eased=t*t*(3-2*t),map=new Map((getBones?.()||[]).map(b=>[b.userData?.berofelBoneId,b]));
+ const fromPose=new Map(from.pose.map(p=>[p.boneId,p])),toPose=new Map(to.pose.map(p=>[p.boneId,p]));
+ for(const [id,b] of map){const a=fromPose.get(id),z=toPose.get(id);if(!a||!z)continue;
+  b.position.set(a.position[0]+(z.position[0]-a.position[0])*eased,a.position[1]+(z.position[1]-a.position[1])*eased,a.position[2]+(z.position[2]-a.position[2])*eased);
+  const qa=b.quaternion.clone().fromArray(a.quaternion),qz=b.quaternion.clone().fromArray(z.quaternion);b.quaternion.slerpQuaternions(qa,qz,eased);
+  b.scale.set(a.scale[0]+(z.scale[0]-a.scale[0])*eased,a.scale[1]+(z.scale[1]-a.scale[1])*eased,a.scale[2]+(z.scale[2]-a.scale[2])*eased);b.updateMatrix();
+ }
+ for(const b of map.values())b.updateMatrixWorld(true);onPoseApplied();
+}
+function seek(seconds){
+ if(!frames.length)return false;
+ const total=getTotalDuration();timelineCurrent=Math.max(0,Math.min(total,Number(seconds)||0));
+ if(timelineCurrent>=total){const last=frames[frames.length-1];selectedId=last.id;apply(last);renderTimelineCursor();return true;}
+ let cursor=0,index=0;
+ while(index<frames.length-1&&timelineCurrent>=cursor+getFrameDuration(frames[index])){cursor+=getFrameDuration(frames[index]);index++;}
+ const from=frames[index],to=frames[(index+1)%frames.length],duration=getFrameDuration(from);
+ const t=Math.max(0,Math.min(1,(timelineCurrent-cursor)/duration));selectedId=from.id;
+ if(t<1e-7)apply(from);else interpolatePose(from,to,t);
+ const status=$("frameStatus");if(status)status.textContent="Timeline: "+from.label+" → "+to.label+" ("+(t*100).toFixed(0)+"%).";
+ renderTimelineCursor();return true;
+}
+
   function setDuration(value){
     const frame=frames.find(x=>x.id===selectedId);if(!frame)return;
     const duration=Number(value);
     if(!Number.isFinite(duration)||duration<0.05||duration>30){setStatus("A duração deve estar entre 0,05 e 30 segundos.");return;}
-    frame.duration=duration;persist();setStatus("Duração do intervalo atualizada: "+duration.toFixed(2)+" s.");
+    frame.duration=duration;persist();render();setStatus("Duração do intervalo atualizada: "+duration.toFixed(2)+" s.");
   }
   function selectFrame(id,restore=true){
     const frame=frames.find(x=>x.id===id);if(!frame)return false;
-    selectedId=id;
+    selectedId=id;timelineCurrent=getFrameStart(frames.indexOf(frame));
     if(restore){try{const result=apply(frame);setStatus("Pose aplicada: "+result.applied+" osso(s).");}catch(err){setStatus(err.message);return false;}}
     render();return true;
   }
@@ -52,43 +106,22 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function play(){
     if(frames.length<2){setStatus("Salve pelo menos dois quadros para reproduzir a animação.");return;}
     if(playing){stopPlayback();return;}
-    playIndex=Math.max(0,frames.findIndex(f=>f.id===selectedId));
-    if(playIndex>=frames.length-1&&!loopPlayback)playIndex=0;
-    playElapsed=0;loopPlayback=$("frameLoop")?.checked!==false;playing=true;
+    const selectedIndex=Math.max(0,frames.findIndex(f=>f.id===selectedId));
+    timelineCurrent=getFrameStart(selectedIndex);loopPlayback=$("frameLoop")?.checked!==false;playing=true;
     const btn=$("framePlay");if(btn)btn.textContent="Ⅱ Pausar";
-    selectFrame(frames[playIndex].id,true);setStatus("Reproduzindo sequência de poses…");
+    seek(timelineCurrent);setStatus("Reproduzindo timeline de articulações…");
   }
   function update(delta){
     if(!playing||!Number.isFinite(delta)||delta<=0)return;
-    let remaining=Math.min(delta,.1),guard=0;
-    while(remaining>0&&playing&&guard++<100){
-      const from=frames[playIndex];
-      if(!from){stopPlayback("Sequência sem quadro válido.");return;}
-      const wraps=playIndex===frames.length-1;
-      if(wraps&&!loopPlayback){stopPlayback("Animação concluída.");return;}
-      const nextIndex=wraps?0:playIndex+1,to=frames[nextIndex];
-      const duration=Math.max(.05,Math.min(30,Number(from.duration)||.5));
-      const step=Math.min(remaining,duration-playElapsed);
-      playElapsed+=step;remaining-=step;
-      const t=Math.max(0,Math.min(1,playElapsed/duration)),eased=t*t*(3-2*t);
-      const map=new Map((getBones?.()||[]).map(b=>[b.userData?.berofelBoneId,b]));
-      const fromPose=new Map(from.pose.map(p=>[p.boneId,p])),toPose=new Map(to.pose.map(p=>[p.boneId,p]));
-      for(const [id,b] of map){
-        const a=fromPose.get(id),z=toPose.get(id);if(!a||!z)continue;
-        b.position.set(a.position[0]+(z.position[0]-a.position[0])*eased,a.position[1]+(z.position[1]-a.position[1])*eased,a.position[2]+(z.position[2]-a.position[2])*eased);
-        const qa=b.quaternion.clone().fromArray(a.quaternion),qz=b.quaternion.clone().fromArray(z.quaternion);
-        b.quaternion.slerpQuaternions(qa,qz,eased);
-        b.scale.set(a.scale[0]+(z.scale[0]-a.scale[0])*eased,a.scale[1]+(z.scale[1]-a.scale[1])*eased,a.scale[2]+(z.scale[2]-a.scale[2])*eased);
-        b.updateMatrix();
-      }
-      for(const b of map.values())b.updateMatrixWorld(true);
-      onPoseApplied();
-      if(playElapsed>=duration-1e-8){
-        playIndex=nextIndex;playElapsed=0;selectedId=to.id;render();
-        if(playIndex===frames.length-1&&!loopPlayback)stopPlayback("Animação concluída.");
-      }
+    const total=getTotalDuration();if(total<=0){stopPlayback("Timeline vazia.");return;}
+    timelineCurrent+=Math.min(delta,.1);
+    if(timelineCurrent>=total){
+      if(loopPlayback)timelineCurrent=timelineCurrent%total;
+      else{timelineCurrent=total;seek(timelineCurrent);stopPlayback("Animação concluída.");return;}
     }
+    seek(timelineCurrent);
   }
+  $("timelineScrubber")?.addEventListener("input",e=>{stopPlayback("");const total=getTotalDuration();seek(total*(Number(e.target.value)/10000));});
   $("framePlay")?.addEventListener("click",play);
   $("frameLoop")?.addEventListener("change",e=>{loopPlayback=e.target.checked;});
   $("frameDuration")?.addEventListener("change",e=>setDuration(e.target.value));
@@ -99,7 +132,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function move(id,delta){
     const index=frames.findIndex(f=>f.id===id),target=index+delta;
     if(index<0||target<0||target>=frames.length)return;
-    const [item]=frames.splice(index,1);frames.splice(target,0,item);selectedId=id;render();persist();
+    const [item]=frames.splice(index,1);frames.splice(target,0,item);selectedId=id;timelineCurrent=getFrameStart(target);render();persist();
   }
   function rename(id){
     const f=frames.find(x=>x.id===id);if(!f)return;
@@ -111,7 +144,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function render(){
     const box=$("frameList");if(!box)return;box.replaceChildren();
     for(let index=0;index<frames.length;index++){
-      const f=frames[index],card=document.createElement("div");
+      const f=frames[index],card=document.createElement("div");card.dataset.frameId=f.id;
       card.className="frame-card"+(f.id===selectedId?" active":"");
       const b=document.createElement("button");b.type="button";b.className="frame-select";b.textContent=f.label;
       b.onclick=()=>{stopPlayback("Reprodução interrompida para editar a pose.");selectFrame(f.id,true);};
@@ -123,11 +156,11 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     }
     const count=$("frameCount");if(count)count.textContent=frames.length+" quadros";
     const del=$("frameDelete");if(del)del.disabled=frames.length<2||!selectedId;const duration=$("frameDuration");const selected=frames.find(x=>x.id===selectedId);if(duration&&selected)duration.value=String(selected.duration||.5);
-    onChange(frames);
+    onChange(frames);renderTimeline();
   }
-  function add(){stopPlayback("");const f=capture();frames.push(f);selectedId=f.id;render();persist();}
-  function duplicate(id=selectedId){stopPlayback("");const f=frames.find(x=>x.id===id);if(!f)return;const c=clone(f);c.id="frame-"+(nextId++);c.label="Frame "+(frames.length+1);frames.splice(frames.indexOf(f)+1,0,c);selectedId=c.id;render();persist();}
-  function remove(){stopPlayback("");if(frames.length<2)return;const i=frames.findIndex(x=>x.id===selectedId);if(i<0)return;frames.splice(i,1);selectedId=frames[Math.max(0,i-1)].id;render();persist();}
+  function add(){stopPlayback("");const f=capture();frames.push(f);selectedId=f.id;timelineCurrent=getFrameStart(frames.length-1);render();persist();}
+  function duplicate(id=selectedId){stopPlayback("");const f=frames.find(x=>x.id===id);if(!f)return;const c=clone(f);c.id="frame-"+(nextId++);c.label="Frame "+(frames.length+1);frames.splice(frames.indexOf(f)+1,0,c);selectedId=c.id;timelineCurrent=getFrameStart(frames.indexOf(c));render();persist();}
+  function remove(){stopPlayback("");if(frames.length<2)return;const i=frames.findIndex(x=>x.id===selectedId);if(i<0)return;frames.splice(i,1);selectedId=frames[Math.max(0,i-1)].id;timelineCurrent=getFrameStart(frames.findIndex(f=>f.id===selectedId));render();persist();}
   function updateCurrent(){
     const f=frames.find(x=>x.id===selectedId);if(!f)return;
     try{const current=capture(f.label);f.skeletonId=current.skeletonId;f.pose=current.pose;render();persist();$("frameStatus").textContent="Pose atualizada.";}
@@ -157,5 +190,5 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   $("frameExport")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-poses.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
   try{const s=JSON.parse(localStorage.getItem("berofel.motion.frames.v2")||localStorage.getItem("berofel.motion.frames.v1")||"null");if((s?.version===1||s?.version===2)&&Array.isArray(s.frames)){frames=s.frames;nextId=s.nextId||1;selectedId=frames[0]?.id||null;}}catch{}
   render();
-  return{add,duplicate,remove,move,rename,importData,play,stop:()=>stopPlayback(),update,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
+  return{add,duplicate,remove,move,rename,importData,play,stop:()=>stopPlayback(),update,seek,refresh:renderTimeline,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
 }
