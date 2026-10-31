@@ -132,7 +132,7 @@ function seek(seconds){
   function move(id,delta){
     const index=frames.findIndex(f=>f.id===id),target=index+delta;
     if(index<0||target<0||target>=frames.length)return;
-    const [item]=frames.splice(index,1);frames.splice(target,0,item);selectedId=id;render();persist();
+    const [item]=frames.splice(index,1);frames.splice(target,0,item);selectedId=id;timelineCurrent=getFrameStart(target);render();persist();
   }
   function rename(id){
     const f=frames.find(x=>x.id===id);if(!f)return;
