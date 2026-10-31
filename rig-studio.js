@@ -468,9 +468,10 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     rebuildHelper();selectBone(map[0]);const info=updateBindingStatus();say("Preset "+presets[key].label+" criado. "+info.meshes+" malha(s) detectadas; "+info.skinnedMeshes+" com skinning nativo. O rig visual não altera a malha.");
   }
   function addBone(){
-    if(!state.root){createFromPreset("feline");return;}
+    if(!state.root)throw new Error("Crie ou conecte um rig antes de adicionar um osso.");
     const parent=state.selected||state.bones[0];
-    const bone=makeBone("Osso_"+(state.bones.length+1),parent,[0,.35,0]);rebuildHelper();selectBone(bone);
+    const bone=makeBone("Osso_"+(state.bones.length+1),parent,[0,.35,0]);
+    rebuildHelper();selectBone(bone);return bone;
   }
   function mirrorSelected(){
     const source=state.selected;if(!source)return;
@@ -571,5 +572,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigWeightBrushSize")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.radius=Math.max(.02,Math.min(2,Number(e.target.value)||.22));});
   $("rigWeightBrushStrength")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.strength=Math.max(.01,Math.min(.95,Number(e.target.value)||.25));});
 
-  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,addBone,selectBone,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }

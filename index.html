@@ -38,7 +38,16 @@ body.animation-open #frameEditor{display:block!important;position:fixed!importan
 .frame-dock-actions{flex-wrap:wrap;margin-bottom:8px}
 .frame-dock-actions button{padding:7px 10px;font-size:12px;min-height:32px}
 .frame-loop{display:flex;align-items:center;gap:5px;color:#c4d1df;font-size:11px}
-.frame-timeline-title{justify-content:space-between;margin:2px 0 5px}
+.frame-timeline-title{justify-content:space-between;margin:2px 0 5px;flex-wrap:wrap}
+#timelineAddBone{padding:5px 8px;font-size:11px;min-height:28px}
+.timeline-bone-select{width:64px;min-width:0;padding:4px 5px;border:0;border-right:1px solid #354960;border-radius:0;background:#17263a;text-align:left;font-size:10px;font-weight:800;overflow:hidden;text-overflow:ellipsis}
+.timeline-bone-select:active{color:#65d8c0}
+.timeline-bone-key{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;width:100%;height:100%;min-height:34px;padding:4px 6px;border-radius:5px;background:#20344a;border-color:#496078;font-size:10px}
+.timeline-bone-key.keyed{background:#1b4543;border-color:#397f75}
+.timeline-bone-key.missing{opacity:.42;background:#202b39;border-style:dashed}
+.timeline-bone-key.active{outline:1px solid #65d8c0;border-color:#65d8c0;background:#28635c}
+.timeline-bone-key small{font-size:9px;color:#c1d0dd}
+
 .timeline-scroll{max-height:112px;overflow-x:auto;overflow-y:hidden;border:1px solid #30445c;border-radius:8px;background:#0b1523;overscroll-behavior:contain}
 .timeline-canvas{position:relative;min-width:100%;width:max-content}
 .timeline-ruler,.timeline-track{display:grid;grid-template-columns:64px auto;min-height:24px}
@@ -177,14 +186,14 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <div class="section" id="frameEditor" aria-label="Editor de frames e timeline">
 <div class="frame-dock-head"><div><strong>ANIMAÇÃO</strong><span id="frameCount">0 frames</span></div><button id="closeAnimationWorkspace" type="button" title="Fechar timeline">✕</button></div>
 <div class="frame-dock-actions">
-<button id="frameAdd" class="primary">＋ Adicionar frame</button>
+<button id="frameAdd" class="primary">＋ Salvar frame</button>
 <button id="frameUpdate">Atualizar</button>
 <button id="frameDuplicate">Duplicar</button>
 <button id="frameDelete" disabled>Excluir</button>
 <button id="framePlay" class="primary">▶ Reproduzir</button>
 <label class="frame-loop"><input id="frameLoop" type="checkbox" checked> Loop</label>
 </div>
-<div class="frame-timeline-title"><strong>FRAMES</strong><span id="timelineTime">00:00.00</span></div>
+<div class="frame-timeline-title"><strong>OSSOS / FRAMES</strong><button id="timelineAddBone" type="button">＋ Adicionar osso</button><span id="timelineTime">00:00.00</span></div>
 <div class="timeline-scroll"><div id="timelineCanvas" class="timeline-canvas">
 <div class="timeline-ruler"><div class="timeline-label">Tempo</div><div id="timelineRulerCells" class="timeline-ruler-cells"></div></div>
 <div id="timelineTracks" class="timeline-tracks"></div><div id="timelinePlayhead" class="timeline-playhead"></div>
@@ -1747,13 +1756,21 @@ function finishPaintGesture(event){
 renderer.domElement.addEventListener("pointerup",finishPaintGesture);
 renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
-const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>rigStudio.update(),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
+const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>rigStudio.update(),onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um bloco para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
+$("timelineAddBone")?.addEventListener("click",()=>{
+ try{
+  if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
+  const bone=rigStudio.addBone();frameManager.refresh();
+  $("frameStatus").textContent="Osso "+(bone?.name||"novo")+" adicionado à timeline.";
+ }catch(error){$("frameStatus").textContent=error.message||"Não foi possível adicionar o osso.";}
+});
+
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const paintingLocked=document.body.classList.contains("paint-open");if(!paintingLocked){rigStudio.update();const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;frameManager.update(dt);updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update()}renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=272",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=273",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
