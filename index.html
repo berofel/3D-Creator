@@ -1228,7 +1228,7 @@ $("quickAnimationPlay").onclick=()=>{const mode=$("quickAnimation").value;if(mod
 $("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
 
 let githubSaveBusy=false;
-function githubSlug(value){return String(value||"modelo").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,64)||"modelo"}
+function githubSlug(value){return String(value||"modelo").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,64)||"modelo"}
 function blobToBase64(blob){
  return blob.arrayBuffer().then(buffer=>{
   const bytes=new Uint8Array(buffer);let binary="";const chunk=0x8000;
@@ -1628,7 +1628,7 @@ $("paintExportTexture")?.addEventListener("click",async()=>{try{const meshes=[];
 $("paintImageFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(file){try{await paintStudio.applyImage(file)}catch(err){$("paintStatus").textContent=String(err?.message||err)}finally{e.target.value=""}}});
 $("topExport")?.addEventListener("click",()=>{if(exportDialog?.showModal)exportDialog.showModal();else $("exportStatus").textContent="Seu navegador não oferece suporte à janela de exportação.";});
 $("topSave")?.addEventListener("click",()=>saveInfoDialog?.showModal?.());
-const localProjectId=()=>("b3dc_"+String($("localProjectName")?.value||$("name")?.value||"projeto").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,48));
+const localProjectId=()=>("b3dc_"+String($("localProjectName")?.value||$("name")?.value||"projeto").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,48));
 async function refreshLocalVersions(selectId){
  const select=$("localVersionSelect"),status=$("localSaveStatus");if(!select)return;
  try{const rows=await listVersions(localProjectId());select.replaceChildren();if(!rows.length){const o=document.createElement("option");o.value="";o.textContent="Nenhuma versão salva";select.append(o)}else for(const row of rows){const o=document.createElement("option");o.value=row.id;o.textContent=new Date(row.createdAt).toLocaleString()+" — "+row.name;select.append(o)}
@@ -1666,7 +1666,7 @@ $("backupLocalVersion")?.addEventListener("click",async()=>{
 });
 $("importProjectBackup")?.addEventListener("change",async e=>{
  const file=e.target.files?.[0];if(!file)return;const status=$("backupStatus");
- try{const {manifest,blob}=await readVersionBackup(file);const name=manifest.name||file.name.replace(/\\.zip$/i,"");const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{...manifest.metadata,restoredFromBackup:true,sourceCreatedAt:manifest.createdAt}});$("localProjectName").value=name;await refreshLocalVersions(record.id);await parseGLBIntoScene(blob,name+"_backup");status.textContent="Backup importado, salvo como nova versão e adicionado à cena."}
+ try{const {manifest,blob}=await readVersionBackup(file);const name=manifest.name||file.name.replace(/\.zip$/i,"");const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{...manifest.metadata,restoredFromBackup:true,sourceCreatedAt:manifest.createdAt}});$("localProjectName").value=name;await refreshLocalVersions(record.id);await parseGLBIntoScene(blob,name+"_backup");status.textContent="Backup importado, salvo como nova versão e adicionado à cena."}
  catch(err){status.textContent="Backup inválido ou não pôde ser restaurado: "+String(err?.message||err)}
  finally{e.target.value=""}
 });
