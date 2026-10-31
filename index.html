@@ -1068,7 +1068,7 @@ function createImportedJaguarRig(wrapper,model){
  ];
  const legs=legSpecs.map((spec,index)=>{
   const hipPoint=point(spec.upper);hipPoint.y+=.22;
-  const pivot=make("Ombro_Quadril_"+spec.name,root,hipPoint);attach(pivot,spec.upper);
+  const pivot=make("Ombro_Quadril_"+spec.name,spec.front?chest:pelvis,hipPoint);attach(pivot,spec.upper);
   const kneePoint=point(spec.lower);kneePoint.y+=.12;
   const knee=make("Joelho_Cotovelo_"+spec.name,pivot,kneePoint);attach(knee,spec.lower);
   const ankle=make("Tornozelo_"+spec.name,knee,point(spec.ankle));attach(ankle,spec.ankle);
