@@ -42,26 +42,38 @@ function renderTimelineCursor(){
  const slider=$("timelineScrubber");if(slider)slider.value=String(total?Math.round(time/total*10000):0);
  const label=$("timelineTime");if(label)label.textContent=formatTime(time);
  const playhead=$("timelinePlayhead"),canvas=$("timelineCanvas");
- if(playhead&&canvas){const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));let x=112,remaining=time;for(let i=0;i<widths.length;i++){const d=getFrameDuration(frames[i]);if(remaining<=d){x+=widths[i]*(remaining/d);break;}x+=widths[i];remaining-=d;}playhead.style.left=x+"px";}
+ if(playhead&&canvas){const widths=frames.map(f=>Math.max(104,getFrameDuration(f)*110));let x=64,remaining=time;for(let i=0;i<widths.length;i++){const d=getFrameDuration(frames[i]);if(remaining<=d){x+=widths[i]*(remaining/d);break;}x+=widths[i];remaining-=d;}playhead.style.left=x+"px";}
 }
 function renderTimeline(){
- const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");if(!canvas||!ruler||!tracks)return;
+ const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");
+ if(!canvas||!ruler||!tracks)return;
  ruler.replaceChildren();tracks.replaceChildren();
- if(!frames.length){const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Salve pelo menos uma pose para visualizar as articulações na timeline.";tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;}
- const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));
+ if(!frames.length){
+  const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Use “Adicionar frame” para criar a primeira pose.";
+  tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;
+ }
+ const widths=frames.map(f=>Math.max(104,getFrameDuration(f)*110));
  const columns=widths.map(w=>w+"px").join(" ");
  ruler.style.gridTemplateColumns=columns;
  let cursor=0;
- frames.forEach((f,i)=>{const cell=document.createElement("div");cell.className="timeline-ruler-cell";cell.textContent=formatTime(cursor);cell.title=f.label+" — "+getFrameDuration(f).toFixed(2)+" s";ruler.append(cell);cursor+=getFrameDuration(f);});
- const bones=getBones?.()||[];
- if(!bones.length){const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Crie ou conecte um rig para exibir as trilhas de articulação.";tracks.append(empty);}
- else for(const bone of bones){
-  const row=document.createElement("div");row.className="timeline-track";row.style.gridTemplateColumns="112px "+columns;
-  const label=document.createElement("div");label.className="timeline-track-label";label.textContent=bone.name;label.title=bone.name;row.append(label);
-  frames.forEach(f=>{const cell=document.createElement("div");cell.className="timeline-cell";const key=f.pose.some(p=>p.boneId===bone.userData?.berofelBoneId)?document.createElement("button"):null;if(key){key.type="button";key.className="timeline-key";key.title=bone.name+" — "+f.label;key.setAttribute("aria-label","Selecionar "+f.label+" na articulação "+bone.name);key.addEventListener("click",()=>{stopPlayback("Reprodução pausada para editar.");selectFrame(f.id,true);});cell.append(key);}row.append(cell);});
-  tracks.append(row);
- }
- canvas.style.width=(112+widths.reduce((a,b)=>a+b,0))+"px";
+ frames.forEach(f=>{
+  const cell=document.createElement("div");cell.className="timeline-ruler-cell";
+  cell.textContent=formatTime(cursor);cell.title=f.label;cell.style.width=widths[frames.indexOf(f)]+"px";
+  ruler.append(cell);cursor+=getFrameDuration(f);
+ });
+ const row=document.createElement("div");row.className="timeline-track";row.style.gridTemplateColumns="64px "+columns;
+ const label=document.createElement("div");label.className="timeline-track-label";label.textContent="POSES";row.append(label);
+ frames.forEach((f,index)=>{
+  const cell=document.createElement("div");cell.className="timeline-frame-cell";
+  const key=document.createElement("button");key.type="button";
+  key.className="timeline-frame"+(f.id===selectedId?" active":"");
+  key.innerHTML="<span>"+String(f.label||("Frame "+(index+1))).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+"</span><small>"+getFrameDuration(f).toFixed(2)+" s</small>";
+  key.title="Selecionar "+f.label;
+  key.addEventListener("click",()=>{stopPlayback("Frame selecionado.");selectFrame(f.id,true);});
+  cell.append(key);row.append(cell);
+ });
+ tracks.append(row);
+ canvas.style.width=(64+widths.reduce((a,b)=>a+b,0))+"px";
  renderTimelineCursor();
 }
 function interpolatePose(from,to,t){
