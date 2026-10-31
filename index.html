@@ -79,7 +79,8 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <label for="paintSize">Tamanho do pincel</label><input id="paintSize" type="range" min="2" max="100" step="1" value="18">
 <label for="paintOpacity">Opacidade</label><input id="paintOpacity" type="range" min="5" max="100" step="5" value="100">
 <input id="paintImageFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-<button id="paintImportImage" class="wide">Importar PNG / imagem para a textura</button>\n<button id="paintExportTexture" class="wide">Exportar textura pintada (.PNG)</button>
+<button id="paintImportImage" class="wide">Importar PNG / imagem para a textura</button>
+<button id="paintExportTexture" class="wide">Exportar textura pintada (.PNG)</button>
 <div id="paintStatus" class="status">Selecione uma malha com UV para começar.</div>
 </div>
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
@@ -1578,6 +1579,20 @@ $("rigImportJson")?.addEventListener("click",()=>$("rigImportFile")?.click());
 $("rigImportFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());const count=rigStudio.importData(data);say("Rig importado: "+count+" ossos. As identidades originais foram preservadas.");}catch(err){say("Falha ao importar rig: "+(err?.message||err));}finally{e.target.value="";}});
 
 const paintStudio=createPaintStudio({THREE,getSelected:()=>selected,onStatus:message=>{const el=$("paintStatus");if(el)el.textContent=message;}});
+let paintPointerActive=false;
+function paintIntersection(event){
+ const rect=renderer.domElement.getBoundingClientRect();
+ pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
+ ray.setFromCamera(pointer,camera);
+ const targets=[];if(selected?.isMesh)targets.push(selected);else selected?.traverse?.(o=>{if(o.isMesh)targets.push(o)});
+ return targets.length?ray.intersectObjects(targets,true)[0]||null:null;
+}
+renderer.domElement.addEventListener("pointerdown",event=>{if(!paintStudio.isActive())return;paintPointerActive=true;try{renderer.domElement.setPointerCapture(event.pointerId)}catch{};const hit=paintIntersection(event);if(hit)paintStudio.paintAt(hit);event.preventDefault();},{passive:false});
+renderer.domElement.addEventListener("pointermove",event=>{if(!paintPointerActive||!paintStudio.isActive())return;if(event.pointerType!=="touch"&&event.buttons===0)return;const hit=paintIntersection(event);if(hit)paintStudio.paintAt(hit);event.preventDefault();},{passive:false});
+const finishPaintStroke=()=>{paintPointerActive=false};
+renderer.domElement.addEventListener("pointerup",finishPaintStroke);
+renderer.domElement.addEventListener("pointercancel",finishPaintStroke);
+
 const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>rigStudio.update(),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{rigStudio.update();const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;frameManager.update(dt);updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update();renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
