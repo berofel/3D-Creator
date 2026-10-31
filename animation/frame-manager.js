@@ -183,7 +183,8 @@ function seek(seconds){
     const del=$("frameDelete");if(del)del.disabled=frames.length<2||!selectedId;const duration=$("frameDuration");const selected=frames.find(x=>x.id===selectedId);if(duration&&selected)duration.value=String(selected.duration||.5);
     onChange(frames);renderTimeline();
   }
-  function clearAll(){stopPlayback("");frames=[];selectedId=null;nextId=1;timelineCurrent=0;persist();render();setStatus("Timeline limpa para o novo rig.");}\n  function add(){stopPlayback("");const f=capture();frames.push(f);selectedId=f.id;timelineCurrent=getFrameStart(frames.length-1);render();persist();}
+  function clearAll(){stopPlayback("");frames=[];selectedId=null;nextId=1;timelineCurrent=0;persist();render();setStatus("Timeline limpa para o novo rig.");}
+  function add(){stopPlayback("");const f=capture();frames.push(f);selectedId=f.id;timelineCurrent=getFrameStart(frames.length-1);render();persist();}
   function duplicate(id=selectedId){stopPlayback("");const f=frames.find(x=>x.id===id);if(!f)return;const c=clone(f);c.id="frame-"+(nextId++);c.label="Frame "+(frames.length+1);frames.splice(frames.indexOf(f)+1,0,c);selectedId=c.id;timelineCurrent=getFrameStart(frames.indexOf(c));render();persist();}
   function remove(){stopPlayback("");if(frames.length<2)return;const i=frames.findIndex(x=>x.id===selectedId);if(i<0)return;frames.splice(i,1);selectedId=frames[Math.max(0,i-1)].id;timelineCurrent=getFrameStart(frames.findIndex(f=>f.id===selectedId));render();persist();}
   function updateCurrent(){
