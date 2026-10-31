@@ -1677,6 +1677,34 @@ function treeUpdate(dt){
  if(treeDemo.mode==="fallen"||treeDemo.mode==="groundhit"){treeDemo.trunkPivot.visible=true;treeDemo.fallenPivot.visible=false}
  if(treeDemo.mode==="chop"&&treeDemo.arm){treeDemo.arm.rotation.x=Math.min(0,treeDemo.arm.rotation.x+dt*3.6);treeDemo.arm.rotation.z=Math.min(0,treeDemo.arm.rotation.z+dt*3)}
 }
+
+// Roteador único e protegido para os comandos de criação.
+// A captura centralizada evita que handlers antigos, listeners duplicados ou
+// erros de um preset impeçam os demais botões de adicionar objetos.
+document.addEventListener("click",event=>{
+ const button=event.target?.closest?.("button");
+ if(!button)return;
+ const id=button.id||"",type=button.dataset?.add,weapon=button.dataset?.weapon,tree=button.dataset?.tree;
+ const isCreation=!!(type||weapon||tree||["preset","gnuPreset","jaguarPreset","axePreset","humanPreset","ogrePreset"].includes(id));
+ if(!isCreation)return;
+ event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+ const label=button.textContent.trim()||id||type||weapon||tree;
+ try{
+  if(type)add(type);
+  else if(weapon)addWeaponPart(weapon);
+  else if(tree)createTreeDemo(tree);
+  else if(id==="preset")addElement(quadruped,"Cavalo");
+  else if(id==="gnuPreset")addElement(gnuPreset,"Gnu");
+  else if(id==="jaguarPreset")loadGitHubModel("Animais","nc_a.glb");
+  else if(id==="axePreset")addElement(axePreset,"Machado de batalha");
+  else if(id==="humanPreset")addElement(()=>humanoidPreset(false),"Humano");
+  else if(id==="ogrePreset")addElement(()=>humanoidPreset(true),"Ogro");
+ }catch(error){
+  console.error("Falha no comando de criação: "+label,error);
+  say("Não foi possível adicionar "+label+": "+String(error?.message||error).slice(0,220));
+ }
+},true);
+
 document.querySelectorAll("[data-tree]").forEach(b=>b.onclick=()=>createTreeDemo(b.dataset.tree));$("treePlay").onclick=treePlay;$("treePause").onclick=()=>{treeDemo.playing=false;treeSay("Animação pausada.")};$("treeReset").onclick=treeReset;$("treeHit").onclick=treeHit;$("treeFall").onclick=treeFall;$("treeGroundHit").onclick=treeGroundHit;$("treeCollect").onclick=treeCollect;
 // A cena inicia vazia: o usuário escolhe quando adicionar o pinheiro e reproduzir a animação.
 
