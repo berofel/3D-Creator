@@ -117,7 +117,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 import * as THREE from "three";
 import {createRigStudio} from "./rig-studio.js?v=5";
 import {createFrameManager} from "./animation/frame-manager.js?v=3";
-import {createPaintStudio} from "./paint-studio.js?v=1";
+import {createPaintStudio} from "./paint-studio.js?v=2";
 import {saveVersion,listVersions,getVersion,exportVersionBackup,readVersionBackup} from "./project-store.js?v=1";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
@@ -1670,7 +1670,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=268",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=269",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
