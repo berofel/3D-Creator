@@ -1038,7 +1038,7 @@ function createImportedJaguarRig(wrapper,model){
  const pieces=new Map();
  model.traverse(object=>{
   if(!object.isMesh)return;
-  const match=(object.name||"").match(/_mesh_(\\d+)$/i);
+  const match=(object.name||"").match(/_mesh_([0-9]+)$/i);
   if(!match)return;
   const center=new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
   wrapper.worldToLocal(center);
@@ -1110,6 +1110,7 @@ function updateImportedJaguarRigs(){
  };
  const DEG45=Math.PI/4;
  for(const rig of (window.__berofelImportedJaguarRigs||[])){
+  if(rig.manualPoseActive)continue;
   let foreLoad=0,hindLoad=0;
   for(const leg of rig.legs){
    if(mode==="idle"||mode==="stop"){
@@ -1213,8 +1214,22 @@ async function importJaguarGLB(file){
    elementRoots=elementRoots.filter(root=>root!==oldRoot);
   }
   scene.add(wrapper);
-  const importedRig=/nc_a\\.glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
-  if(importedRig){window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig)}
+  const importedRig=/nc_a[.]glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
+  if(importedRig){
+   window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig);
+   rigStudio.adoptExternalRig(importedRig);
+   frameManager.clearAll();
+   const base=importedRig.bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone(),scale:b.scale.clone()}));
+   for(let frame=0;frame<8;frame++){
+    for(const item of base){item.bone.position.copy(item.position);item.bone.quaternion.copy(item.quaternion);item.bone.scale.copy(item.scale);}
+    const phase=frame/8*Math.PI*2;
+    for(const leg of importedRig.legs){const p=phase+leg.phase+(leg.front?0:Math.PI*.18),swing=Math.sin(p),lift=Math.max(0,Math.sin(p+Math.PI*.15));leg.pivot.rotation.z+=swing*.30;leg.knee.rotation.z+=lift*.48;leg.ankle.rotation.z-=lift*.18;leg.paw.rotation.z-=swing*.18+lift*.30;}
+    importedRig.spine.rotation.z+=Math.sin(phase*2)*.018;importedRig.chest.rotation.z+=Math.sin(phase*2+.3)*.012;importedRig.neck.rotation.z+=Math.sin(phase+.7)*.025;importedRig.head.rotation.z+=Math.sin(phase+.9)*.018;importedRig.tail.rotation.y+=Math.sin(phase-.5)*.11;
+    frameManager.add();
+   }
+   frameManager.seek(0);importedRig.manualPoseActive=true;
+   const frameStatus=document.getElementById("frameStatus");if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
+  }
   elementRoots.push(wrapper);
   model.traverse(object=>{if(object.isMesh)parts.push(object)});
   $("name").value=file.name.replace(/\.glb$/i,"").slice(0,48)||"Modelo importado";
