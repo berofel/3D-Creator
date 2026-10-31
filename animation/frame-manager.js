@@ -1,5 +1,5 @@
 // Armazenamento local de poses por IDs estáveis de osso.
-export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},onChange=()=>{}}={}) {
+export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},onChange=()=>{},onBoneSelected=()=>{}}={}) {
   let frames=[],selectedId=null,nextId=1;const $=id=>document.getElementById(id);
   const clone=v=>JSON.parse(JSON.stringify(v));
   const finiteVector=(v,n)=>Array.isArray(v)&&v.length===n&&v.every(Number.isFinite);
@@ -48,31 +48,44 @@ function renderTimeline(){
  const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");
  if(!canvas||!ruler||!tracks)return;
  ruler.replaceChildren();tracks.replaceChildren();
+ const bones=getBones?.()||[];
  if(!frames.length){
-  const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Use “Adicionar frame” para criar a primeira pose.";
+  const empty=document.createElement("div");empty.className="timeline-empty";
+  empty.textContent=bones.length?"Salve o primeiro frame para registrar a pose dos ossos.":"Adicione ou conecte um rig para começar.";
   tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;
  }
  const widths=frames.map(f=>Math.max(104,getFrameDuration(f)*110));
  const columns=widths.map(w=>w+"px").join(" ");
  ruler.style.gridTemplateColumns=columns;
  let cursor=0;
- frames.forEach(f=>{
+ frames.forEach((f,index)=>{
   const cell=document.createElement("div");cell.className="timeline-ruler-cell";
-  cell.textContent=formatTime(cursor);cell.title=f.label;cell.style.width=widths[frames.indexOf(f)]+"px";
+  cell.textContent=formatTime(cursor);cell.title=f.label;cell.style.width=widths[index]+"px";
   ruler.append(cell);cursor+=getFrameDuration(f);
  });
- const row=document.createElement("div");row.className="timeline-track";row.style.gridTemplateColumns="64px "+columns;
- const label=document.createElement("div");label.className="timeline-track-label";label.textContent="POSES";row.append(label);
- frames.forEach((f,index)=>{
-  const cell=document.createElement("div");cell.className="timeline-frame-cell";
-  const key=document.createElement("button");key.type="button";
-  key.className="timeline-frame"+(f.id===selectedId?" active":"");
-  key.innerHTML="<span>"+String(f.label||("Frame "+(index+1))).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+"</span><small>"+getFrameDuration(f).toFixed(2)+" s</small>";
-  key.title="Selecionar "+f.label;
-  key.addEventListener("click",()=>{stopPlayback("Frame selecionado.");selectFrame(f.id,true);});
-  cell.append(key);row.append(cell);
+ const boneRows=bones.length?bones:[{name:"POSES",userData:{berofelBoneId:null}}];
+ boneRows.forEach((bone,boneIndex)=>{
+  const row=document.createElement("div");row.className="timeline-track";
+  row.style.gridTemplateColumns="64px "+columns;
+  const label=document.createElement("button");label.type="button";
+  label.className="timeline-track-label timeline-bone-select";
+  label.textContent=bone.name||("Osso "+(boneIndex+1));label.title="Selecionar "+label.textContent;
+  label.addEventListener("click",()=>onBoneSelected?.(bone));
+  row.append(label);
+  const boneId=bone.userData?.berofelBoneId;
+  frames.forEach((f,index)=>{
+   const cell=document.createElement("div");cell.className="timeline-frame-cell";
+   const keyed=!boneId||f.pose.some(p=>p.boneId===boneId);
+   const block=document.createElement("button");block.type="button";
+   block.className="timeline-frame timeline-bone-key"+(f.id===selectedId?" active":"")+(keyed?" keyed":" missing");
+   block.style.minHeight="30px";
+   block.innerHTML="<span>"+(keyed?"◆":"·")+" F"+(index+1)+"</span><small>"+getFrameDuration(f).toFixed(2)+" s</small>";
+   block.title=(bone.name||"Poses")+" — "+f.label+(keyed?" · pose registrada":" · osso adicionado depois deste frame");
+   block.addEventListener("click",()=>{stopPlayback("Frame selecionado.");onBoneSelected?.(bone);selectFrame(f.id,true);});
+   cell.append(block);row.append(cell);
+  });
+  tracks.append(row);
  });
- tracks.append(row);
  canvas.style.width=(64+widths.reduce((a,b)=>a+b,0))+"px";
  renderTimelineCursor();
 }
