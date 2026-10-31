@@ -1666,7 +1666,7 @@ $("backupLocalVersion")?.addEventListener("click",async()=>{
 });
 $("importProjectBackup")?.addEventListener("change",async e=>{
  const file=e.target.files?.[0];if(!file)return;const status=$("backupStatus");
- try{const {manifest,blob}=await readVersionBackup(file);const name=manifest.name||file.name.replace(/\.zip$/i,"");const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{...manifest.metadata,restoredFromBackup:true,sourceCreatedAt:manifest.createdAt}});$("localProjectName").value=name;await refreshLocalVersions(record.id);await parseGLBIntoScene(blob,name+"_backup");status.textContent="Backup importado, salvo como nova versão e adicionado à cena."}
+ try{const {manifest,blob}=await readVersionBackup(file);const name=manifest.name||file.name.replace(/\.zip$/i,"");$("localProjectName").value=name;const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{...manifest.metadata,restoredFromBackup:true,sourceCreatedAt:manifest.createdAt}});await refreshLocalVersions(record.id);await parseGLBIntoScene(blob,name+"_backup");status.textContent="Backup importado, salvo como nova versão e adicionado à cena."}
  catch(err){status.textContent="Backup inválido ou não pôde ser restaurado: "+String(err?.message||err)}
  finally{e.target.value=""}
 });
