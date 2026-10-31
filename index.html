@@ -1571,7 +1571,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{rigStudio.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=262",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=263",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
