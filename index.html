@@ -1058,7 +1058,7 @@ function createImportedJaguarRig(wrapper,model){
  const spine=make("Coluna",pelvis,point(0));attach(spine,0);
  const chest=make("Peito",spine,point(5));attach(chest,5);
  const neck=make("Pescoco",chest,point(6));attach(neck,6);
- const head=make("Cabeca",neck,point(8));[8,11,12,13].forEach(id=>attach(head,id));
+ const head=make("Cabeca",neck,point(8));attach(head,8);\n [11,12,13].forEach(id=>{const detail=make("Cabeca_Detalhe_"+id,head,point(id));attach(detail,id);});
  const tailBase=make("Cauda",pelvis,point(3));attach(tailBase,3);
  const legSpecs=[
   {name:"Dianteira_E",front:true,side:1,upper:7,lower:9,ankle:10,paw:15},
