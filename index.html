@@ -1229,6 +1229,7 @@ async function importJaguarGLB(file){
    }
    frameManager.seek(0);importedRig.manualPoseActive=true;
    const frameStatus=document.getElementById("frameStatus");if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
+   if(!document.body.classList.contains("animation-open"))document.getElementById("toggleAnimationWorkspace")?.click();
   }
   elementRoots.push(wrapper);
   model.traverse(object=>{if(object.isMesh)parts.push(object)});
