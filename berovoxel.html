@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>BeroVoxel Builder — Berofel 3D Create</title>
+<style>
+:root{color-scheme:dark;--bg:#101827;--panel:#182438;--line:#31445c;--text:#eef5ff;--muted:#9bb0c8;--accent:#64d5bd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#0b1220;border-bottom:1px solid var(--line)}
+h1{font-size:16px;margin:0}small,.muted{color:var(--muted)}button,input,select{font:inherit;color:var(--text);background:#202f45;border:1px solid var(--line);border-radius:8px;padding:8px}button{cursor:pointer}button.active,.primary{background:var(--accent);color:#06231f;border-color:var(--accent);font-weight:750}
+main{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:10px;padding:10px;min-height:calc(100dvh - 58px)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;border-bottom:1px solid var(--line)}
+.tools label{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.tools input[type=number]{width:64px}.tools input[type=color]{width:38px;height:34px;padding:2px}
+#draw{display:block;width:min(100%,640px);height:auto;aspect-ratio:1;margin:10px auto;background:#0d1726;touch-action:none;cursor:crosshair}
+#view3d{width:100%;height:calc(100% - 52px);min-height:440px;display:block}
+.info{padding:8px 11px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:850px){main{grid-template-columns:1fr}.panel{min-height:0}#view3d{height:55vh;min-height:340px}#draw{width:min(94%,560px)}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header><div><h1>◆ BeroVoxel Builder</h1><small>Construa em 2D. Transforme em 3D. • Módulo experimental independente</small></div><div class="actions"><button id="save">Salvar projeto</button><button id="load">Abrir projeto</button><button class="primary" id="convert">Transformar em 3D</button><input id="file" type="file" accept=".json,application/json" hidden></div></header>
+<main>
+<section class="panel">
+ <div class="panel-head"><strong>Construção 2D</strong><span class="muted" id="count">0 blocos</span></div>
+ <div class="tools">
+  <label>Vista <select id="view"><option value="front">Frente (X/Y)</option><option value="side">Lateral (Z/Y)</option><option value="top">Superior (X/Z)</option></select></label>
+  <label>Forma <select id="shape"><option value="cube">Cubo</option><option value="sphere">Esfera</option><option value="cylinder">Cilindro</option></select></label>
+  <label>Cor <input id="color" type="color" value="#d99b42"></label>
+  <label>Profundidade <input id="depth" type="number" min="1" max="16" value="4"></label>
+  <label>Ferramenta <select id="tool"><option value="paint">Adicionar</option><option value="erase">Apagar</option></select></label>
+  <button id="clear">Limpar</button>
+ </div>
+ <canvas id="draw" width="640" height="640" aria-label="Grade de construção 2D"></canvas>
+ <div class="info">Toque ou arraste na grade. A profundidade é aplicada manualmente a cada região desenhada. As três vistas compartilham o mesmo volume.</div>
+</section>
+<section class="panel">
+ <div class="panel-head"><strong>Visualização tridimensional</strong><span class="muted">Arraste para orbitar • pinça/roda para zoom</span></div>
+ <div id="view3d"></div>
+ <div class="info" id="status">Desenhe na grade e selecione “Transformar em 3D”.</div>
+</section>
+</main>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+import {OrbitControls} from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js";
+import {GLTFExporter} from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/exporters/GLTFExporter.js";
+const SIZE=16, CELL=40, voxels=new Map();
+const $=id=>document.getElementById(id), canvas=$("draw"),ctx=canvas.getContext("2d");
+const scene=new THREE.Scene();scene.background=new THREE.Color("#dce7ef");
+const camera=new THREE.PerspectiveCamera(42,1,.1,1000);camera.position.set(22,19,25);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
+$("view3d").appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,5,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x758397,2));
+const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(12,22,15);scene.add(sun);
+const grid=new THREE.GridHelper(24,24,0x62758a,0xaab8c5);scene.add(grid);
+const model=new THREE.Group();model.name="BeroVoxel_Model";scene.add(model);
+function key(x,y,z){return x+","+y+","+z}
+function coords(x,y,z){return [x,y,z]}
+function drawGrid(){
+ ctx.clearRect(0,0,640,640);ctx.fillStyle="#0d1726";ctx.fillRect(0,0,640,640);
+ const v=$("view").value;
+ for(let i=0;i<=SIZE;i++){ctx.strokeStyle=i%4===0?"#496078":"#263950";ctx.lineWidth=i%4===0?1.5:1;ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,640);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(640,i*CELL);ctx.stroke()}
+ for(const p of voxels.values()){
+  let a,b;if(v==="front"){if(p.z!==0)continue;a=p.x;b=15-p.y}else if(v==="side"){if(p.x!==0)continue;a=p.z;b=15-p.y}else{if(p.y!==0)continue;a=p.x;b=p.z}
+  ctx.fillStyle=p.color;ctx.fillRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4);ctx.strokeStyle="#ffffff55";ctx.strokeRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4)
+ }
+ $("count").textContent=voxels.size+" blocos";
+}
+function paintAt(e){
+ const r=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*SIZE),y=Math.floor((e.clientY-r.top)/r.height*SIZE);
+ if(x<0||x>=SIZE||y<0||y>=SIZE)return;
+ const v=$("view").value,depth=Math.max(1,Math.min(16,Number($("depth").value)||1)),color=$("color").value,shape=$("shape").value;
+ for(let d=0;d<depth;d++){
+  let c;if(v==="front")c=[x,15-y,d];else if(v==="side")c=[d,15-y,x];else c=[x,d,y];
+  const k=key(...c);if($("tool").value==="erase")voxels.delete(k);else voxels.set(k,{x:c[0],y:c[1],z:c[2],color,shape});
+ }
+ drawGrid();
+}
+let drawing=false;canvas.addEventListener("pointerdown",e=>{drawing=true;canvas.setPointerCapture(e.pointerId);paintAt(e)});canvas.addEventListener("pointermove",e=>{if(drawing)paintAt(e)});canvas.addEventListener("pointerup",()=>drawing=false);canvas.addEventListener("pointercancel",()=>drawing=false);
+$("view").addEventListener("change",drawGrid);
+$("clear").onclick=()=>{if(confirm("Apagar todos os blocos deste projeto?")){voxels.clear();drawGrid();model.clear()}};
+function rebuild(){
+ model.clear();const groups=new Map();
+ for(const p of voxels.values()){const k=p.shape+"|"+p.color;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(p)}
+ for(const [k,list] of groups){
+  const [shape,color]=k.split("|");let geo;
+  if(shape==="sphere")geo=new THREE.SphereGeometry(.49,10,8);
+  else if(shape==="cylinder")geo=new THREE.CylinderGeometry(.48,.48,.96,8);
+  else geo=new THREE.BoxGeometry(.96,.96,.96);
+  const mat=new THREE.MeshStandardMaterial({color,roughness:.82});
+  const mesh=new THREE.InstancedMesh(geo,mat,list.length);mesh.name=shape+"_"+color.replace("#","");
+  const dummy=new THREE.Object3D();list.forEach((p,i)=>{dummy.position.set(p.x-7.5,p.y+.5,p.z-7.5);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix)});mesh.instanceMatrix.needsUpdate=true;mesh.userData.voxelCount=list.length;model.add(mesh);
+ }
+ $("status").textContent="Conversão concluída: "+voxels.size+" células geométricas em "+groups.size+" grupos de material. Ajuste a perspectiva na viewport.";
+}
+$("convert").onclick=()=>{try{rebuild()}catch(e){$("status").textContent="Falha na conversão: "+e.message}};
+$("save").onclick=()=>{const data={format:"berovoxel",version:1,size:SIZE,voxels:[...voxels.values()]};download(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),"berovoxel-projeto.json")};
+$("load").onclick=()=>$("file").click();
+$("file").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.format!=="berovoxel"||!Array.isArray(d.voxels))throw Error("Arquivo BeroVoxel inválido");voxels.clear();for(const p of d.voxels){if(Number.isInteger(p.x)&&Number.isInteger(p.y)&&Number.isInteger(p.z)&&p.x>=0&&p.x<SIZE&&p.y>=0&&p.y<SIZE&&p.z>=0&&p.z<SIZE)voxels.set(key(p.x,p.y,p.z),p)}drawGrid();rebuild();$("status").textContent="Projeto carregado: "+voxels.size+" blocos."}catch(err){$("status").textContent="Não foi possível abrir: "+err.message}finally{e.target.value=""}};
+function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
+function resize(){const r=$("view3d").getBoundingClientRect();if(!r.width||!r.height)return;camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height)}
+window.addEventListener("resize",resize);new ResizeObserver(resize).observe($("view3d"));resize();
+async function exportGLB(){rebuild();const exporter=new GLTFExporter();const data=await exporter.parseAsync(model,{binary:true});download(new Blob([data],{type:"model/gltf-binary"}),"berovoxel-modelo.glb")}
+const exportBtn=document.createElement("button");exportBtn.textContent="Exportar GLB";exportBtn.onclick=()=>exportGLB().catch(e=>$("status").textContent="Falha no GLB: "+e.message);$("convert").parentElement.insertBefore(exportBtn,$("convert"));
+function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)}loop();drawGrid();
+</script>
+</body></html>
