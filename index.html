@@ -1048,7 +1048,7 @@ function createImportedJaguarRig(wrapper,model){
  const point=id=>{const p=pieces.get(id);if(!p)throw new Error("Peça anatômica "+id+" não encontrada.");return p.center.clone();};
  const root=new THREE.Bone();root.name="Raiz_Onca";root.userData.berofelBoneId="jaguar-root";wrapper.add(root);
  const bones=[root],make=(name,parent,position)=>{
-  const bone=new THREE.Bone();bone.name=name;bone.userData.berofelBoneId="jaguar-"+name.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  const bone=new THREE.Bone();bone.name=name;bone.userData.berofelBoneId="jaguar-"+name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
   bone.userData.rigStudioBone=true;bone.userData.berofelBaseBone=true;bone.userData.limits={min:-75,max:75};
   wrapper.updateWorldMatrix(true,true);parent.updateWorldMatrix(true,false);
   const world=wrapper.localToWorld(position.clone());bone.position.copy(parent.worldToLocal(world));parent.add(bone);bones.push(bone);return bone;
