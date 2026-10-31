@@ -63,10 +63,12 @@ function drawGrid(){
  ctx.clearRect(0,0,640,640);ctx.fillStyle="#0d1726";ctx.fillRect(0,0,640,640);
  const v=$("view").value;
  for(let i=0;i<=SIZE;i++){ctx.strokeStyle=i%4===0?"#496078":"#263950";ctx.lineWidth=i%4===0?1.5:1;ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,640);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(640,i*CELL);ctx.stroke()}
+ const projected=new Map();
  for(const p of voxels.values()){
-  let a,b;if(v==="front"){if(p.z!==0)continue;a=p.x;b=15-p.y}else if(v==="side"){if(p.x!==0)continue;a=p.z;b=15-p.y}else{if(p.y!==0)continue;a=p.x;b=p.z}
-  ctx.fillStyle=p.color;ctx.fillRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4);ctx.strokeStyle="#ffffff55";ctx.strokeRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4)
+  let a,b;if(v==="front"){a=p.x;b=15-p.y}else if(v==="side"){a=p.z;b=15-p.y}else{a=p.x;b=p.z}
+  const k=a+","+b;if(!projected.has(k))projected.set(k,p);
  }
+ for(const [k,p] of projected){const [a,b]=k.split(",").map(Number);ctx.fillStyle=p.color;ctx.fillRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4);ctx.strokeStyle="#ffffff55";ctx.strokeRect(a*CELL+2,b*CELL+2,CELL-4,CELL-4)}
  $("count").textContent=voxels.size+" blocos";
 }
 function paintAt(e){
