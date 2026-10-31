@@ -31,7 +31,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     onPoseApplied();
     return{applied:operations.length,missing:frame.pose.length-operations.length};
   }
-  let playing=false,loopPlayback=true,playIndex=0,playElapsed=0,timelineCurrent=0,lastTimelineUi=0;
+  let playing=false,loopPlayback=true,timelineCurrent=0;
   function setStatus(message){const el=$("frameStatus");if(el)el.textContent=message;}
 function getFrameDuration(frame){return Math.max(.05,Math.min(30,Number(frame?.duration)||.5));}
 function getTotalDuration(){return frames.reduce((sum,f)=>sum+getFrameDuration(f),0);}
@@ -48,7 +48,7 @@ function renderTimeline(){
  const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");if(!canvas||!ruler||!tracks)return;
  ruler.replaceChildren();tracks.replaceChildren();
  if(!frames.length){const empty=document.createElement("div");empty.className="timeline-empty";empty.textContent="Salve pelo menos uma pose para visualizar as articulações na timeline.";tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;}
- const widths=frames.map(f=>Math.max(64,Math.min(240,getFrameDuration(f)*140)));
+ const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));
  const columns=widths.map(w=>w+"px").join(" ");
  ruler.style.gridTemplateColumns=columns;
  let cursor=0;
