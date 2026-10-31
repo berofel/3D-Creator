@@ -54,7 +54,16 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <body>
 <header class="app-header"><div class="brand">◆ Berofel 3D Create<small>Editor modular 3D • criaturas, armas e ferramentas</small></div><nav class="topbuttons" aria-label="Ações do projeto"><button id="new" type="button">＋ Novo</button><button id="topImport" type="button">Importar</button><button id="togglePaintWorkspace" type="button" aria-expanded="false">Pintura</button><button id="toggleAnimationWorkspace" type="button" aria-expanded="false">Animação</button><button id="topExport" type="button" class="primary">Exportar</button><button id="topSave" type="button" title="Abrir informações sobre o salvamento por versões">Salvar</button></nav><button id="save" type="button" hidden>Exportar JSON (compatibilidade)</button></header>
 <dialog id="exportDialog" class="workspace-dialog" aria-labelledby="exportDialogTitle"><form method="dialog" class="dialog-head"><div><h2 id="exportDialogTitle">Exportar modelo</h2><p class="hint">Escolha o formato e as animações que deseja incluir.</p></div><button value="close" aria-label="Fechar">✕</button></form><div class="dialog-content"><label for="exportAnimation">Animação</label><select id="exportAnimation" class="wide"><option value="idle">Respiração (idle)</option><option value="walk">Caminhada (walk)</option><option value="gallop">Galope (gallop)</option></select><label class="export-check"><input id="exportAllAnimations" type="checkbox" disabled> Incluir todas as animações vinculadas ao modelo <span>Disponível após a integração do novo sistema de animações.</span></label><div class="grid"><button id="exportglb" type="button" class="primary">Baixar GLB</button><button id="exportpackage" type="button">Baixar pacote ZIP</button></div><div class="status" id="exportStatus">Pronto para exportar.</div></div></dialog>
-<dialog id="saveInfoDialog" class="workspace-dialog"><form method="dialog" class="dialog-head"><div><h2>Salvamento por versões</h2><p class="hint">O salvamento local e o histórico estão previstos para a Parte 3.</p></div><button value="close" aria-label="Fechar">✕</button></form><div class="dialog-content"><p>O modelo atual ainda não será gravado no navegador nesta etapa. A função será ativada junto ao IndexedDB, histórico de versões e backup para download, evitando um botão de salvar que prometa uma proteção que ainda não existe.</p></div></dialog>
+<dialog id="saveInfoDialog" class="workspace-dialog"><form method="dialog" class="dialog-head"><div><h2>Salvar projeto e versões</h2><p class="hint">O projeto é armazenado neste navegador. Cada salvamento cria uma versão sem apagar as anteriores.</p></div><button value="close" aria-label="Fechar">✕</button></form><div class="dialog-content">
+<label for="localProjectName">Nome do projeto</label><input id="localProjectName" type="text" maxlength="64" placeholder="Ex.: Onça-pintada">
+<button id="saveLocalVersion" type="button" class="wide primary">Salvar nova versão</button>
+<div id="localSaveStatus" class="status">Pronto para salvar no armazenamento local.</div>
+<label for="localVersionSelect">Histórico de versões</label><select id="localVersionSelect" class="wide"><option value="">Nenhuma versão salva</option></select>
+<div class="grid"><button id="restoreLocalVersion" type="button">Restaurar versão</button><button id="backupLocalVersion" type="button">Baixar backup ZIP</button></div>
+<label for="importProjectBackup">Restaurar backup de arquivo</label><input id="importProjectBackup" type="file" accept=".zip,application/zip" class="wide">
+<div id="backupStatus" class="status">O backup contém o modelo GLB e um manifesto com nome e data.</div>
+<p class="hint">O histórico fica no IndexedDB deste navegador e não é sincronizado automaticamente entre dispositivos. Baixe backups ZIP para guardar uma cópia externa. A restauração adiciona a versão à cena atual sem apagar os outros modelos.</p>
+</div></dialog>
 <nav class="mobilebar"><button data-add="body">＋ Tronco</button><button data-add="head">＋ Cabeça</button><button data-add="leg">＋ Perna</button><button data-add="tail">＋ Cauda</button><button data-add="horn">＋ Chifre</button><button id="fit">Centralizar</button></nav>
 <div class="layout"><main id="viewport" aria-label="Visualização 3D">
 <div id="viewport-tools" aria-label="Ferramentas do editor">
@@ -107,6 +116,7 @@ import * as THREE from "three";
 import {createRigStudio} from "./rig-studio.js?v=5";
 import {createFrameManager} from "./animation/frame-manager.js?v=3";
 import {createPaintStudio} from "./paint-studio.js?v=1";
+import {saveVersion,listVersions,getVersion,exportVersionBackup,readVersionBackup} from "./project-store.js?v=1";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
 import {GLTFExporter} from "three/addons/exporters/GLTFExporter.js";
@@ -1218,7 +1228,7 @@ $("quickAnimationPlay").onclick=()=>{const mode=$("quickAnimation").value;if(mod
 $("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
 
 let githubSaveBusy=false;
-function githubSlug(value){return String(value||"modelo").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,64)||"modelo"}
+function githubSlug(value){return String(value||"modelo").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,64)||"modelo"}
 function blobToBase64(blob){
  return blob.arrayBuffer().then(buffer=>{
   const bytes=new Uint8Array(buffer);let binary="";const chunk=0x8000;
@@ -1600,7 +1610,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{rigStudio.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=265",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=266",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
@@ -1618,6 +1628,49 @@ $("paintExportTexture")?.addEventListener("click",async()=>{try{const meshes=[];
 $("paintImageFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(file){try{await paintStudio.applyImage(file)}catch(err){$("paintStatus").textContent=String(err?.message||err)}finally{e.target.value=""}}});
 $("topExport")?.addEventListener("click",()=>{if(exportDialog?.showModal)exportDialog.showModal();else $("exportStatus").textContent="Seu navegador não oferece suporte à janela de exportação.";});
 $("topSave")?.addEventListener("click",()=>saveInfoDialog?.showModal?.());
+const localProjectId=()=>("b3dc_"+String($("localProjectName")?.value||$("name")?.value||"projeto").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,48));
+async function refreshLocalVersions(selectId){
+ const select=$("localVersionSelect"),status=$("localSaveStatus");if(!select)return;
+ try{const rows=await listVersions(localProjectId());select.replaceChildren();if(!rows.length){const o=document.createElement("option");o.value="";o.textContent="Nenhuma versão salva";select.append(o)}else for(const row of rows){const o=document.createElement("option");o.value=row.id;o.textContent=new Date(row.createdAt).toLocaleString()+" — "+row.name;select.append(o)}
+ if(selectId)select.value=selectId;if(status)status.textContent=rows.length+" versão(ões) armazenada(s) neste navegador.";
+ }catch(err){if(status)status.textContent="Falha ao ler histórico: "+String(err?.message||err)}
+}
+$("topSave")?.addEventListener("click",()=>{if(!$("localProjectName").value)$("localProjectName").value=$("name").value||"Meu projeto";saveInfoDialog?.showModal?.();refreshLocalVersions()});
+$("saveLocalVersion")?.addEventListener("click",async()=>{
+ const button=$("saveLocalVersion"),status=$("localSaveStatus");button.disabled=true;
+ try{const name=String($("localProjectName").value||$("name").value||"Meu projeto").trim();if(!exportRoots().length)throw new Error("A cena está vazia. Adicione um modelo antes de salvar.");
+ status.textContent="Preparando modelo, materiais, texturas e animações…";
+ const bundle=buildExportBundle(["idle","walk","gallop"]);const blob=await parseExportGLB(bundle.scene,bundle.animations);
+ const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{format:"glb",size:blob.size,rootCount:bundle.rootCount,nodeCount:bundle.nodeCount,animations:bundle.animations.map(a=>a.name)}});
+ $("name").value=name;await refreshLocalVersions(record.id);status.textContent="Versão salva neste navegador ("+(blob.size/1024/1024).toFixed(2)+" MB).";
+ }catch(err){status.textContent="Não foi possível salvar: "+String(err?.message||err)}
+ finally{button.disabled=false}
+});
+function parseGLBIntoScene(blob,name){
+ return new Promise((resolve,reject)=>{blob.arrayBuffer().then(buffer=>new GLTFLoader().parse(buffer,"",gltf=>{
+ const root=gltf.scene||gltf.scenes?.[0];if(!root){reject(new Error("O GLB não contém uma cena."));return}
+ root.name=name||"Projeto_restaurado";root.userData.berofelElementRoot=true;root.userData.berofelRestoredProject=true;scene.add(root);elementRoots.push(root);
+ root.traverse(o=>{if(o.isMesh&&!parts.includes(o))parts.push(o)});
+ renderParts();fit();resolve(root);
+ },reject)).catch(reject)});
+}
+$("restoreLocalVersion")?.addEventListener("click",async()=>{
+ const id=$("localVersionSelect").value,status=$("backupStatus");if(!id){status.textContent="Selecione uma versão para restaurar.";return}
+ try{const record=await getVersion(id);if(!record)throw new Error("Versão não encontrada.");await parseGLBIntoScene(record.blob,record.name+"_restaurado");status.textContent="Versão restaurada na cena. O conteúdo anterior foi preservado."}
+ catch(err){status.textContent="Falha ao restaurar: "+String(err?.message||err)}
+});
+$("backupLocalVersion")?.addEventListener("click",async()=>{
+ const id=$("localVersionSelect").value,status=$("backupStatus");if(!id){status.textContent="Selecione uma versão para baixar.";return}
+ try{const record=await getVersion(id);if(!record)throw new Error("Versão não encontrada.");const blob=await exportVersionBackup(record,JSZip);download(blob,(record.name||"projeto")+"_backup.zip");status.textContent="Backup ZIP preparado para download."}
+ catch(err){status.textContent="Falha ao criar backup: "+String(err?.message||err)}
+});
+$("importProjectBackup")?.addEventListener("change",async e=>{
+ const file=e.target.files?.[0];if(!file)return;const status=$("backupStatus");
+ try{const {manifest,blob}=await readVersionBackup(file);const name=manifest.name||file.name.replace(/\.zip$/i,"");const record=await saveVersion({projectId:localProjectId(),name,blob,metadata:{...manifest.metadata,restoredFromBackup:true,sourceCreatedAt:manifest.createdAt}});$("localProjectName").value=name;await refreshLocalVersions(record.id);await parseGLBIntoScene(blob,name+"_backup");status.textContent="Backup importado, salvo como nova versão e adicionado à cena."}
+ catch(err){status.textContent="Backup inválido ou não pôde ser restaurado: "+String(err?.message||err)}
+ finally{e.target.value=""}
+});
+
 $("toggleAnimationWorkspace")?.addEventListener("click",()=>{const open=document.body.classList.toggle("animation-open");$("toggleAnimationWorkspace").setAttribute("aria-expanded",String(open));$("toggleAnimationWorkspace").textContent=open?"Fechar animação":"Animação";});
 $("new")?.addEventListener("click",()=>{const ok=confirm("Criar um projeto novo? O conteúdo atual da cena será substituído.");if(ok)location.reload();});
 </script></body></html>
