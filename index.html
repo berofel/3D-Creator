@@ -1110,7 +1110,7 @@ function updateImportedJaguarRigs(){
   return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
  };
  const DEG45=Math.PI/4;
- for(const rig of (window.__berofelImportedJaguarRigs||[])){
+ for(const rig of (window.__berofelImportedJaguarRigs||[])){try{
   if(rig.manualPoseActive)continue;
   let foreLoad=0,hindLoad=0;
   for(const leg of rig.legs){
@@ -1162,10 +1162,20 @@ function updateImportedJaguarRigs(){
   rig.wrapper.position.y=(rig.baseWrapperPosition?.y||0)+Math.sin(t*2.1)*.006+(moving?Math.sin(cycle*2)*.003*bodyReact:0);
   rig.wrapper.rotation.x=(rig.baseWrapperRotation?.x||0)+(moving?(hindLoad-foreLoad)*.004:0);
   rig.wrapper.rotation.z=(rig.baseWrapperRotation?.z||0)+(moving?Math.sin(cycle+.3)*(gallop?.012:.003)*bodyReact:0);
+ }catch(rigError){
+  console.error("Rig importado isolado: atualização interrompida sem parar o editor.",rigError);
+  rig.manualPoseActive=true;
+  window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(item=>item!==rig);
+  say("A animação da onça apresentou uma falha e foi isolada. O editor continua disponível para outros modelos.");
+ }
  }
 }
+let jaguarGLBImportBusy=false;
 async function importJaguarGLB(file){
  if(!file)return;
+ if(jaguarGLBImportBusy){say("Já existe uma importação em andamento. Aguarde ela terminar.");return;}
+ jaguarGLBImportBusy=true;
+ let wrapper=null,importedRig=null;
  say("Importando modelo original da onça…");
  try{
   const buffer=await file.arrayBuffer();
@@ -1178,7 +1188,7 @@ async function importJaguarGLB(file){
   const center=bounds.getCenter(new THREE.Vector3());
   const uniformScale=size.y>0.0001?3/size.y:1;
   model.position.set(-center.x,-bounds.min.y,-center.z);
-  const wrapper=new THREE.Group();
+  wrapper=new THREE.Group();
   wrapper.name="Modelo GLB — "+file.name;
   wrapper.userData.berofelElementRoot=true;
   wrapper.userData.elementLabel="Modelo GLB";
@@ -1215,7 +1225,7 @@ async function importJaguarGLB(file){
    elementRoots=elementRoots.filter(root=>root!==oldRoot);
   }
   scene.add(wrapper);
-  const importedRig=/nc_a[.]glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
+  importedRig=/nc_a[.]glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
   if(importedRig){
    window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig);
    rigStudio.adoptExternalRig(importedRig);
@@ -1248,7 +1258,19 @@ async function importJaguarGLB(file){
   const packageStatus=$("rigPackageStatus");if(packageStatus)packageStatus.textContent="Modelo carregado: "+file.name+" • "+meshCount+" malha(s). Pronto para salvar o pacote de Rig.";
  }catch(error){
   console.error("Falha ao importar modelo GLB",error);
-  say("Não foi possível importar o modelo: "+String(error?.message||error).slice(0,220));
+  if(importedRig){
+   window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>rig!==importedRig);
+   if(rigStudio.getState().root===importedRig.root)rigStudio.clear();
+  }
+  if(wrapper){
+   if(wrapper.parent)wrapper.parent.remove(wrapper);
+   elementRoots=elementRoots.filter(root=>root!==wrapper);
+   const failedMeshes=[];wrapper.traverse(object=>{if(object.isMesh){failedMeshes.push(object);object.geometry?.dispose();for(const material of (Array.isArray(object.material)?object.material:[object.material]))material?.dispose();}});
+   parts=parts.filter(part=>!failedMeshes.includes(part));
+  }
+  say("Importação interrompida com segurança. O editor foi preservado; tente outro modelo. Detalhe: "+String(error?.message||error).slice(0,180));
+ }finally{
+  jaguarGLBImportBusy=false;
  }
 }
 
