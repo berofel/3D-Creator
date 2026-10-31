@@ -1093,15 +1093,15 @@ function createImportedJaguarRig(wrapper,model){
 }
 function updateImportedJaguarRigs(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
- const t=animClock,rate=gallop?5.5:2.9,cycle=t*rate;
+ const t=animClock,rate=gallop?5.5:2.475,cycle=t*rate;
+ const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
  const hermite=(keys,x)=>{
   const last=keys.length-1;x=Math.max(0,Math.min(1,x));let i=0;
   while(i<last-1&&x>keys[i+1][0])i++;
   const slope=j=>{
    if(j===0)return (keys[1][1]-keys[0][1])/(keys[1][0]-keys[0][0]);
    if(j===last)return (keys[last][1]-keys[last-1][1])/(keys[last][0]-keys[last-1][0]);
-   const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]);
-   const right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
+   const left=(keys[j][1]-keys[j-1][1])/(keys[j][0]-keys[j-1][0]),right=(keys[j+1][1]-keys[j][1])/(keys[j+1][0]-keys[j][0]);
    if(left*right<=0)return 0;
    const dl=keys[j][0]-keys[j-1][0],dr=keys[j+1][0]-keys[j][0];
    return (left*dr+right*dl)/(dl+dr);
@@ -1109,52 +1109,59 @@ function updateImportedJaguarRigs(){
   const [t0,v0]=keys[i],[t1,v1]=keys[i+1],dt=t1-t0,u=(x-t0)/dt,u2=u*u,u3=u2*u,m0=slope(i),m1=slope(i+1);
   return (2*u3-3*u2+1)*v0+(u3-2*u2+u)*dt*m0+(-2*u3+3*u2)*v1+(u3-u2)*dt*m1;
  };
+ const DEG45=Math.PI/4;
  for(const rig of (window.__berofelImportedJaguarRigs||[])){
   if(rig.manualPoseActive)continue;
   let foreLoad=0,hindLoad=0;
   for(const leg of rig.legs){
-   // A pata não recebe deslocamento próprio: as posições dos pivôs permanecem fixas.
-   leg.pivot.position.copy(leg.basePosition);
-   leg.knee.position.copy(leg.baseKneePosition);
-   leg.ankle.position.copy(leg.baseAnklePosition);
-   leg.paw.position.copy(leg.basePawPosition);
-   if(!moving){
-    leg.pivot.rotation.copy(leg.baseRotation);
-    leg.knee.rotation.copy(leg.baseKneeRotation);
-    leg.ankle.rotation.copy(leg.baseAnkleRotation);
-    leg.paw.rotation.copy(leg.basePawRotation);
+   if(mode==="idle"||mode==="stop"){
+    leg.pivot.position.copy(leg.basePosition);leg.pivot.rotation.copy(leg.baseRotation);
+    leg.knee.position.copy(leg.baseKneePosition);leg.knee.rotation.copy(leg.baseKneeRotation);
+    leg.paw.position.copy(leg.basePawPosition);leg.paw.rotation.copy(leg.basePawRotation);
     continue;
    }
    const hind=!leg.front;
-   // Passadas diagonais sincronizadas.
-   const phaseOffset=(leg.front?leg.side:-leg.side)>0?0:Math.PI;
-   const p=((cycle/(Math.PI*2)+phaseOffset/(Math.PI*2))%1+1)%1;
-   const stride=gallop?1.22:1;
-   const hipKeys=hind
-    ?[[0,.25],[.12,.18],[.28,.02],[.46,-.18],[.62,-.25],[.70,-.20],[.78,-.02],[.88,.22],[.96,.31],[1,.25]]
-    :[[0,.20],[.12,.15],[.28,.01],[.46,-.15],[.62,-.20],[.70,-.15],[.78,.00],[.88,.19],[.96,.25],[1,.20]];
-   const kneeKeys=hind
-    ?[[0,.02],[.22,.025],[.46,.04],[.62,.06],[.70,.12],[.78,.28],[.86,.40],[.94,.18],[1,.02]]
-    :[[0,.015],[.22,.02],[.46,.03],[.62,.05],[.70,.12],[.78,.25],[.86,.34],[.94,.15],[1,.015]];
-   const ankleKeys=[[0,-.015],[.22,-.02],[.46,-.025],[.62,-.02],[.70,.02],[.78,.10],[.86,.16],[.94,.06],[1,-.015]];
-   const hip=hermite(hipKeys,p)*stride;
-   const knee=hermite(kneeKeys,p)*(gallop?1.18:1);
-   const ankle=hermite(ankleKeys,p)*(gallop?1.12:1);
-   const toe=hermite([[0,0],[.48,0],[.64,.015],[.74,.045],[.84,.075],[.94,.025],[1,0]],p);
-   leg.pivot.rotation.set(leg.baseRotation.x,leg.baseRotation.y,leg.baseRotation.z+hip);
-   leg.knee.rotation.set(leg.baseKneeRotation.x,leg.baseKneeRotation.y,leg.baseKneeRotation.z+knee);
-   leg.ankle.rotation.set(leg.baseAnkleRotation.x,leg.baseAnkleRotation.y,leg.baseAnkleRotation.z+ankle);
-   // Mantém a pata alinhada pela compensação angular, sem projetá-la para a frente.
-   leg.paw.rotation.set(leg.basePawRotation.x,leg.basePawRotation.y,leg.basePawRotation.z-hip-knee-ankle+toe);
-   const stance=1-(p>.64?(p-.64)/.36:0);
-   if(hind)hindLoad+=Math.max(0,stance);else foreLoad+=Math.max(0,stance);
+   const p=((cycle/(Math.PI*2)+(gallop?(hind?.5:0):(leg.phase/Math.PI)*.5))%1+1)%1;
+   let hipAngle=0,kneeAngle=0,pawWorldAngle=0;
+   if(hind){
+    hipAngle=hermite([[0,.38],[.23,-.52],[.42,-.44],[.52,-.08],[.69,.38],[1,.38]],p);
+    kneeAngle=hermite([[0,0],[.23,.10],[.42,.10],[.52,0],[.69,0],[1,0]],p);
+    const slide=hermite([[0,-.012],[.23,.055],[.42,.055],[.52,.055],[.69,-.012],[1,-.012]],p);
+    const lift=hermite([[0,0],[.23,.022],[.42,0],[.52,0],[.69,0],[1,0]],p);
+    if(p<.42)pawWorldAngle=DEG45;
+    else if(p<.52)pawWorldAngle=DEG45*(1-smooth((p-.42)/.10));
+    else if(p<.69)pawWorldAngle=0;
+    else pawWorldAngle=DEG45*smooth((p-.69)/.31);
+    leg.pivot.position.set(leg.basePosition.x+slide,leg.basePosition.y+lift,leg.basePosition.z);
+    leg.pivot.rotation.set(leg.baseRotation.x,leg.baseRotation.y,leg.baseRotation.z+hipAngle*(gallop?1.08:1));
+    leg.knee.rotation.set(leg.baseKneeRotation.x,leg.baseKneeRotation.y,leg.baseKneeRotation.z+kneeAngle);
+    leg.paw.rotation.set(leg.basePawRotation.x,leg.basePawRotation.y,leg.basePawRotation.z+pawWorldAngle-hipAngle-kneeAngle);
+    hindLoad+=smooth(p/.12)*(1-smooth((p-.44)/.08));
+   }else{
+    const shoulderZ=hermite([[0,-.015],[.08,-.035],[.22,.005],[.34,.035],[.43,.015],[.52,0],[1,-.015]],p);
+    const shoulderY=hermite([[0,0],[.10,.012],[.24,.055],[.34,.07],[.43,.025],[.50,-.012],[.58,0],[1,0]],p);
+    const swing=hermite([[0,.38],[.27,-.52],[.49,-.44],[.63,-.08],[.80,.38],[1,.38]],p);
+    const pawAngle=hermite([[0,DEG45],[.42,DEG45],[.52,0],[.69,0],[.99,DEG45],[1,DEG45]],p);
+    leg.pivot.position.set(leg.basePosition.x+shoulderZ,leg.basePosition.y+shoulderY,leg.basePosition.z);
+    leg.pivot.rotation.set(leg.baseRotation.x,leg.baseRotation.y,leg.baseRotation.z+swing);
+    leg.knee.rotation.copy(leg.baseKneeRotation);
+    leg.paw.rotation.set(leg.basePawRotation.x,leg.basePawRotation.y,leg.basePawRotation.z+pawAngle-swing);
+    foreLoad+=hermite([[0,0],[.12,.22],[.28,.62],[.48,1],[.68,.86],[.84,.42],[1,0]],p);
+   }
+   if(p>=.24&&p<.69){
+    rig.wrapper.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(leg.paw);
+    if(!bounds.isEmpty()){
+     const correction=Math.max(-.025,Math.min(.025,-bounds.min.y));
+     leg.paw.position.y+=correction/Math.max(.001,rig.wrapper.scale.y);
+    }
+   }
   }
   foreLoad/=2;hindLoad/=2;
-  const support=(foreLoad+hindLoad)*.5;
-  const bounce=gallop?Math.pow(Math.max(0,Math.sin(cycle*2)),2)*.012:Math.sin(cycle*2)*.0035;
-  rig.wrapper.position.y=(rig.baseWrapperPosition?.y||0)+bounce;
-  rig.wrapper.rotation.x=(rig.baseWrapperRotation?.x||0)+(moving?(hindLoad-foreLoad)*.006:0);
-  rig.wrapper.rotation.z=(rig.baseWrapperRotation?.z||0)+(moving?Math.sin(cycle+.3)*(gallop?.009:.004)*support:0);
+  const bodyReact=smooth(hindLoad*.95);
+  rig.wrapper.position.y=(rig.baseWrapperPosition?.y||0)+Math.sin(t*2.1)*.006+(moving?Math.sin(cycle*2)*.003*bodyReact:0);
+  rig.wrapper.rotation.x=(rig.baseWrapperRotation?.x||0)+(moving?(hindLoad-foreLoad)*.004:0);
+  rig.wrapper.rotation.z=(rig.baseWrapperRotation?.z||0)+(moving?Math.sin(cycle+.3)*(gallop?.012:.003)*bodyReact:0);
  }
 }
 async function importJaguarGLB(file){
@@ -1821,7 +1828,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=277",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=278",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
