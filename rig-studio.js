@@ -40,9 +40,11 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   function updateBindingStatus(){
     const info=inspectTarget();
     const status=$("rigBindingStatus");
-    if(status)status.textContent=info.skinnedMeshes
-      ? info.skinnedMeshes+" malha(s) já possuem skinning e "+info.existingBones+" osso(s) nativo(s). O rig visual criado aqui ainda não substitui nem altera esse esqueleto."
-      : info.meshes+" malha(s) detectadas. Este rig é uma estrutura de pose visual; a deformação da malha ainda não foi vinculada.";
+    if(status)status.textContent=state.root?.userData?.berofelRigidJaguarRig
+      ? "Rig articulado da onça conectado: peças originais preservadas e vinculadas a ossos de pivô. Este modelo usa articulação rígida por peças, não skinning por vértices."
+      : info.skinnedMeshes
+        ? info.skinnedMeshes+" malha(s) já possuem skinning e "+info.existingBones+" osso(s) nativo(s). O rig visual criado aqui ainda não substitui nem altera esse esqueleto."
+        : info.meshes+" malha(s) detectadas. Este rig é uma estrutura de pose visual; a deformação da malha ainda não foi vinculada.";
     return info;
   }
   function attachTarget(){
@@ -201,6 +203,29 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
     if(status)status.textContent=meshes.length+" malha(s) usando o mesmo skeleton nativo. Ossos originais adotados diretamente; pesos, geometria, materiais e skinning não foram modificados.";
     say("Esqueleto nativo conectado ao Rig Studio: "+bones.length+" ossos. A malha continua usando seu skinning original.");
     return bones.length;
+  }
+  function adoptExternalRig(rig){
+    if(!rig?.root?.isBone||!Array.isArray(rig.bones)||!rig.bones.length)throw new Error("O rig externo não contém uma hierarquia de ossos válida.");
+    if(!rig.target)throw new Error("O rig externo não informa o modelo ao qual pertence.");
+    clearRig();
+    state.root=rig.root;
+    state.ownsRoot=false;
+    state.target=rig.target;
+    state.bones=rig.bones.slice();
+    state.root.userData.berofelSkeletonId=state.root.userData.berofelSkeletonId||"jaguar-rigid-skeleton-v1";
+    state.root.userData.berofelRigidJaguarRig=true;
+    for(const bone of state.bones){
+      bone.userData.berofelBoneId=bone.userData.berofelBoneId||("jaguar-"+bone.name.toLowerCase().replace(/[^a-z0-9]+/g,"-"));
+      bone.userData.rigStudioBone=true;
+      bone.userData.berofelBaseBone=true;
+      if(!bone.userData.limits)bone.userData.limits={min:-180,max:180};
+    }
+    rebuildHelper();
+    selectBone(state.root);
+    const status=$("rigBindingStatus");
+    if(status)status.textContent="Rig articulado da onça conectado: "+state.bones.length+" ossos, quatro patas, coluna, pescoço, cabeça e cauda. As malhas, materiais e texturas originais foram preservados.";
+    say("Rig articulado da onça conectado ao editor. Agora os mesmos ossos controlam a criatura, a seleção e a timeline.");
+    return state.bones.length;
   }
   function clearWeightOverlay(){
     for(const item of state.weightOverlays){
@@ -572,5 +597,5 @@ export function createRigStudio({THREE,scene,transform,getSelected,say}) {
   $("rigWeightBrushSize")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.radius=Math.max(.02,Math.min(2,Number(e.target.value)||.22));});
   $("rigWeightBrushStrength")?.addEventListener("input",e=>{if(state.weightPaint)state.weightPaint.strength=Math.max(.01,Math.min(.95,Number(e.target.value)||.25));});
 
-  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,addBone,selectBone,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
+  return {clear:clearRig,getState:()=>state,exportData,adoptNativeSkeleton,adoptExternalRig,addBone,selectBone,placeAtWorld,getPickTargets,selectFromIntersection,getBones:()=>state.bones.slice(),inspectTarget,inspectWeights,showWeightOverlay,clearWeightOverlay,isWeightPainting:()=>!!state.weightPaint,paintWeightsAt,update:()=>{if(state.helper)state.helper.update();updateVisuals();}};
 }
