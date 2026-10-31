@@ -42,7 +42,7 @@ function renderTimelineCursor(){
  const slider=$("timelineScrubber");if(slider)slider.value=String(total?Math.round(time/total*10000):0);
  const label=$("timelineTime");if(label)label.textContent=formatTime(time);
  const playhead=$("timelinePlayhead"),canvas=$("timelineCanvas");
- if(playhead&&canvas){const widths=frames.map(f=>Math.max(64,Math.min(240,getFrameDuration(f)*140)));let x=112,remaining=time;for(let i=0;i<widths.length;i++){const d=getFrameDuration(frames[i]);if(remaining<=d){x+=widths[i]*(remaining/d);break;}x+=widths[i];remaining-=d;}playhead.style.left=x+"px";}
+ if(playhead&&canvas){const widths=frames.map(f=>Math.max(40,getFrameDuration(f)*100));let x=112,remaining=time;for(let i=0;i<widths.length;i++){const d=getFrameDuration(frames[i]);if(remaining<=d){x+=widths[i]*(remaining/d);break;}x+=widths[i];remaining-=d;}playhead.style.left=x+"px";}
 }
 function renderTimeline(){
  const canvas=$("timelineCanvas"),ruler=$("timelineRulerCells"),tracks=$("timelineTracks");if(!canvas||!ruler||!tracks)return;
@@ -190,5 +190,5 @@ function seek(seconds){
   $("frameExport")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(exportData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berofel-poses.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
   try{const s=JSON.parse(localStorage.getItem("berofel.motion.frames.v2")||localStorage.getItem("berofel.motion.frames.v1")||"null");if((s?.version===1||s?.version===2)&&Array.isArray(s.frames)){frames=s.frames;nextId=s.nextId||1;selectedId=frames[0]?.id||null;}}catch{}
   render();
-  return{add,duplicate,remove,move,rename,importData,play,stop:()=>stopPlayback(),update,seek,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
+  return{add,duplicate,remove,move,rename,importData,play,stop:()=>stopPlayback(),update,seek,refresh:renderTimeline,applySelected:()=>{const f=frames.find(x=>x.id===selectedId);return f?apply(f):0;},updateCurrent,exportData,getFrames:()=>clone(frames)};
 }
