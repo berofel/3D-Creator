@@ -1845,12 +1845,12 @@ $("timelineAddBone")?.addEventListener("click",()=>{
  }catch(error){$("frameStatus").textContent=error.message||"Não foi possível adicionar o osso.";}
 });
 
-function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const paintingLocked=document.body.classList.contains("paint-open");if(!paintingLocked){rigStudio.update();const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;frameManager.update(dt);updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update()}renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
+function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const paintingLocked=document.body.classList.contains("paint-open");if(!paintingLocked){try{rigStudio.update()}catch(err){console.error("Rig Studio isolado para preservar a viewport.",err);rigStudio.clear();say("O painel de rig encontrou uma falha e foi reiniciado. A cena e a viewport continuam ativas.")}const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;try{frameManager.update(dt)}catch(err){console.error("Timeline isolada para preservar a viewport.",err);frameManager.clearAll();say("A timeline encontrou uma falha e foi limpa. A viewport continua ativa.")}try{updateRig(dt);updateJaguarRig();treeUpdate(dt)}catch(err){console.error("Atualização de animação isolada.",err);say("Uma animação apresentou falha e foi interrompida. O editor continua disponível.")}orbit.update()}renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=280",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=281",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
