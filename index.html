@@ -1032,50 +1032,63 @@ $("apply").onclick=apply;$("preset").onclick=()=>addElement(quadruped,"Cavalo");
 $("jaguarPreset").onclick=()=>loadGitHubModel("Animais","nc_a.glb");
 // O preset procedural antigo permanece no código como backup, mas não é oferecido na interface.
 function createImportedJaguarRig(wrapper,model){
- // O nc_a.glb não possui armature. O rig usa pivôs externos e mantém as malhas,
- // materiais, texturas e transformações originais; não altera a geometria.
+ // Rig rígido deduzido da distribuição espacial das 25 peças originais do nc_a.glb.
+ // Cada peça é preservada e anexada a um osso-pivô; nenhuma geometria/material é recriada.
  wrapper.updateMatrixWorld(true);
- const candidates=[];
+ const pieces=new Map();
  model.traverse(object=>{
   if(!object.isMesh)return;
-  const box=new THREE.Box3().setFromObject(object);
-  const center=box.getCenter(new THREE.Vector3());
+  const match=(object.name||"").match(/_mesh_(\\d+)$/i);
+  if(!match)return;
+  const center=new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
   wrapper.worldToLocal(center);
-  if(center.y<1.55)candidates.push({mesh:object,center});
+  pieces.set(Number(match[1]),{mesh:object,center});
  });
- if(candidates.length<8)return null;
- const xs=candidates.map(x=>x.center.x).sort((a,b)=>a-b);
- const splitX=(xs[0]+xs[xs.length-1])*.5;
- const zs=candidates.map(x=>x.center.z).sort((a,b)=>a-b);
- const splitZ=zs[Math.floor(zs.length/2)];
- const groups=[];
- for(const front of [false,true])for(const positiveSide of [false,true]){
-  const members=candidates.filter(item=>(item.center.x>=splitX)===front&&(item.center.z>=splitZ)===positiveSide);
-  if(!members.length)continue;
-  members.sort((a,b)=>a.center.y-b.center.y);
-  const pawPart=members[0],lowerPart=members[1],upperPart=members[members.length-1];
-  const pivot=new THREE.Group();
-  pivot.name=(front?"Ombro dianteiro ":"Quadril traseiro ")+(positiveSide?"direito":"esquerdo");
-  const x=members.reduce((n,m)=>n+m.center.x,0)/members.length;
-  const z=members.reduce((n,m)=>n+m.center.z,0)/members.length;
-  pivot.position.set(x,Math.max(1.15,Math.min(1.8,upperPart.center.y+.38)),z);
-  wrapper.add(pivot);
-  pivot.attach(upperPart.mesh);
-  const knee=new THREE.Group();knee.name="Joelho articulado — "+pivot.name;
-  knee.position.copy(lowerPart.center);wrapper.add(knee);knee.attach(lowerPart.mesh);pivot.attach(knee);
-  const paw=new THREE.Group();paw.name="Pata articulada — "+pivot.name;
-  paw.position.copy(pawPart.center);wrapper.add(paw);paw.attach(pawPart.mesh);knee.attach(paw);
-  groups.push({pivot,knee,paw,front,side:positiveSide?1:-1,basePosition:pivot.position.clone(),baseRotation:pivot.rotation.clone(),baseKneeRotation:knee.rotation.clone(),basePawRotation:paw.rotation.clone(),baseKneePosition:knee.position.clone(),basePawPosition:paw.position.clone(),phase:(front===positiveSide)?0:Math.PI});
+ if(pieces.size<20)throw new Error("A dedução do rig esperava as peças numeradas do modelo nc_a.glb; encontrei "+pieces.size+".");
+ const point=id=>{const p=pieces.get(id);if(!p)throw new Error("Peça anatômica "+id+" não encontrada.");return p.center.clone();};
+ const root=new THREE.Bone();root.name="Raiz_Onca";root.userData.berofelBoneId="jaguar-root";wrapper.add(root);
+ const bones=[root],make=(name,parent,position)=>{
+  const bone=new THREE.Bone();bone.name=name;bone.userData.berofelBoneId="jaguar-"+name.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  bone.userData.rigStudioBone=true;bone.userData.berofelBaseBone=true;bone.userData.limits={min:-75,max:75};
+  wrapper.updateWorldMatrix(true,true);parent.updateWorldMatrix(true,false);
+  const world=wrapper.localToWorld(position.clone());bone.position.copy(parent.worldToLocal(world));parent.add(bone);bones.push(bone);return bone;
+ };
+ const attach=(bone,id)=>{const item=pieces.get(id);if(!item)return;bone.attach(item.mesh);item.mesh.userData.berofelRigBoneId=bone.userData.berofelBoneId;};
+ const pelvis=make("Quadril",root,point(1));attach(pelvis,1);
+ const spine=make("Coluna",pelvis,point(0));attach(spine,0);
+ const chest=make("Peito",spine,point(5));attach(chest,5);
+ const neck=make("Pescoco",chest,point(6));attach(neck,6);
+ const head=make("Cabeca",neck,point(8));[8,11,12,13].forEach(id=>attach(head,id));
+ const tailBase=make("Cauda",pelvis,point(3));attach(tailBase,3);
+ const legSpecs=[
+  {name:"Dianteira_E",front:true,side:1,upper:7,lower:9,ankle:10,paw:15},
+  {name:"Dianteira_D",front:true,side:-1,upper:18,lower:16,ankle:17,paw:14},
+  {name:"Traseira_E",front:false,side:1,upper:2,lower:23,ankle:19,paw:21},
+  {name:"Traseira_D",front:false,side:-1,upper:4,lower:24,ankle:20,paw:22}
+ ];
+ const legs=legSpecs.map((spec,index)=>{
+  const hipPoint=point(spec.upper);hipPoint.y+=.22;
+  const pivot=make("Ombro_Quadril_"+spec.name,root,hipPoint);attach(pivot,spec.upper);
+  const kneePoint=point(spec.lower);kneePoint.y+=.12;
+  const knee=make("Joelho_Cotovelo_"+spec.name,pivot,kneePoint);attach(knee,spec.lower);
+  const ankle=make("Tornozelo_"+spec.name,knee,point(spec.ankle));attach(ankle,spec.ankle);
+  const paw=make("Pata_"+spec.name,ankle,point(spec.paw));attach(paw,spec.paw);
+  return {pivot,knee,ankle,paw,front:spec.front,side:spec.side,phase:index%2===0?0:Math.PI,
+   basePosition:pivot.position.clone(),baseRotation:pivot.rotation.clone(),
+   baseKneePosition:knee.position.clone(),baseKneeRotation:knee.rotation.clone(),
+   baseAnklePosition:ankle.position.clone(),baseAnkleRotation:ankle.rotation.clone(),
+   basePawPosition:paw.position.clone(),basePawRotation:paw.rotation.clone()};
+ });
+ for(const bone of bones){
+  bone.userData.berofelBasePosition=bone.position.toArray();
+  bone.userData.berofelBaseQuaternion=bone.quaternion.toArray();
+  bone.userData.berofelBaseScale=bone.scale.toArray();
  }
- if(groups.length!==4){
-  // Não deixa um rig parcial preso ao modelo se a distribuição não formar quatro patas.
-  for(const group of groups){
-   for(const child of [...group.pivot.children])wrapper.attach(child);
-   wrapper.remove(group.pivot);
-  }
-  return null;
- }
- return {wrapper,legs:groups,baseWrapperPosition:wrapper.position.clone(),baseWrapperRotation:wrapper.rotation.clone()};
+ root.userData.berofelRigidJaguarRig=true;
+ const rig={wrapper,target:wrapper,root,bones,legs,pelvis,spine,chest,neck,head,tail:tailBase,
+  baseWrapperPosition:wrapper.position.clone(),baseWrapperRotation:wrapper.rotation.clone(),manualPoseActive:false};
+ wrapper.updateWorldMatrix(true,true);
+ return rig;
 }
 function updateImportedJaguarRigs(){
  const mode=animMode,moving=mode==="walk"||mode==="gallop",gallop=mode==="gallop";
@@ -1516,7 +1529,7 @@ const rigBase=new WeakMap();
 function cacheRigPose(){for(const p of parts)rigBase.set(p,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()})}
 function resetRigPose(){if(!window.__berofelHumanoidRig)for(const p of parts){const b=rigBase.get(p);if(b){p.position.copy(b.position);p.rotation.copy(b.rotation);p.scale.copy(b.scale)}}}
 function rigLabel(){ $("animStatus").textContent=animMode==="stop"?"Animação parada.":animMode==="walk"?"Rig ativo: caminhada.":"Rig ativo: respiração."}
-function setAnimation(mode){resetRigPose();animMode=mode;animClock=0;syncExportAnimation(mode);if(mode!=="stop"&&mode!=="chop")$("quickAnimation").value=mode;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
+function setAnimation(mode){for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=false;resetRigPose();animMode=mode;animClock=0;syncExportAnimation(mode);if(mode!=="stop"&&mode!=="chop")$("quickAnimation").value=mode;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
 $("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animGallop").onclick=()=>setAnimation("gallop");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
 cacheRigPose();
 // A cena inicia vazia; o usuário escolhe qual elemento criar primeiro.
@@ -1756,7 +1769,7 @@ function finishPaintGesture(event){
 renderer.domElement.addEventListener("pointerup",finishPaintGesture);
 renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
-const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>rigStudio.update(),onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um bloco para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
+const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=true;rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um bloco para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
 $("timelineAddBone")?.addEventListener("click",()=>{
  try{
   if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
@@ -1770,7 +1783,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=273",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=274",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
