@@ -54,7 +54,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <body>
 <header class="app-header"><div class="brand">◆ Berofel 3D Create<small>Editor modular 3D • criaturas, armas e ferramentas</small></div><nav class="topbuttons" aria-label="Ações do projeto"><button id="new" type="button">＋ Novo</button><button id="topImport" type="button">Importar</button><button id="togglePaintWorkspace" type="button" aria-expanded="false" aria-controls="paintPanel">Pintura</button><button id="toggleAnimationWorkspace" type="button" aria-expanded="false">Animação</button><button id="topExport" type="button" class="primary">Exportar</button><button id="topSave" type="button" title="Abrir informações sobre o salvamento por versões">Salvar</button></nav><button id="save" type="button" hidden>Exportar JSON (compatibilidade)</button></header>
 <div class="section" id="paintPanel" hidden><div class="paint-panel-head"><h2>PINTURA DE TEXTURA</h2><button id="paintMinimize" type="button" aria-expanded="true" aria-controls="paintPanelContent" title="Minimizar painel de pintura">− Minimizar</button></div><div id="paintPanelContent">
-<p class="hint">Pinte a superfície UV da malha selecionada. A geometria, o rig, os pesos e as animações não são modificados. A camada é mantida na sessão atual; o salvamento por versões será ligado ao IndexedDB na Parte 3.</p>
+<p class="hint">Mover tudo: ON pinta todas as malhas do modelo selecionado. OFF pinta somente o bloco selecionado. Segure por 1 segundo sobre outro bloco para selecioná-lo; toque para fazer uma mancha e arraste para pintar traços. Malhas sem UV recebem coordenadas de pintura auxiliares sem alterar sua forma.</p>
 <div class="grid"><button id="paintMode" class="primary">Ativar pincel</button><button id="paintEraser">Borracha</button></div>
 <label for="paintColor">Cor do pincel</label><input id="paintColor" type="color" value="#d8a36b">
 <div class="grid"><button data-paint-color="#d8a36b">Ocre</button><button data-paint-color="#b84b3e">Vermelho</button><button data-paint-color="#426f50">Verde</button><button data-paint-color="#355f9a">Azul</button><button data-paint-color="#e5d8bd">Areia</button><button data-paint-color="#252a32">Escuro</button></div>
@@ -117,7 +117,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 import * as THREE from "three";
 import {createRigStudio} from "./rig-studio.js?v=5";
 import {createFrameManager} from "./animation/frame-manager.js?v=3";
-import {createPaintStudio} from "./paint-studio.js?v=1";
+import {createPaintStudio} from "./paint-studio.js?v=2";
 import {saveVersion,listVersions,getVersion,exportVersionBackup,readVersionBackup} from "./project-store.js?v=1";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
@@ -462,7 +462,7 @@ function apply(){if(!selected)return;selected.position.set(+$("px").value||0,+$(
 function data(){return {app:"Berofel 3D Create",version:"0.3",name:$("name").value,parts:parts.map(p=>({name:p.userData.name,type:p.userData.type,position:p.position.toArray(),scale:p.scale.toArray(),rotation:p.rotation.toArray(),color:"#"+p.material.color.getHexString()}))}}
 function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 function fit(){frontView=false;camera.up.set(0,1,0);camera.position.set(7,5.5,9);orbit.target.set(0,1.4,0);orbit.up.set(0,1,0);camera.lookAt(0,1.4,0);orbit.update();transform.showZ=true;say("Câmera 3D restaurada.")}function setOrthographicView(axis){frontView=true;orbit.target.set(0,1.4,0);camera.up.set(0,1,0);if(axis==="side")camera.position.set(14,1.4,0);else if(axis==="back")camera.position.set(0,1.4,-14);else if(axis==="top"){camera.position.set(0,15,0);camera.up.set(0,0,-1)}else if(axis==="bottom"){camera.position.set(0,-12,0);camera.up.set(0,0,1)}else camera.position.set(0,1.4,14);camera.lookAt(0,1.4,0);orbit.update();transform.showZ=axis!=="front"&&axis!=="top"&&axis!=="bottom";transform.setSpace("world");say(({side:"Vista lateral: confira dorso, peito, quadril e patas.",back:"Vista traseira: confira simetria e alinhamento das patas.",top:"Vista superior: pinte e confira o dorso e a parte de cima do modelo.",bottom:"Vista inferior: pinte e confira barriga e parte de baixo do modelo."})[axis]||"Vista frontal: confira simetria e largura dos ombros.")}function mirrorSelectedX(){if(!selected){say("Selecione uma peça independente para espelhar.");return}if(selected.parent!==scene||selected.userData?.berofelElementRoot||selected.userData?.treeRoot){say("Espelhamento seguro disponível para peças independentes. Não alterei peças ligadas a rigs para preservar a animação.");return}const clone=selected.clone(true);clone.position.x=-selected.position.x;clone.rotation.set(selected.rotation.x,-selected.rotation.y,-selected.rotation.z);clone.scale.copy(selected.scale);clone.userData={...selected.userData,id:++counter,name:(selected.userData.name||"Peça")+" (espelhada)",mirroredFrom:selected.userData.id};if(clone.material){const duplicateMat=m=>m.clone();clone.material=Array.isArray(clone.material)?clone.material.map(duplicateMat):duplicateMat(clone.material)}clone.geometry=selected.geometry.clone();scene.add(clone);parts.push(clone);select(clone);say("Cópia espelhada no eixo X criada. Revise a posição e as normais visuais antes de exportar.")}function setTool(mode){transform.setMode(mode);transform.setSize(1.25);["toolMove","toolRotate","toolScale"].forEach(id=>$(id).classList.remove("active-tool"));$("tool"+({translate:"Move",rotate:"Rotate",scale:"Scale"}[mode])).classList.add("active-tool");say(({translate:"Arraste as setas para mover a peça.",rotate:"Arraste os arcos para girar a peça.",scale:"Arraste os controles para escalar a peça."})[mode])}function setFront(){frontView=true;transform.setSize(1.35);orbit.target.set(0,1.4,0);camera.up.set(0,1,0);camera.position.set(0,1.4,14);camera.lookAt(0,1.4,0);orbit.update();transform.showZ=false;transform.setSpace("world");say("Vista frontal XY: X para os lados, Y para cima e para baixo.")}
-let pressStart=null;renderer.domElement.style.touchAction="none";renderer.domElement.addEventListener("pointerdown",e=>{pressStart={x:e.clientX,y:e.clientY,wasGizmo:gizmoDragging||transform.axis!==null};if(pressStart.wasGizmo||e.pointerType==="touch"){e.preventDefault()}},{passive:false});renderer.domElement.addEventListener("pointermove",e=>{if(gizmoDragging||transform.axis!==null)e.preventDefault()},{passive:false});renderer.domElement.addEventListener("pointerup",e=>{if(!pressStart)return;const start=pressStart;pressStart=null;if(gizmoDragging||start.wasGizmo||transform.axis!==null)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(dx*dx+dy*dy>64)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);if(paintStudio.isActive()){const paintTarget=selected,paintTargets=[];if(paintTarget?.isMesh)paintTargets.push(paintTarget);else paintTarget?.traverse?.(o=>{if(o.isMesh)paintTargets.push(o)});const paintHit=ray.intersectObjects(paintTargets,true)[0];if(paintHit){paintStudio.paintAt(paintHit);$("paintStatus").textContent="Pincel aplicado na malha: "+(paintHit.object.name||"malha")+".";}return;}if(rigStudio.isWeightPainting()){const target=selected;const skinned=[];target?.traverse?.(o=>{if(o.isSkinnedMesh)skinned.push(o)});const paintHit=ray.intersectObjects(skinned,true)[0];if(paintHit){const changed=rigStudio.paintWeightsAt(paintHit.point);if(changed)rigStudio.update()}return;}const targets=[...parts,...(window.__berofelTreeRoots||[]).filter(r=>r.parent),...rigStudio.getPickTargets()];const hits=ray.intersectObjects(targets,true);const boneHit=hits.find(h=>h.object?.userData?.rigBoneId);if(boneHit&&rigStudio.selectFromIntersection(boneHit))return;let hit=hits.length?hits[0].object:null;while(hit&&hit!==scene&&!hit.userData?.treeRoot)hit=hit.parent;if(hits.length&&rigStudio.placeAtWorld(hits[0].point))return;select(hit&&hit.userData?.treeRoot?hit:(hits.length?hits[0].object:null))});
+let pressStart=null;renderer.domElement.style.touchAction="none";renderer.domElement.addEventListener("pointerdown",e=>{pressStart={x:e.clientX,y:e.clientY,wasGizmo:gizmoDragging||transform.axis!==null};if(pressStart.wasGizmo||e.pointerType==="touch"){e.preventDefault()}},{passive:false});renderer.domElement.addEventListener("pointermove",e=>{if(gizmoDragging||transform.axis!==null)e.preventDefault()},{passive:false});renderer.domElement.addEventListener("pointerup",e=>{if(!pressStart)return;const start=pressStart;pressStart=null;if(gizmoDragging||start.wasGizmo||transform.axis!==null)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(dx*dx+dy*dy>64)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);if(paintStudio.isActive())return;if(rigStudio.isWeightPainting()){const target=selected;const skinned=[];target?.traverse?.(o=>{if(o.isSkinnedMesh)skinned.push(o)});const paintHit=ray.intersectObjects(skinned,true)[0];if(paintHit){const changed=rigStudio.paintWeightsAt(paintHit.point);if(changed)rigStudio.update()}return;}const targets=[...parts,...(window.__berofelTreeRoots||[]).filter(r=>r.parent),...rigStudio.getPickTargets()];const hits=ray.intersectObjects(targets,true);const boneHit=hits.find(h=>h.object?.userData?.rigBoneId);if(boneHit&&rigStudio.selectFromIntersection(boneHit))return;let hit=hits.length?hits[0].object:null;while(hit&&hit!==scene&&!hit.userData?.treeRoot)hit=hit.parent;if(hits.length&&rigStudio.placeAtWorld(hits[0].point))return;select(hit&&hit.userData?.treeRoot?hit:(hits.length?hits[0].object:null))});
 // Gestos de toque ficam exclusivamente sob controle do OrbitControls: câmera, nunca o modelo.
 document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>add(b.dataset.add)));
 document.querySelectorAll("[data-weapon]").forEach(b=>b.addEventListener("click",()=>addWeaponPart(b.dataset.weapon)));$("axePreset").onclick=()=>addElement(axePreset,"Machado de batalha");
@@ -1225,7 +1225,7 @@ function resetScene(){
  clear();clearSkin();window.__berofelHumanoidRig=null;window.__berofelHorseRig=null;window.__berofelHumanoidRigs=[];window.__berofelHorseRigs=[];window.__berofelJaguarRigs=[];horseRoot=null;horseJoints=[];
  appendMode=true;$("name").value="Cena_01";select(null);fit();say("Cena nova e vazia. Os próximos elementos serão adicionados sem apagar os anteriores.");
 }
-$("moveElement").onclick=()=>{moveWholeElement=!moveWholeElement;$("moveElement").textContent=moveWholeElement?"Mover tudo: ON":"Mover tudo: OFF";$("moveElement").classList.toggle("active-tool",moveWholeElement);say(moveWholeElement?"Modo mover elemento inteiro: clique numa peça do modelo para mover o conjunto.":"Modo mover peça: clique numa peça para editar somente ela.")};
+$("moveElement").onclick=()=>{moveWholeElement=!moveWholeElement;$("moveElement").textContent=moveWholeElement?"Mover tudo: ON":"Mover tudo: OFF";$("moveElement").classList.toggle("active-tool",moveWholeElement);if(document.body.classList.contains("paint-open")){$("paintStatus").textContent=moveWholeElement?"Pintura global ativada: todos os blocos do modelo selecionado recebem tinta.":"Pintura por bloco: segure por 1 segundo sobre a peça desejada para selecioná-la."}else say(moveWholeElement?"Modo mover elemento inteiro: clique numa peça do modelo para mover o conjunto.":"Modo mover peça: clique numa peça para editar somente ela.")};
 $("quickAnimationPlay").onclick=()=>{const mode=$("quickAnimation").value;if(mode==="chop"){treePlay();$("treeStatus").textContent="Animação de corte iniciada."}else{setAnimation(mode);$("animStatus").textContent="Animação selecionada: "+$("quickAnimation").selectedOptions[0].text}};$("quickAnimation").onchange=()=>{if($("quickAnimation").value==="chop")say("Selecione/crie o humanoide e a árvore para executar o corte.");else setAnimation($("quickAnimation").value)};$("exportAnimation").onchange=()=>{const mode=$("exportAnimation").value;if(["idle","walk","gallop"].includes(mode)){setAnimation(mode);$("quickAnimation").value=mode;$("animStatus").textContent="Animação selecionada para preview e exportação: "+mode;}};$("fit").onclick=fit;$("toolMove").onclick=()=>setTool("translate");$("toolRotate").onclick=()=>setTool("rotate");$("toolScale").onclick=()=>setTool("scale");$("viewFront").onclick=()=>setOrthographicView("front");$("viewSide").onclick=()=>setOrthographicView("side");$("viewBack").onclick=()=>setOrthographicView("back");$("viewTop").onclick=()=>setOrthographicView("top");$("viewBottom").onclick=()=>setOrthographicView("bottom");$("mirrorX").onclick=mirrorSelectedX;$("view3d").onclick=fit;$("new").onclick=resetScene;$("remove").onclick=()=>{if(!selected)return;const p=selected;if(p.userData?.berofelElementRoot){if(p.parent)p.parent.remove(p);elementRoots=elementRoots.filter(x=>x!==p);const descendants=[];p.traverse(o=>{if(o.isMesh)descendants.push(o)});parts=parts.filter(x=>!descendants.includes(x));for(const m of descendants){m.geometry?.dispose();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());else m.material?.dispose()}if(window.__berofelHumanoidRig&&p.name==="Homem")window.__berofelHumanoidRig=null;say("Elemento inteiro removido.")}else{if(p.parent)p.parent.remove(p);p.geometry?.dispose();if(Array.isArray(p.material))p.material.forEach(x=>x.dispose());else p.material?.dispose();parts=parts.filter(x=>x!==p);say("Peça removida.")}selected=null;transform.detach();renderParts()};
 $("save").onclick=()=>download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),($("name").value||"criatura")+".json");
 
@@ -1591,20 +1591,78 @@ const rigStudio=createRigStudio({THREE,scene,transform,getSelected:()=>selected,
 $("rigImportJson")?.addEventListener("click",()=>$("rigImportFile")?.click());
 $("rigImportFile")?.addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());const count=rigStudio.importData(data);say("Rig importado: "+count+" ossos. As identidades originais foram preservadas.");}catch(err){say("Falha ao importar rig: "+(err?.message||err));}finally{e.target.value="";}});
 
-const paintStudio=createPaintStudio({THREE,getSelected:()=>selected,onStatus:message=>{const el=$("paintStatus");if(el)el.textContent=message;}});
-let paintPointerActive=false;
-function paintIntersection(event){
+function paintSelectionMeshes(){
+ const root=selected?.userData?.berofelElementRoot?selected:elementRootFor(selected);
+ if(root){const meshes=[];root.traverse?.(object=>{if(object.isMesh)meshes.push(object)});return meshes}
+ return selected?.isMesh?[selected]:[];
+}
+function paintTargetMeshes(){
+ if(moveWholeElement)return paintSelectionMeshes();
+ return selected?.isMesh&&!selected.userData?.berofelElementRoot?[selected]:[];
+}
+const paintStudio=createPaintStudio({THREE,getSelected:()=>selected,getPaintTargets:paintTargetMeshes,onStatus:message=>{const el=$("paintStatus");if(el)el.textContent=message;}});
+let paintGesture=null,paintLongPressTimer=0;
+function paintIntersection(event,allowPartSelection=false){
  const rect=renderer.domElement.getBoundingClientRect();
+ if(!rect.width||!rect.height)return null;
  pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
  ray.setFromCamera(pointer,camera);
- const targets=[];if(selected?.isMesh)targets.push(selected);else selected?.traverse?.(o=>{if(o.isMesh)targets.push(o)});
- return targets.length?ray.intersectObjects(targets,true)[0]||null:null;
+ const candidates=allowPartSelection?paintSelectionMeshes():paintTargetMeshes();
+ const targets=paintStudio.prepareMeshes(candidates);
+ if(!targets.length)return null;
+ const hits=ray.intersectObjects(targets,true);
+ return hits.find(hit=>hit.uv&&targets.includes(hit.object))||null;
 }
-renderer.domElement.addEventListener("pointerdown",event=>{if(!paintStudio.isActive())return;paintPointerActive=true;try{renderer.domElement.setPointerCapture(event.pointerId)}catch{};const hit=paintIntersection(event);if(hit)paintStudio.paintAt(hit);event.preventDefault();},{passive:false});
-renderer.domElement.addEventListener("pointermove",event=>{if(!paintPointerActive||!paintStudio.isActive())return;if(event.pointerType!=="touch"&&event.buttons===0)return;const hit=paintIntersection(event);if(hit)paintStudio.paintAt(hit);event.preventDefault();},{passive:false});
-const finishPaintStroke=()=>{paintPointerActive=false};
-renderer.domElement.addEventListener("pointerup",finishPaintStroke);
-renderer.domElement.addEventListener("pointercancel",finishPaintStroke);
+function clearPaintLongPress(){if(paintLongPressTimer){clearTimeout(paintLongPressTimer);paintLongPressTimer=0}}
+renderer.domElement.addEventListener("pointerdown",event=>{
+ if(!paintStudio.isActive())return;
+ clearPaintLongPress();
+ const hit=paintIntersection(event,true);
+ paintGesture={pointerId:event.pointerId,x:event.clientX,y:event.clientY,hit,moved:false,longPressed:false};
+ try{renderer.domElement.setPointerCapture(event.pointerId)}catch{}
+ if(hit){
+  paintLongPressTimer=window.setTimeout(()=>{
+   if(!paintGesture||paintGesture.pointerId!==event.pointerId||paintGesture.moved)return;
+   paintGesture.longPressed=true;
+   select(hit.object);
+   $("paintStatus").textContent="Bloco selecionado: "+(hit.object.name||"malha")+". Agora toque ou arraste para pintar somente este bloco.";
+  },1000);
+ }else if(!moveWholeElement&&!(selected?.isMesh&&!selected.userData?.berofelElementRoot)){
+  $("paintStatus").textContent="Segure por 1 segundo sobre o bloco que deseja selecionar para pintura.";
+ }
+ event.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener("pointermove",event=>{
+ const gesture=paintGesture;
+ if(!gesture||gesture.pointerId!==event.pointerId||!paintStudio.isActive())return;
+ const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
+ if(!gesture.moved&&dx*dx+dy*dy>64){
+  gesture.moved=true;clearPaintLongPress();
+  if(!gesture.longPressed&&gesture.hit&&paintTargetMeshes().includes(gesture.hit.object)){
+   if(paintStudio.paintAt(gesture.hit))$("paintStatus").textContent="Pintando: "+(gesture.hit.object.name||"malha")+".";
+  }
+ }
+ if(gesture.moved&&!gesture.longPressed){
+  const hit=paintIntersection(event,false);
+  if(hit&&paintStudio.paintAt(hit))$("paintStatus").textContent="Pintando: "+(hit.object.name||"malha")+".";
+ }
+ event.preventDefault();
+},{passive:false});
+function finishPaintGesture(event){
+ const gesture=paintGesture;
+ if(!gesture||event.pointerId!==undefined&&gesture.pointerId!==event.pointerId)return;
+ clearPaintLongPress();
+ if(paintStudio.isActive()&&!gesture.longPressed&&!gesture.moved&&gesture.hit){
+  if(paintTargetMeshes().includes(gesture.hit.object)){
+   if(paintStudio.paintAt(gesture.hit))$("paintStatus").textContent="Pincel aplicado na malha: "+(gesture.hit.object.name||"malha")+".";
+  }else if(!moveWholeElement){
+   $("paintStatus").textContent="Para pintar outro bloco, segure sobre ele por 1 segundo para selecioná-lo.";
+  }
+ }
+ paintGesture=null;
+}
+renderer.domElement.addEventListener("pointerup",finishPaintGesture);
+renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
 const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>rigStudio.update(),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
 function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const paintingLocked=document.body.classList.contains("paint-open");if(!paintingLocked){rigStudio.update();const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;frameManager.update(dt);updateRig(dt);updateJaguarRig();treeUpdate(dt);orbit.update()}renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
@@ -1612,7 +1670,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=268",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=269",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
