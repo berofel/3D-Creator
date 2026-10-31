@@ -39,7 +39,7 @@ export function createPaintStudio({THREE,getSelected,onStatus}){
   if(!hit?.object?.isMesh||!hit.uv)return false;
   const mesh=hit.object;if(!resolveMeshes().includes(mesh))return false;
   const r=ensure(mesh),x=Math.max(0,Math.min(1023,hit.uv.x*1024)),y=Math.max(0,Math.min(1023,(1-hit.uv.y)*1024)),radius=Math.max(1,state.radius);
-  if(state.eraser){r.ctx.save();r.ctx.beginPath();r.ctx.arc(x,y,radius,0,Math.PI*2);r.ctx.clip();r.ctx.clearRect(x-radius,y-radius,radius*2,radius*2);r.ctx.drawImage(r.base,x-radius,y-radius,radius*2,radius*2,x-radius,y-radius,radius*2,radius*2);r.ctx.restore()}
+  if(state.eraser){r.ctx.save();r.ctx.beginPath();r.ctx.arc(x,y,radius,0,Math.PI*2);r.ctx.clip();r.ctx.drawImage(r.base,0,0);r.ctx.restore()}
   else{r.ctx.save();r.ctx.globalAlpha=state.opacity;r.ctx.fillStyle=state.color;r.ctx.beginPath();r.ctx.arc(x,y,radius,0,Math.PI*2);r.ctx.fill();r.ctx.restore()}
   r.texture.needsUpdate=true;r.dirty=true;r.version++;mesh.userData.berofelPaintLayer.dirty=true;return true;
  }
@@ -53,7 +53,7 @@ export function createPaintStudio({THREE,getSelected,onStatus}){
   const meshes=resolveMeshes();if(!meshes.length)throw new Error("Selecione uma malha com coordenadas UV antes de importar a textura.");
   const url=URL.createObjectURL(file);
   try{const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Não foi possível ler a imagem."));img.src=url});
-   for(const mesh of meshes){const r=ensure(mesh);r.ctx.clearRect(0,0,1024,1024);r.ctx.drawImage(image,0,0,1024,1024);r.texture.needsUpdate=true;r.dirty=true;r.version++;mesh.userData.berofelPaintLayer.dirty=true}
+   for(const mesh of meshes){const r=ensure(mesh);r.ctx.clearRect(0,0,1024,1024);r.ctx.drawImage(image,0,0,1024,1024);r.base.getContext("2d").clearRect(0,0,1024,1024);r.base.getContext("2d").drawImage(image,0,0,1024,1024);r.texture.needsUpdate=true;r.dirty=true;r.version++;mesh.userData.berofelPaintLayer.dirty=true}
    say("Textura aplicada em "+meshes.length+" malha(s). A imagem foi ajustada ao espaço UV completo.");
   }finally{URL.revokeObjectURL(url)}
  }
