@@ -2,7 +2,7 @@ name: Deploy Berofel 3D Create to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/fixed-workspace-ui-v1]
   workflow_dispatch:
 
 permissions:
