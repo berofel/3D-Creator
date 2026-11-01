@@ -1607,6 +1607,7 @@ function validateProjectJson(data){
  if(data.motionFrames){
   motion=frameManager.validateData(data.motionFrames);
   if(!data.rig&&motion.frames.length)throw new Error("Este projeto contém poses, mas não contém o rig correspondente.");
+  if(motion.frames.length&&(!data.rig?.skeletonId||!motion.skeletonId))throw new Error("A timeline precisa de um ID estável do rig para ser restaurada com segurança.");
   if(data.rig&&motion.skeletonId&&data.rig.skeletonId&&motion.skeletonId!==data.rig.skeletonId)throw new Error("O rig e a timeline pertencem a esqueletos diferentes.");
  }
  return {motion};
