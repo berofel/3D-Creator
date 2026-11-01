@@ -146,7 +146,8 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(!frames.length)return false;
     ensureBasePose();
     const total=getTotalDuration();
-    const time=forceEnd?total:clamp(Number(seconds)||0,0,total);
+    const pingPongEnd=pingPongPlayback&&frames.length>1?getFrameStart(frames.length-1):total;
+    const time=forceEnd?pingPongEnd:clamp(Number(seconds)||0,0,total);
     const wrap=loopPlayback&&!pingPongPlayback&&!forceEnd&&total>0;
     const bones=getBones?.()||[];
     const starts=frames.map((frame,index)=>({frame,time:getFrameStart(index)}));
@@ -311,19 +312,20 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(frames.length<2){setStatus("Salve pelo menos dois frames para reproduzir a animação.");return;}
     if(playing){pause();return;}
     poseLocked=true;
-    if(timelineCurrent>=getTotalDuration())timelineCurrent=0;
-    const selectedIndex=frames.findIndex(frame=>frame.id===selectedId);
-    if(timelineCurrent===0&&selectedIndex>0)timelineCurrent=getFrameStart(selectedIndex);
     loopPlayback=$("frameLoop")?.checked!==false;
     pingPongPlayback=$("framePingPong")?.checked===true;
     if(pingPongPlayback)loopPlayback=true;
+    const playbackEnd=pingPongPlayback?getFrameStart(frames.length-1):getTotalDuration();
+    if(timelineCurrent>=playbackEnd)timelineCurrent=0;
+    const selectedIndex=frames.findIndex(frame=>frame.id===selectedId);
+    if(timelineCurrent===0&&selectedIndex>0)timelineCurrent=getFrameStart(selectedIndex);
     direction=1;playbackAccumulator=0;playing=true;
     const button=$("framePlay");if(button)button.textContent="Ⅱ Pausar";
     applyAtTime(timelineCurrent);setStatus("Reproduzindo a "+fps+" FPS.");
   }
   function update(delta){
     if(!playing||!Number.isFinite(delta)||delta<=0)return;
-    const total=getTotalDuration();if(total<=0){pause("Timeline vazia.");return;}
+    const total=pingPongPlayback?getFrameStart(frames.length-1):getTotalDuration();if(total<=0){pause("Timeline vazia.");return;}
     playbackAccumulator+=Math.min(delta,.25);
     const step=1/fps;let steps=0,finished=false;
     while(playbackAccumulator>=step&&steps<8){
