@@ -1949,7 +1949,38 @@ $("timelineAddBone")?.addEventListener("click",()=>{
  }catch(error){$("frameStatus").textContent=error.message||"Não foi possível adicionar o osso.";}
 });
 
-function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const paintingLocked=document.body.classList.contains("paint-open");if(!paintingLocked){try{rigStudio.update()}catch(err){console.error("Rig Studio isolado para preservar a viewport.",err);rigStudio.clear();say("O painel de rig encontrou uma falha e foi reiniciado. A cena e a viewport continuam ativas.")}const now=performance.now()/1000;const dt=animLast?Math.min(.05,now-animLast):0;animLast=now;try{frameManager.update(dt)}catch(err){console.error("Timeline isolada para preservar a viewport.",err);frameManager.clearAll();say("A timeline encontrou uma falha e foi limpa. A viewport continua ativa.")}try{updateRig(dt);updateJaguarRig();treeUpdate(dt)}catch(err){console.error("Atualização de animação isolada.",err);say("Uma animação apresentou falha e foi interrompida. O editor continua disponível.")}orbit.update()}renderer.render(scene,camera)}catch(err){reportRenderFault(err)}}loop();
+const runtimeTaskFaults=new Set();
+function runProtectedRuntimeTask(key,label,task,onFailure=()=>{}){
+ if(runtimeTaskFaults.has(key))return;
+ try{task()}catch(err){
+  runtimeTaskFaults.add(key);
+  try{onFailure(err)}catch(recoveryError){console.error("Falha ao recuperar "+key,recoveryError)}
+  showRuntimeIssue(label,err);
+  const status=$("status");
+  if(status){
+   const retry=document.createElement("button");retry.type="button";retry.dataset.runtimeRetry=key;
+   retry.textContent="Tentar novamente";retry.style.display="block";retry.style.marginTop="8px";
+   retry.onclick=()=>{runtimeTaskFaults.delete(key);retry.remove();status.textContent="Sistema reativado: "+key+".";status.style.background="";status.style.color="";};
+   status.appendChild(retry);
+  }
+ }
+}
+function loop(){
+ requestAnimationFrame(loop);
+ if(renderFault)return;
+ const paintingLocked=document.body.classList.contains("paint-open");
+ if(!paintingLocked){
+  const now=performance.now()/1000,dt=animLast?Math.min(.05,now-animLast):0;animLast=now;
+  runProtectedRuntimeTask("rig-studio","Atualização visual do Rig Studio pausada; o modelo foi preservado.",()=>rigStudio.update(),()=>{try{frameManager.stop()}catch{}});
+  runProtectedRuntimeTask("timeline","Reprodução da timeline pausada; os frames foram preservados.",()=>frameManager.update(dt),()=>{try{frameManager.stop()}catch{}});
+  runProtectedRuntimeTask("procedural-rig","Animação procedural pausada para proteger o modelo.",()=>updateRig(dt),()=>{animMode="stop"});
+  runProtectedRuntimeTask("jaguar-rig","Animação da onça pausada para proteger o modelo.",()=>updateJaguarRig(),()=>{animMode="stop"});
+  runProtectedRuntimeTask("tree-animation","Animação da árvore pausada; a viewport foi preservada.",()=>treeUpdate(dt),()=>{if(treeDemo)treeDemo.playing=false});
+  runProtectedRuntimeTask("orbit-controls","Atualização da câmera pausada; a renderização continuará.",()=>orbit.update());
+ }
+ try{renderer.render(scene,camera)}catch(err){reportRenderFault(err)}
+}
+loop();
 // Acesso direto para comparação: ?model=jaguar carrega o preset ao abrir.
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
