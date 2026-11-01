@@ -301,6 +301,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function play(){
     if(frames.length<2){setStatus("Salve pelo menos dois frames para reproduzir a animação.");return;}
     if(playing){pause();return;}
+    poseLocked=true;
     if(timelineCurrent>=getTotalDuration())timelineCurrent=0;
     const selectedIndex=frames.findIndex(frame=>frame.id===selectedId);
     if(timelineCurrent===0&&selectedIndex>0)timelineCurrent=getFrameStart(selectedIndex);
