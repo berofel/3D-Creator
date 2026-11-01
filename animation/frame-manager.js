@@ -65,13 +65,22 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function validateData(data){
     if(!data||data.format!=="BerofelMotionFrames"||![2,3].includes(Number(data.version))||!Array.isArray(data.frames))
       throw new Error("Arquivo de poses inválido ou versão não compatível.");
+    if(data.skeletonId!==undefined&&data.skeletonId!==null&&typeof data.skeletonId!=="string")
+      throw new Error("Identificador do esqueleto inválido.");
+    let projectSkeletonId=data.skeletonId||null;
     const frameIds=new Set();
     const normalized=[];
     for(const frame of data.frames){
       if(!frame||typeof frame.id!=="string"||!frame.id.trim()||frameIds.has(frame.id)||typeof frame.label!=="string"||!frame.label.trim()||!Array.isArray(frame.pose))
         throw new Error("O arquivo contém frames inválidos ou IDs repetidos.");
       frameIds.add(frame.id);
-      const duration=frame.duration===undefined?.5:Number(frame.duration);
+      if(frame.skeletonId!==undefined&&frame.skeletonId!==null&&typeof frame.skeletonId!=="string")
+        throw new Error("Identificador de esqueleto inválido no frame "+frame.label+".");
+      const frameSkeletonId=frame.skeletonId||projectSkeletonId;
+      if(projectSkeletonId&&frameSkeletonId&&projectSkeletonId!==frameSkeletonId)
+        throw new Error("A timeline mistura frames de esqueletos diferentes.");
+      if(!projectSkeletonId&&frameSkeletonId)projectSkeletonId=frameSkeletonId;
+      const duration=frame.duration===undefined ? .5 : Number(frame.duration);
       if(!Number.isFinite(duration)||duration<.05||duration>30)throw new Error("Duração inválida no frame "+frame.label+".");
       const boneIds=new Set(),pose=[];
       for(const item of frame.pose){
@@ -83,12 +92,12 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
         boneIds.add(item.boneId);
         pose.push({boneId:item.boneId,position:item.position.slice(),quaternion:item.quaternion.map(value=>value/qLength),scale:item.scale.slice()});
       }
-      normalized.push({id:frame.id,label:frame.label.trim().slice(0,48),skeletonId:frame.skeletonId||data.skeletonId||null,duration,pose});
+      normalized.push({id:frame.id,label:frame.label.trim().slice(0,48),skeletonId:frameSkeletonId||null,duration,pose});
     }
     const settings=data.settings&&typeof data.settings==="object"?data.settings:{};
     const importedFps=validFps.includes(Number(settings.fps))?Number(settings.fps):12;
     const importedEasing=["linear","ease-in-out","catmull-rom"].includes(settings.easing)?settings.easing:"ease-in-out";
-    return {format:"BerofelMotionFrames",version:3,skeletonId:data.skeletonId||null,settings:{fps:importedFps,easing:importedEasing,loop:settings.loop!==false,pingPong:settings.pingPong===true},frames:normalized};
+    return {format:"BerofelMotionFrames",version:3,skeletonId:projectSkeletonId,settings:{fps:importedFps,easing:importedEasing,loop:settings.loop!==false,pingPong:settings.pingPong===true},frames:normalized};
   }
   function poseAt(frame,boneId){return frame.pose.find(item=>item.boneId===boneId)||null;}
   function catmullValue(p0,p1,p2,p3,t){
