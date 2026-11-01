@@ -149,6 +149,7 @@ body.animation-open #frameEditor{max-height:62dvh;overflow-y:auto;overscroll-beh
 .timeline-rig-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#e9fff9;font-size:11px;letter-spacing:.05em}
 .timeline-rig-heading span{color:#8de4d2;font-size:10px}
 .timeline-rig-help{margin:5px 0 8px;color:#bdcddd;font-size:11px;line-height:1.35}
+.timeline-rig-caveat{margin:0 0 8px;padding:7px 8px;border-left:2px solid #d5aa58;background:#2a2a25;color:#e7d9b6;font-size:10px;line-height:1.35}
 .timeline-rig-create{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:6px;align-items:end}
 .timeline-rig-create label,.timeline-bone-row label{grid-column:1/-1;margin:0;color:#aebfd0;font-size:10px}
 .timeline-rig-create select,.timeline-rig-create button,.timeline-bone-tools select,.timeline-bone-tools input,.timeline-bone-tools button{min-width:0;padding:7px 8px;font-size:11px}
@@ -245,6 +246,7 @@ body.animation-open #frameEditor{max-height:62dvh;overflow-y:auto;overscroll-beh
 <section class="timeline-rig-setup" aria-label="Preparar rig para animação">
  <div class="timeline-rig-heading"><strong>PREPARAR MODELO PARA ANIMAR</strong><span id="timelineRigCount">0 ossos</span></div>
  <p class="timeline-rig-help" id="timelineRigHint">1. Selecione um animal na área 3D. 2. Crie um rig ou conecte o esqueleto que já veio no modelo.</p>
+ <p class="timeline-rig-caveat">Atenção: criar um rig visual organiza as articulações e as poses, mas não dobra automaticamente a superfície de um modelo sem deformação por ossos. Se o arquivo já veio com esqueleto e deformação, use “Conectar rig existente”.</p>
  <div class="timeline-rig-create">
   <label for="timelineRigPreset">Tipo de estrutura</label>
   <select id="timelineRigPreset"><option value="feline">Quadrúpede — onça, cavalo, gnu</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão</option></select>
@@ -2133,7 +2135,7 @@ $("rigGuideSave")?.addEventListener("click",()=>{$("rigSaveJson").click();refres
 $("rigGuideOpenAnimation")?.addEventListener("click",()=>{$("toggleAnimationWorkspace")?.click();$("frameStatus").textContent=rigStudio.getState().root?"Mova os ossos para a primeira pose e toque em “Salvar pose (frame)”.":"Crie o esqueleto primeiro no assistente acima.";refreshRigGuide();});
 ["rigCreatePreset","rigAdoptSkeleton","rigAddBone","rigSaveJson","frameAdd","frameExport"].forEach(id=>$(id)?.addEventListener("click",()=>requestAnimationFrame(refreshRigGuide)));
 $("timelineCreateRig")?.addEventListener("click",()=>{if(!selected){$("timelineRigStatus").textContent="Primeiro selecione o animal na área 3D.";return;}$("rigPreset").value=$("timelineRigPreset").value;$("rigCreatePreset").click();frameManager.clearAll();frameManager.refresh();refreshRigGuide();});
-$("timelineConnectRig")?.addEventListener("click",()=>{if(!selected){$("timelineRigStatus").textContent="Primeiro selecione o animal na área 3D.";return;}$("rigAdoptSkeleton").click();requestAnimationFrame(()=>{frameManager.refresh();refreshRigGuide();});});
+$("timelineConnectRig")?.addEventListener("click",()=>{if(!selected){$("timelineRigStatus").textContent="Primeiro selecione o animal na área 3D.";return;}$("rigAdoptSkeleton").click();requestAnimationFrame(()=>{frameManager.refresh();refreshRigGuide();if(!rigStudio.getState().root)$("timelineRigStatus").textContent=$("status")?.textContent||"Não encontrei um esqueleto nativo neste modelo. Use “Criar rig” para montar uma estrutura visual.";});});
 $("timelineAddRigBone")?.addEventListener("click",()=>{$("rigAddBone").click();frameManager.refresh();refreshRigGuide();});
 $("timelinePlaceRigBone")?.addEventListener("click",()=>{$("rigPlaceBone").click();$("timelineRigStatus").textContent="Agora toque no ponto do modelo onde deseja criar o novo osso. Ele será ligado ao osso selecionado.";});
 $("timelineMoveRigBone")?.addEventListener("click",()=>{$("rigMoveMode").click();});
