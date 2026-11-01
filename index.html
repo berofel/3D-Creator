@@ -37,7 +37,10 @@ body.animation-open #frameEditor{display:block!important;position:fixed!importan
 .frame-dock-head button{padding:5px 9px}
 .frame-dock-actions{flex-wrap:wrap;margin-bottom:8px}
 .frame-dock-actions button{padding:7px 10px;font-size:12px;min-height:32px}
+.frame-dock-actions select{width:auto;min-width:54px;padding:5px 7px;font-size:11px}
+.frame-setting{display:flex;align-items:center;gap:5px;margin:0;color:#c4d1df;font-size:11px}
 .frame-loop{display:flex;align-items:center;gap:5px;color:#c4d1df;font-size:11px}
+.frame-loop input{width:auto;margin:0}
 .frame-timeline-title{justify-content:space-between;margin:2px 0 5px;flex-wrap:wrap}
 #timelineAddBone{padding:5px 8px;font-size:11px;min-height:28px}
 .timeline-bone-select{width:64px;min-width:0;padding:4px 5px;border:0;border-right:1px solid #354960;border-radius:0;background:#17263a;text-align:left;font-size:10px;font-weight:800;overflow:hidden;text-overflow:ellipsis}
@@ -191,7 +194,14 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <button id="frameDuplicate">Duplicar</button>
 <button id="frameDelete" disabled>Excluir</button>
 <button id="framePlay" class="primary">▶ Reproduzir</button>
+<button id="frameStop" type="button">■ Parar</button>
+<label class="frame-setting">FPS<select id="frameFPS"><option value="6">6</option><option value="8">8</option><option value="12" selected>12</option><option value="15">15</option><option value="18">18</option><option value="24">24</option><option value="30">30</option></select></label>
+<label class="frame-setting">Interpolação<select id="frameEasing"><option value="linear">Linear</option><option value="ease-in-out" selected>Ease-in-out</option><option value="catmull-rom">Catmull-Rom</option></select></label>
 <label class="frame-loop"><input id="frameLoop" type="checkbox" checked> Loop</label>
+<label class="frame-loop"><input id="framePingPong" type="checkbox"> Ping-pong</label>
+<button id="frameImport" type="button">Importar poses</button>
+<button id="frameExport" type="button">Exportar poses</button>
+<input id="frameImportFile" type="file" accept=".json,application/json" hidden>
 </div>
 <div class="frame-timeline-title"><strong>OSSOS / FRAMES</strong><button id="timelineAddBone" type="button">＋ Adicionar osso</button><span id="timelineTime">00:00.00</span></div>
 <div class="timeline-scroll"><div id="timelineCanvas" class="timeline-canvas">
@@ -201,7 +211,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <input id="timelineScrubber" class="timeline-scrubber" type="range" min="0" max="10000" step="1" value="0" aria-label="Percorrer timeline">
 <div class="frame-dock-footer"><label for="frameDuration">Duração do frame (s)</label><input id="frameDuration" type="number" min="0.05" max="30" step="0.05" value="0.5"><span id="frameStatus">Crie ou conecte um rig para começar.</span></div>
 <div id="frameList" hidden></div>
-<div hidden><button id="frameImport"></button><button id="frameExport"></button><input id="frameImportFile" type="file"></div>
+
 </div>
 </div><div class="section"><h2>ESQUELETO E PELE</h2><p class="hint">O esqueleto é a estrutura articulada; a pele é uma camada de volumes suaves por cima. Alterne as visualizações durante a construção.</p><div class="grid"><button id="showSkin" class="primary">Ver pele</button><button id="showBones">Ver esqueleto</button></div><div class="hint" id="skinStatus">Pele visível; esqueleto oculto.</div></div><div class="section"><h2>RIG E ANIMAÇÃO</h2><p class="hint">Ciclos com flexão das juntas, transferência de peso e movimentos secundários. A anatomia ainda é uma aproximação procedural, não simulação muscular física.</p><div class="grid"><button id="animIdle">▶ Respiração</button><button id="animWalk">▶ Caminhar</button><button id="animGallop">▶ Correr</button><button id="animStop">■ Parar</button><button id="rigReset">↺ Pose base</button></div><label for="animSpeed">Velocidade da animação</label><input id="animSpeed" type="range" min="0.3" max="2.5" step="0.1" value="1"><div class="status" id="animStatus">Rig pronto — escolha uma animação.</div></div><div class="section" id="exportLegacyPanel"><h2>ARQUIVOS E EXPORTAÇÃO</h2><button id="open" class="wide">Abrir JSON</button><input id="file" type="file" accept=".json,application/json" hidden><label for="legacyExportAnimation">Animação para exportar</label><select id="legacyExportAnimation" class="wide"><option value="idle">Respiração (idle)</option><option value="walk">Caminhada (walk)</option><option value="gallop">Galope (gallop)</option></select><p class="hint">A seleção acompanha a animação escolhida no preview. Exporte somente a animação selecionada para não baixar a respiração por engano.</p><button id="legacyExportglb" class="wide primary">Baixar modelo + animação selecionada (.GLB)</button><button id="legacyExportpackage" class="wide">Baixar pacote completo (.ZIP)</button><p class="hint">O ZIP contém o modelo e a animação escolhida, com manifesto e instruções para a Godot 4.</p><div class="status" id="legacyExportStatus">Pronto para validar a exportação.</div></div><div class="section" id="treeWorkshop"><h2>ANIMAÇÃO — ÁRVORE</h2><p class="hint">Adicione o pinheiro à cena e, quando quiser, escolha a animação de corte. A animação usa o humanoide articulado criado no editor.</p><div class="grid"><button id="treePlay">▶ Animação: cortar e derrubar</button><button id="treePause">Ⅱ Pausar</button><button id="treeReset">↺ Reiniciar</button><button id="treeHit">🪓 Golpe no tronco</button><button id="treeFall">🌲 Derrubar</button><button id="treeGroundHit">Golpe na árvore caída</button><button id="treeCollect">Coletar madeira</button></div><label for="treeSpeed">Velocidade da animação</label><input id="treeSpeed" type="range" min="0.5" max="1.8" step="0.1" value="1"><div class="status" id="treeStatus">Crie a demonstração para visualizar a sequência.</div><p class="hint">O modelo é gerado no editor com cilindros, galhos e copas onduladas. Não usa modelo baixado nem simulação física pesada.</p></div><div id="status" class="status">Carregando motor 3D…</div><p class="hint">Protótipo inicial. Requer internet para carregar Three.js. Testado ainda não em todos os dispositivos.</p>
 </aside></div>
@@ -1940,7 +1950,7 @@ function finishPaintGesture(event){
 renderer.domElement.addEventListener("pointerup",finishPaintGesture);
 renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
-const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=true;rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Quadros salvos localmente. Selecione um bloco para recuperar a pose.":"Crie um rig e salve a primeira pose.";}});
+const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=true;rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Poses na timeline. Exporte o arquivo para guardar uma cópia.":"Crie um rig e salve a primeira pose.";}});
 $("timelineAddBone")?.addEventListener("click",()=>{
  try{
   if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
@@ -1971,11 +1981,13 @@ function loop(){
  const paintingLocked=document.body.classList.contains("paint-open");
  if(!paintingLocked){
   const now=performance.now()/1000,dt=animLast?Math.min(.05,now-animLast):0;animLast=now;
-  runProtectedRuntimeTask("rig-studio","Atualização visual do Rig Studio pausada; o modelo foi preservado.",()=>rigStudio.update(),()=>{try{frameManager.stop()}catch{}});
-  runProtectedRuntimeTask("timeline","Reprodução da timeline pausada; os frames foram preservados.",()=>frameManager.update(dt),()=>{try{frameManager.stop()}catch{}});
-  runProtectedRuntimeTask("procedural-rig","Animação procedural pausada para proteger o modelo.",()=>updateRig(dt),()=>{animMode="stop"});
-  runProtectedRuntimeTask("jaguar-rig","Animação da onça pausada para proteger o modelo.",()=>updateJaguarRig(),()=>{animMode="stop"});
+  runProtectedRuntimeTask("timeline","Reprodução da timeline pausada; os frames foram preservados.",()=>frameManager.update(dt),()=>{try{frameManager.pause("Timeline pausada após uma falha; os frames foram preservados.")}catch{}});
+  if(!frameManager.isPlaying()){
+   runProtectedRuntimeTask("procedural-rig","Animação procedural pausada para proteger o modelo.",()=>updateRig(dt),()=>{animMode="stop"});
+   runProtectedRuntimeTask("jaguar-rig","Animação da onça pausada para proteger o modelo.",()=>updateJaguarRig(),()=>{animMode="stop"});
+  }
   runProtectedRuntimeTask("tree-animation","Animação da árvore pausada; a viewport foi preservada.",()=>treeUpdate(dt),()=>{if(treeDemo)treeDemo.playing=false});
+  runProtectedRuntimeTask("rig-studio","Atualização visual do Rig Studio pausada; o modelo foi preservado.",()=>rigStudio.update(),()=>{try{frameManager.pause()}catch{}});
   runProtectedRuntimeTask("orbit-controls","Atualização da câmera pausada; a renderização continuará.",()=>orbit.update());
  }
  try{renderer.render(scene,camera)}catch(err){reportRenderFault(err)}
@@ -1991,7 +2003,7 @@ requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
 const exportDialog=$("exportDialog"),saveInfoDialog=$("saveInfoDialog");
 $("topImport")?.addEventListener("click",()=>$("importAnyGLB")?.click());
-$("toggleAnimationWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("animation-open");document.body.classList.toggle("animation-open",open);$("toggleAnimationWorkspace").setAttribute("aria-expanded",String(open));$("toggleAnimationWorkspace").textContent=open?"Fechar animação":"Animação";if(open){if(!rigStudio.getState().bones.length){try{rigStudio.adoptNativeSkeleton();}catch(error){$("frameStatus").textContent="Selecione um modelo com esqueleto ou crie um rig para adicionar frames.";}}frameManager.refresh();}else frameManager.stop();});
+$("toggleAnimationWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("animation-open");document.body.classList.toggle("animation-open",open);$("toggleAnimationWorkspace").setAttribute("aria-expanded",String(open));$("toggleAnimationWorkspace").textContent=open?"Fechar animação":"Animação";if(open){if(!rigStudio.getState().bones.length){try{rigStudio.adoptNativeSkeleton();}catch(error){$("frameStatus").textContent="Selecione um modelo com esqueleto ou crie um rig para adicionar frames.";}}frameManager.refresh();}else frameManager.pause("Timeline pausada.");});
 $("closeAnimationWorkspace")?.addEventListener("click",()=>{$("toggleAnimationWorkspace")?.click();});
 
 $("togglePaintWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("paint-open");document.body.classList.toggle("paint-open",open);document.body.classList.remove("paint-minimized");$("paintPanel").hidden=!open;$("togglePaintWorkspace").setAttribute("aria-expanded",String(open));$("togglePaintWorkspace").textContent=open?"Fechar pintura":"Pintura";paintStudio.setActive(open);orbit.enabled=!open;orbit.enableDamping=!open;if(open)orbit.update();transform.enabled=!open;transformHelper.visible=!open;document.body.classList.toggle("paint-locked",open);if(open)say("Modo pintura: câmera e modelo travados. Use as vistas frontal, lateral, traseira, superior e inferior para mudar o lado.");else say("Modo pintura fechado. Gestos voltaram a controlar somente a câmera.");});
