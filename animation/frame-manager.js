@@ -191,7 +191,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     const bones=getBones?.()||[];
     if(!frames.length){
       const empty=document.createElement("div");empty.className="timeline-empty";
-      empty.textContent=bones.length?"Salve o primeiro frame para registrar as poses dos ossos.":"Primeiro crie ou conecte um esqueleto no assistente à direita. Depois ajuste os ossos e salve a primeira pose.";
+      empty.textContent=bones.length?"Salve o primeiro frame para registrar as poses dos ossos.":"Use “Criar rig” ou “Conectar rig existente” nesta mesma janela. Depois selecione e ajuste os ossos e salve a primeira pose.";
       tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;
     }
     const widths=frames.map(frame=>Math.max(104,getFrameDuration(frame)*110));
