@@ -259,7 +259,9 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function seek(seconds){
     if(!frames.length)return false;
     const total=getTotalDuration();timelineCurrent=clamp(Number(seconds)||0,0,total);
-    selectedId=frames[Math.min(frames.length-1,Math.max(0,frames.findIndex(frame=>getFrameStart(frames.indexOf(frame))<=timelineCurrent))) ]?.id||selectedId;
+    let activeIndex=0;
+    for(let index=0;index<frames.length;index++){if(getFrameStart(index)<=timelineCurrent)activeIndex=index;else break;}
+    selectedId=frames[activeIndex]?.id||selectedId;
     applyAtTime(timelineCurrent,timelineCurrent>=total);
     const status=$("frameStatus");
     if(status&&frames.length>1)status.textContent="Timeline em "+formatTime(timelineCurrent)+".";
@@ -325,7 +327,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     const index=frames.findIndex(frame=>frame.id===id),target=index+delta;
     if(index<0||target<0||target>=frames.length)return;
     const [item]=frames.splice(index,1);frames.splice(target,0,item);
-    selectedId=id;timelineCurrent=getFrameStart(target);render();persist();
+    selectedId=id;timelineCurrent=getFrameStart(target);applyAtTime(timelineCurrent);render();persist();
   }
   function rename(id){
     const frame=frames.find(item=>item.id===id);if(!frame)return;
