@@ -317,8 +317,6 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(pingPongPlayback)loopPlayback=true;
     const playbackEnd=pingPongPlayback?getFrameStart(frames.length-1):getTotalDuration();
     if(timelineCurrent>=playbackEnd)timelineCurrent=0;
-    const selectedIndex=frames.findIndex(frame=>frame.id===selectedId);
-    if(timelineCurrent===0&&selectedIndex>0)timelineCurrent=getFrameStart(selectedIndex);
     direction=1;playbackAccumulator=0;playing=true;
     const button=$("framePlay");if(button)button.textContent="Ⅱ Pausar";
     applyAtTime(timelineCurrent);setStatus("Reproduzindo a "+fps+" FPS.");
