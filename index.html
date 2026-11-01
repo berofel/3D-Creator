@@ -141,6 +141,32 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 #rigGuide .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 #rigGuide button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:760px){.rig-guide{padding:11px}.rig-guide-step{padding:9px 0}#rigGuide .grid{grid-template-columns:1fr 1fr}}
+
+/* Timeline-first rig workflow: one place to create, connect, edit and animate. */
+#rigGuide,#rigAdvancedPanel{display:none!important}
+body.animation-open #frameEditor{max-height:62dvh;overflow-y:auto;overscroll-behavior:contain}
+.timeline-rig-setup{padding:10px;margin:0 0 9px;border:1px solid #3b6570;border-radius:10px;background:linear-gradient(145deg,#1b3042,#142437)}
+.timeline-rig-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#e9fff9;font-size:11px;letter-spacing:.05em}
+.timeline-rig-heading span{color:#8de4d2;font-size:10px}
+.timeline-rig-help{margin:5px 0 8px;color:#bdcddd;font-size:11px;line-height:1.35}
+.timeline-rig-caveat{margin:0 0 8px;padding:7px 8px;border-left:2px solid #d5aa58;background:#2a2a25;color:#e7d9b6;font-size:10px;line-height:1.35}
+.timeline-rig-create{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:6px;align-items:end}
+.timeline-rig-create label,.timeline-bone-row label{grid-column:1/-1;margin:0;color:#aebfd0;font-size:10px}
+.timeline-rig-create select,.timeline-rig-create button,.timeline-bone-tools select,.timeline-bone-tools input,.timeline-bone-tools button{min-width:0;padding:7px 8px;font-size:11px}
+.timeline-bone-tools{margin-top:8px;padding-top:8px;border-top:1px solid #344b60}
+.timeline-bone-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:6px}
+.timeline-bone-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.timeline-bone-actions button{flex:1 1 auto}
+.timeline-rig-status{margin-top:7px;padding:7px 8px;border-radius:7px;background:#0c1a29;color:#aee9dc;font-size:10px;line-height:1.4;white-space:pre-wrap}
+.timeline-rig-setup button:disabled,.frame-dock-actions button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:760px){
+ body.animation-open #frameEditor{max-height:58dvh;padding:8px}
+ .timeline-rig-setup{padding:8px;margin-bottom:7px}
+ .timeline-rig-create{grid-template-columns:1fr 1fr}
+ .timeline-rig-create label,.timeline-rig-create select{grid-column:1/-1}
+ .timeline-bone-row{grid-template-columns:1fr 1fr}
+ .timeline-bone-actions button{flex:1 1 calc(50% - 5px);padding:7px 6px;font-size:10px}
+}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script>
@@ -198,7 +224,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
 <div class="section"><h2>TRANSFORMAR PEÇA</h2><label>Posição X / Y / Z</label><div class="grid"><input id="px" type="number" step=".1" value="0"><input id="py" type="number" step=".1" value="0"><input id="pz" type="number" step=".1" value="0"></div><label>Escala X / Y / Z</label><div class="grid"><input id="sx" type="number" step=".1" min=".1" value="1"><input id="sy" type="number" step=".1" min=".1" value="1"><input id="sz" type="number" step=".1" min=".1" value="1"></div><label>Cor</label><input id="color" type="color" value="#65a8a1"><button id="apply" class="wide primary">Aplicar alterações</button></div>
-<div class="section rig-guide" id="rigGuide">
+<div class="section rig-guide" id="rigGuide" hidden>
 <h2>CRIAR ANIMAÇÃO — PASSO A PASSO</h2>
 <p class="hint">Siga esta sequência. O editor mostra o que falta e não exige que você conheça os termos técnicos.</p>
 <div class="rig-guide-step"><span class="rig-guide-number">1</span><div><strong>Selecione o animal ou objeto</strong><p>Clique no modelo na área 3D. Ele precisa ficar selecionado antes de criar o esqueleto.</p><small id="rigGuideSelection">Nenhum modelo selecionado.</small></div></div>
@@ -208,7 +234,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <div class="rig-guide-step"><span class="rig-guide-number">5</span><div><strong>Crie as poses da animação</strong><p>Abra a timeline, mova os ossos para a primeira pose e toque em “Salvar pose”. Repita para a próxima pose.</p><button id="rigGuideOpenAnimation" class="wide primary">Abrir timeline de animação</button><small id="rigGuideFrames">Nenhuma pose salva ainda.</small></div></div>
 <div class="hint rig-guide-note"><strong>Importante:</strong> o esqueleto visual é uma estrutura de articulação para criar poses. Ele não deforma automaticamente uma malha que ainda não tenha skinning associado. Conectar um esqueleto nativo preserva o skinning existente.</div>
 </div>
-<div class="section"><h2>FERRAMENTAS AVANÇADAS DO ESQUELETO</h2>
+<div class="section" id="rigAdvancedPanel"><h2>FERRAMENTAS AVANÇADAS DO ESQUELETO</h2>
 <p class="hint">Use estas ferramentas quando precisar personalizar a hierarquia. Para começar, prefira o assistente acima.</p>
 <div class="grid"><button id="rigCreatePreset" class="primary" hidden>Criar esqueleto inicial</button><button id="rigAdoptSkeleton">Usar esqueleto do modelo</button><button id="rigAddBone">＋ Adicionar osso</button><button id="rigPlaceBone">＋ Posicionar osso no modelo</button><button id="rigMirrorBone">Espelhar osso</button><button id="rigDeleteBone">Excluir osso</button></div>
 <label for="rigBoneName">Nome do osso selecionado</label><input id="rigBoneName" placeholder="Ex.: Femur_D">
@@ -217,11 +243,35 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <button id="rigSaveJson" class="wide">Salvar esqueleto (.JSON)</button><button id="rigImportJson" class="wide">Importar hierarquia (.JSON)</button><input id="rigImportFile" type="file" accept=".json,application/json" hidden><div id="rigStudioStatus" class="status">Rig Studio pronto.</div><div id="rigBindingStatus" class="hint">Selecione um modelo para inspecionar suas malhas e esqueletos existentes.</div><div class="section"><h2>DIAGNÓSTICO DE SKINNING</h2><p class="hint">Analisa os pesos existentes por osso, sem alterar vértices, geometria ou animações.</p><button id="rigInspectWeights" class="wide">Analisar influências dos ossos</button><div id="rigWeightStatus" class="hint">Conecte um esqueleto nativo para inspecionar as influências existentes.</div><label for="rigWeightBoneSelect">Osso para visualizar / pintar</label><select id="rigWeightBoneSelect"></select><button id="rigWeightViewToggle" class="wide">Mostrar influência na malha</button><div id="rigWeightViewStatus" class="hint">Selecione um osso e ative a visualização por cores.</div><div class="section"><h3>PINTURA MANUAL DE PESOS</h3><p class="hint">Edite em sessão temporária. Clique na superfície da malha para pintar; confirme para manter ou cancele para restaurar os pesos originais.</p><label for="rigWeightPaintMode">Ferramenta</label><select id="rigWeightPaintMode"><option value="add">Pincel — adicionar influência</option><option value="erase">Borracha — remover influência</option></select><label for="rigWeightBrushSize">Raio do pincel</label><input id="rigWeightBrushSize" type="range" min="0.02" max="1.5" step="0.01" value="0.22"><label for="rigWeightBrushStrength">Intensidade</label><input id="rigWeightBrushStrength" type="range" min="0.01" max="0.95" step="0.01" value="0.25"><div class="grid"><button id="rigWeightPaintStart" class="primary">Iniciar pintura</button><button id="rigWeightPaintCancel">Cancelar / restaurar</button><button id="rigWeightPaintUndo">Desfazer</button><button id="rigWeightPaintRedo">Refazer</button></div><div id="rigWeightPaintStatus" class="hint">A pintura não altera nada até iniciar uma sessão.</div></div></div>
 <div class="section" id="frameEditor" aria-label="Editor de frames e timeline">
 <div class="frame-dock-head"><div><strong>ANIMAÇÃO</strong><span id="frameCount">0 frames</span></div><button id="closeAnimationWorkspace" type="button" title="Fechar timeline">✕</button></div>
+<section class="timeline-rig-setup" aria-label="Preparar rig para animação">
+ <div class="timeline-rig-heading"><strong>PREPARAR MODELO PARA ANIMAR</strong><span id="timelineRigCount">0 ossos</span></div>
+ <p class="timeline-rig-help" id="timelineRigHint">1. Selecione um animal na área 3D. 2. Crie um rig ou conecte o esqueleto que já veio no modelo.</p>
+ <p class="timeline-rig-caveat">Atenção: criar um rig visual organiza as articulações e as poses, mas não dobra automaticamente a superfície de um modelo sem deformação por ossos. Se o arquivo já veio com esqueleto e deformação, use “Conectar rig existente”.</p>
+ <div class="timeline-rig-create">
+  <label for="timelineRigPreset">Tipo de estrutura</label>
+  <select id="timelineRigPreset"><option value="feline">Quadrúpede — onça, cavalo, gnu</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão</option></select>
+  <button id="timelineCreateRig" class="primary" type="button">＋ Criar rig</button>
+  <button id="timelineConnectRig" type="button">Conectar rig existente</button>
+ </div>
+ <div id="timelineBoneTools" class="timeline-bone-tools" hidden>
+  <div class="timeline-bone-row"><label for="timelineBoneSelect">Osso selecionado</label><select id="timelineBoneSelect"><option value="">Selecione um osso</option></select><input id="timelineBoneName" maxlength="48" placeholder="Nome do osso"></div>
+  <div class="timeline-bone-actions">
+   <button id="timelineAddRigBone" type="button">＋ Adicionar osso</button>
+   <button id="timelinePlaceRigBone" type="button">＋ Criar osso clicando no modelo</button>
+   <button id="timelineMoveRigBone" type="button">↔ Mover</button>
+   <button id="timelineRotateRigBone" type="button">⟳ Girar</button>
+   <button id="timelineMirrorRigBone" type="button">Espelhar</button>
+   <button id="timelineDeleteRigBone" type="button">Excluir osso</button>
+   <button id="timelineSaveRig" type="button">Salvar rig (.JSON)</button>
+  </div>
+ </div>
+ <div id="timelineRigStatus" class="timeline-rig-status" role="status">Aguardando seleção de um modelo.</div>
+</section>
 <div class="frame-dock-actions">
-<button id="frameAdd" class="primary">＋ Salvar pose (frame)</button>
-<button id="frameUpdate">Atualizar</button>
-<button id="frameDuplicate">Duplicar</button>
-<button id="frameDelete" disabled>Excluir</button>
+<button id="frameAdd" class="primary" disabled>＋ Salvar pose</button>
+<button id="frameUpdate" disabled>Atualizar pose</button>
+<button id="frameDuplicate" disabled>Duplicar pose</button>
+<button id="frameDelete" disabled>Excluir pose</button>
 <button id="framePlay" class="primary">▶ Reproduzir</button>
 <button id="frameStop" type="button">■ Parar</button>
 <details class="frame-advanced"><summary>Opções avançadas</summary><div class="frame-advanced-content">
@@ -2055,6 +2105,23 @@ function refreshRigGuide(){
  const frame=$("rigGuideFrames");if(frame)frame.textContent=frames?frames+" pose(s) salva(s).":"Nenhuma pose salva ainda.";
  const add=$("rigGuideAddBone"),move=$("rigGuideMoveBone"),rotate=$("rigGuideRotateBone"),saveButton=$("rigGuideSave");
  [add,move,rotate,saveButton].forEach(button=>{if(button)button.disabled=!hasRig;});
+ const count=$("timelineRigCount"),hint=$("timelineRigHint"),status=$("timelineRigStatus"),tools=$("timelineBoneTools");
+ const create=$("timelineCreateRig"),connect=$("timelineConnectRig");
+ if(count)count.textContent=bones+" osso"+(bones===1?"":"s");
+ if(create)create.disabled=!selected||hasRig;
+ if(connect)connect.disabled=!selected||hasRig;
+ if(tools)tools.hidden=!hasRig;
+ if(hint)hint.textContent=!selected?"1. Selecione um animal na área 3D. Depois escolha criar um rig ou conectar um esqueleto existente.":hasRig?"Rig pronto. Selecione um osso, ajuste-o e salve as poses abaixo.":"Modelo selecionado. Crie um rig novo ou conecte o esqueleto que já existe no arquivo.";
+ if(status)status.textContent=!selected?"Nenhum modelo selecionado. Toque no animal na área 3D para começar.":hasRig?"Rig ativo com "+bones+" ossos. Escolha um osso na lista ou toque nele no modelo 3D.":"Ainda não há rig ativo. Use “Criar rig” para montar uma estrutura inicial ou “Conectar rig existente” se o modelo já tiver esqueleto.";
+ const boneSelect=$("timelineBoneSelect"),nameInput=$("timelineBoneName");
+ if(boneSelect){
+  const current=boneSelect.value;boneSelect.replaceChildren();
+  for(const bone of state.bones||[]){const option=document.createElement("option");option.value=bone.userData?.berofelBoneId||bone.name;option.textContent=bone.name;boneSelect.append(option);}
+  const selectedId=state.selected?.userData?.berofelBoneId||state.selected?.name||current;
+  if(selectedId)boneSelect.value=selectedId;
+ }
+ if(nameInput&&state.selected&&document.activeElement!==nameInput)nameInput.value=state.selected.name||"";
+ ["frameAdd","frameUpdate","frameDuplicate","framePlay"].forEach(id=>{const button=$(id);if(button)button.disabled=!hasRig;});
 }
 $("rigGuideCreate")?.addEventListener("click",()=>{
  if(!selected){$("rigGuideSelection").textContent="Primeiro clique no animal/objeto na área 3D para selecioná-lo.";return;}
@@ -2067,6 +2134,17 @@ $("rigGuideRotateBone")?.addEventListener("click",()=>{$("rigRotateMode").click(
 $("rigGuideSave")?.addEventListener("click",()=>{$("rigSaveJson").click();refreshRigGuide();});
 $("rigGuideOpenAnimation")?.addEventListener("click",()=>{$("toggleAnimationWorkspace")?.click();$("frameStatus").textContent=rigStudio.getState().root?"Mova os ossos para a primeira pose e toque em “Salvar pose (frame)”.":"Crie o esqueleto primeiro no assistente acima.";refreshRigGuide();});
 ["rigCreatePreset","rigAdoptSkeleton","rigAddBone","rigSaveJson","frameAdd","frameExport"].forEach(id=>$(id)?.addEventListener("click",()=>requestAnimationFrame(refreshRigGuide)));
+$("timelineCreateRig")?.addEventListener("click",()=>{if(!selected){$("timelineRigStatus").textContent="Primeiro selecione o animal na área 3D.";return;}$("rigPreset").value=$("timelineRigPreset").value;$("rigCreatePreset").click();frameManager.clearAll();frameManager.refresh();refreshRigGuide();});
+$("timelineConnectRig")?.addEventListener("click",()=>{if(!selected){$("timelineRigStatus").textContent="Primeiro selecione o animal na área 3D.";return;}$("rigAdoptSkeleton").click();requestAnimationFrame(()=>{frameManager.refresh();refreshRigGuide();if(!rigStudio.getState().root)$("timelineRigStatus").textContent=$("status")?.textContent||"Não encontrei um esqueleto nativo neste modelo. Use “Criar rig” para montar uma estrutura visual.";});});
+$("timelineAddRigBone")?.addEventListener("click",()=>{$("rigAddBone").click();frameManager.refresh();refreshRigGuide();});
+$("timelinePlaceRigBone")?.addEventListener("click",()=>{$("rigPlaceBone").click();$("timelineRigStatus").textContent="Agora toque no ponto do modelo onde deseja criar o novo osso. Ele será ligado ao osso selecionado.";});
+$("timelineMoveRigBone")?.addEventListener("click",()=>{$("rigMoveMode").click();});
+$("timelineRotateRigBone")?.addEventListener("click",()=>{$("rigRotateMode").click();});
+$("timelineMirrorRigBone")?.addEventListener("click",()=>{$("rigMirrorBone").click();frameManager.refresh();refreshRigGuide();});
+$("timelineDeleteRigBone")?.addEventListener("click",()=>{$("rigDeleteBone").click();frameManager.refresh();refreshRigGuide();});
+$("timelineSaveRig")?.addEventListener("click",()=>{$("rigSaveJson").click();});
+$("timelineBoneSelect")?.addEventListener("change",event=>{const bone=rigStudio.getState().bones.find(item=>(item.userData?.berofelBoneId||item.name)===event.target.value);if(bone){rigStudio.selectBone(bone);frameManager.refresh();refreshRigGuide();}});
+$("timelineBoneName")?.addEventListener("change",event=>{$("rigBoneName").value=event.target.value;$("rigRenameBone").click();refreshRigGuide();});
 $("rigBoneList")?.addEventListener("click",()=>requestAnimationFrame(refreshRigGuide));
 $("viewport")?.addEventListener("pointerup",()=>requestAnimationFrame(refreshRigGuide));
 refreshRigGuide();
@@ -2111,13 +2189,13 @@ loop();
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=283",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=288",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
 const exportDialog=$("exportDialog"),saveInfoDialog=$("saveInfoDialog");
 $("topImport")?.addEventListener("click",()=>$("importAnyGLB")?.click());
-$("toggleAnimationWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("animation-open");document.body.classList.toggle("animation-open",open);$("toggleAnimationWorkspace").setAttribute("aria-expanded",String(open));$("toggleAnimationWorkspace").textContent=open?"Fechar animação":"Animação";if(open){if(!rigStudio.getState().bones.length){try{rigStudio.adoptNativeSkeleton();}catch(error){$("frameStatus").textContent="Selecione um modelo com esqueleto ou crie um rig para adicionar frames.";}}frameManager.refresh();}else frameManager.pause("Timeline pausada.");});
+$("toggleAnimationWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("animation-open");document.body.classList.toggle("animation-open",open);$("toggleAnimationWorkspace").setAttribute("aria-expanded",String(open));$("toggleAnimationWorkspace").textContent=open?"Fechar animação":"Animação";if(open){frameManager.refresh();refreshRigGuide();}else frameManager.pause("Timeline pausada.");});
 $("closeAnimationWorkspace")?.addEventListener("click",()=>{$("toggleAnimationWorkspace")?.click();});
 
 $("togglePaintWorkspace")?.addEventListener("click",()=>{const open=!document.body.classList.contains("paint-open");document.body.classList.toggle("paint-open",open);document.body.classList.remove("paint-minimized");$("paintPanel").hidden=!open;$("togglePaintWorkspace").setAttribute("aria-expanded",String(open));$("togglePaintWorkspace").textContent=open?"Fechar pintura":"Pintura";paintStudio.setActive(open);orbit.enabled=!open;orbit.enableDamping=!open;if(open)orbit.update();transform.enabled=!open;transformHelper.visible=!open;document.body.classList.toggle("paint-locked",open);if(open)say("Modo pintura: câmera e modelo travados. Use as vistas frontal, lateral, traseira, superior e inferior para mudar o lado.");else say("Modo pintura fechado. Gestos voltaram a controlar somente a câmera.");});
