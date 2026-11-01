@@ -213,6 +213,28 @@ body.workspace-mode-animation.animation-open #frameEditor{
  z-index:auto!important;width:100%!important;max-width:none!important;max-height:none!important;height:auto!important;
  overflow:visible!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;
 }
+
+/* Safari + legacy animation panel: force the animation editor to stay in the bottom dock. */
+body.workspace-mode-animation.animation-open #frameEditor{
+ display:block!important;
+ position:static!important;
+ inset:auto!important;
+ top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+ z-index:auto!important;
+ width:100%!important;max-width:none!important;
+ height:auto!important;max-height:none!important;min-height:0;
+ margin:0!important;padding:8px 10px!important;
+ overflow:visible!important;
+ float:none!important;transform:none!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ background:transparent!important;
+ align-self:stretch!important;grid-area:auto!important;
+}
+body.workspace-mode-animation.animation-open #workspaceDock,
+body.workspace-mode-animation.animation-open .workspace-dock-content{
+ position:relative!important;
+}
+
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script>
@@ -2239,7 +2261,7 @@ loop();
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=288",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=290",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
