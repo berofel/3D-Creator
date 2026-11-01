@@ -2,7 +2,7 @@
 export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},onChange=()=>{},onBoneSelected=()=>{}}={}) {
   let frames=[],selectedId=null,nextId=1;
   let playing=false,loopPlayback=true,pingPongPlayback=false,direction=1;
-  let timelineCurrent=0,playbackAccumulator=0;
+  let timelineCurrent=0,playbackAccumulator=0,poseLocked=false;
   let fps=12,easing="ease-in-out";
   let baseSkeletonId=null;
   const basePose=new Map();
@@ -252,12 +252,13 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   }
   function stop(message="Animação parada. Pose-base restaurada."){
     pause("");
-    timelineCurrent=0;direction=1;
+    timelineCurrent=0;direction=1;poseLocked=false;
     applyBasePose();renderTimelineCursor();
     if(message)setStatus(message);
   }
   function seek(seconds){
     if(!frames.length)return false;
+    poseLocked=true;
     const total=getTotalDuration();timelineCurrent=clamp(Number(seconds)||0,0,total);
     let activeIndex=0;
     for(let index=0;index<frames.length;index++){if(getFrameStart(index)<=timelineCurrent)activeIndex=index;else break;}
@@ -269,7 +270,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   }
   function selectFrame(id,restore=true){
     const frame=frames.find(item=>item.id===id);if(!frame)return false;
-    selectedId=id;timelineCurrent=getFrameStart(frames.indexOf(frame));
+    selectedId=id;timelineCurrent=getFrameStart(frames.indexOf(frame));poseLocked=true;
     if(restore){try{applyAtTime(timelineCurrent);setStatus("Pose do frame aplicada.");}catch(error){setStatus(error.message);return false;}}
     render();return true;
   }
@@ -335,7 +336,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     const index=frames.findIndex(frame=>frame.id===id),target=index+delta;
     if(index<0||target<0||target>=frames.length)return;
     const [item]=frames.splice(index,1);frames.splice(target,0,item);
-    selectedId=id;timelineCurrent=getFrameStart(target);applyAtTime(timelineCurrent);render();persist();
+    selectedId=id;timelineCurrent=getFrameStart(target);poseLocked=true;applyAtTime(timelineCurrent);render();persist();
   }
   function rename(id){
     const frame=frames.find(item=>item.id===id);if(!frame)return;
@@ -344,11 +345,11 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     frame.label=label.slice(0,48);render();persist();
   }
   function add(){
-    pause("");const frame=capture();frames.push(frame);selectedId=frame.id;
+    pause("");poseLocked=true;const frame=capture();frames.push(frame);selectedId=frame.id;
     timelineCurrent=getFrameStart(frames.length-1);render();persist();setStatus("Frame salvo na timeline.");
   }
   function duplicate(id=selectedId){
-    pause("");const frame=frames.find(item=>item.id===id);if(!frame)return;
+    pause("");poseLocked=true;const frame=frames.find(item=>item.id===id);if(!frame)return;
     const copy=clone(frame);copy.id="frame-"+(nextId++);copy.label="Frame "+(frames.length+1);
     frames.splice(frames.indexOf(frame)+1,0,copy);selectedId=copy.id;
     timelineCurrent=getFrameStart(frames.indexOf(copy));render();persist();
@@ -358,17 +359,17 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     const index=frames.findIndex(frame=>frame.id===selectedId);if(index<0)return;
     frames.splice(index,1);selectedId=frames[Math.max(0,index-1)]?.id||null;
     timelineCurrent=selectedId?getFrameStart(frames.findIndex(frame=>frame.id===selectedId)):0;
-    if(!frames.length)applyBasePose();render();persist();
+    if(!frames.length){poseLocked=false;applyBasePose();}else{poseLocked=true;applyAtTime(timelineCurrent);}render();persist();
   }
   function updateCurrent(){
     const frame=frames.find(item=>item.id===selectedId);if(!frame)return;
     try{
-      const current=capture(frame.label);frame.skeletonId=current.skeletonId;frame.pose=current.pose;
+      const current=capture(frame.label);frame.skeletonId=current.skeletonId;frame.pose=current.pose;poseLocked=true;
       render();persist();setStatus("Pose do frame atualizada.");
     }catch(error){setStatus(error.message);}
   }
   function clearAll(){
-    pause("");frames=[];selectedId=null;nextId=1;timelineCurrent=0;direction=1;
+    pause("");frames=[];selectedId=null;nextId=1;timelineCurrent=0;direction=1;poseLocked=false;
     basePose.clear();baseSkeletonId=null;ensureBasePose();render();setStatus("Timeline limpa para o novo rig.");
   }
   function importData(data){
@@ -376,7 +377,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(validated.skeletonId&&active&&validated.skeletonId!==active)
       throw new Error("Importe primeiro o rig correspondente a este arquivo de poses.");
     pause("");frames=clone(validated.frames);nextId=Math.max(1,...frames.map(frame=>Number(String(frame.id).replace("frame-",""))+1||1));
-    selectedId=frames[0]?.id||null;timelineCurrent=0;fps=validated.settings.fps;easing=validated.settings.easing;
+    selectedId=frames[0]?.id||null;timelineCurrent=0;poseLocked=frames.length>0;fps=validated.settings.fps;easing=validated.settings.easing;
     loopPlayback=validated.settings.loop;pingPongPlayback=validated.settings.pingPong;
     ensureBasePose();render();persist();
     if(selectedId)applyAtTime(0);
@@ -416,7 +417,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     refresh:()=>{ensureBasePose();renderTimeline();},
     applySelected:()=>{const frame=frames.find(item=>item.id===selectedId);return frame?seek(getFrameStart(frames.indexOf(frame))):0;},
     updateCurrent,exportData,getFrames:()=>clone(frames),isPlaying:()=>playing,
-    getDrivenBoneIds:()=>[...new Set(frames.flatMap(frame=>frame.pose.map(item=>item.boneId)))],
+    getDrivenBoneIds:()=>[...new Set(frames.flatMap(frame=>frame.pose.map(item=>item.boneId)))],ownsPose:()=>poseLocked,
     getSettings:()=>({fps,easing,loop:loopPlayback,pingPong:pingPongPlayback})
   };
 }
