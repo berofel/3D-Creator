@@ -1682,7 +1682,7 @@ const rigBase=new WeakMap();
 function cacheRigPose(){for(const p of parts)rigBase.set(p,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()})}
 function resetRigPose(){if(!window.__berofelHumanoidRig)for(const p of parts){const b=rigBase.get(p);if(b){p.position.copy(b.position);p.rotation.copy(b.rotation);p.scale.copy(b.scale)}}}
 function rigLabel(){ $("animStatus").textContent=animMode==="stop"?"Animação parada.":animMode==="walk"?"Rig ativo: caminhada.":"Rig ativo: respiração."}
-function setAnimation(mode){for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=false;resetRigPose();animMode=mode;animClock=0;syncExportAnimation(mode);if(mode!=="stop"&&mode!=="chop")$("quickAnimation").value=mode;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
+function setAnimation(mode){if(typeof frameManager!=="undefined")frameManager.stop("");for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=false;resetRigPose();animMode=mode;animClock=0;syncExportAnimation(mode);if(mode!=="stop"&&mode!=="chop")$("quickAnimation").value=mode;rigLabel();if(mode==="stop")$("animStatus").textContent="Animação parada — pose restaurada."}
 $("animIdle").onclick=()=>setAnimation("idle");$("animWalk").onclick=()=>setAnimation("walk");$("animGallop").onclick=()=>setAnimation("gallop");$("animStop").onclick=()=>setAnimation("stop");$("rigReset").onclick=()=>{setAnimation("stop");resetRigPose();$("animStatus").textContent="Pose base restaurada."};
 cacheRigPose();
 // A cena inicia vazia; o usuário escolhe qual elemento criar primeiro.
@@ -1950,7 +1950,7 @@ function finishPaintGesture(event){
 renderer.domElement.addEventListener("pointerup",finishPaintGesture);
 renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
-const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{for(const rig of (window.__berofelImportedJaguarRigs||[]))rig.manualPoseActive=true;rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Poses na timeline. Exporte o arquivo para guardar uma cópia.":"Crie um rig e salve a primeira pose.";}});
+const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Poses na timeline. Exporte o arquivo para guardar uma cópia.":"Crie um rig e salve a primeira pose.";}});
 $("timelineAddBone")?.addEventListener("click",()=>{
  try{
   if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
@@ -1982,7 +1982,7 @@ function loop(){
  if(!paintingLocked){
   const now=performance.now()/1000,dt=animLast?Math.min(.05,now-animLast):0;animLast=now;
   runProtectedRuntimeTask("timeline","Reprodução da timeline pausada; os frames foram preservados.",()=>frameManager.update(dt),()=>{try{frameManager.pause("Timeline pausada após uma falha; os frames foram preservados.")}catch{}});
-  if(!frameManager.isPlaying()){
+  if(!frameManager.ownsPose()){
    runProtectedRuntimeTask("procedural-rig","Animação procedural pausada para proteger o modelo.",()=>updateRig(dt),()=>{animMode="stop"});
    runProtectedRuntimeTask("jaguar-rig","Animação da onça pausada para proteger o modelo.",()=>updateJaguarRig(),()=>{animMode="stop"});
   }
