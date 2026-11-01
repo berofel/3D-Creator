@@ -1335,7 +1335,8 @@ async function importJaguarGLB(file){
     if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
    }catch(rigSetupError){
     console.error("Falha ao conectar o rig da onça; mantendo o modelo visível.",rigSetupError);
-    try{restorePreviousRig()}catch(restoreError){console.error("Falha ao restaurar o rig anterior.",restoreError);}
+    if(previousRigBelongsToOldModel){try{rigStudio.clear();frameManager.clearAll()}catch(restoreError){console.error("Falha ao limpar o rig do modelo anterior.",restoreError);}}
+    else try{restorePreviousRig()}catch(restoreError){console.error("Falha ao restaurar o rig anterior.",restoreError);}
     restoreJaguarMeshHierarchy();
     if(importedRig.root?.parent)importedRig.root.parent.remove(importedRig.root);
     window.__berofelImportedJaguarRigs=previousRigList.slice();
