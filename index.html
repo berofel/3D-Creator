@@ -133,6 +133,11 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 .rig-guide-step button{padding:8px;font-size:12px}
 .rig-guide-step label{margin-top:6px}
 .rig-guide-note{margin:10px 0 0;padding:9px;border-radius:8px;background:#0e1b2b;color:#bdcddd}
+.frame-advanced{flex:1 1 100%;border:1px solid #344b60;border-radius:8px;background:#142338}
+.frame-advanced summary{padding:7px 9px;color:#c8d8e8;font-size:11px;font-weight:700;cursor:pointer}
+.frame-advanced-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 9px;border-top:1px solid #344b60}
+.frame-advanced-content button{padding:6px 8px;font-size:11px}
+
 #rigGuide .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 #rigGuide button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:760px){.rig-guide{padding:11px}.rig-guide-step{padding:9px 0}#rigGuide .grid{grid-template-columns:1fr 1fr}}
@@ -197,7 +202,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <h2>CRIAR ANIMAÇÃO — PASSO A PASSO</h2>
 <p class="hint">Siga esta sequência. O editor mostra o que falta e não exige que você conheça os termos técnicos.</p>
 <div class="rig-guide-step"><span class="rig-guide-number">1</span><div><strong>Selecione o animal ou objeto</strong><p>Clique no modelo na área 3D. Ele precisa ficar selecionado antes de criar o esqueleto.</p><small id="rigGuideSelection">Nenhum modelo selecionado.</small></div></div>
-<div class="rig-guide-step"><span class="rig-guide-number">2</span><div><strong>Crie o esqueleto</strong><p>Escolha um tipo de corpo e crie a estrutura inicial. Os ossos aparecerão sobre o modelo.</p><label for="rigPreset">Tipo de esqueleto</label><select id="rigPreset"><option value="feline">Felino / quadrúpede</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão / criatura alada</option></select><button id="rigGuideCreate" class="wide primary">Criar esqueleto inicial</button><small id="rigGuideRig">Aguardando criação do esqueleto.</small></div></div>
+<div class="rig-guide-step"><span class="rig-guide-number">2</span><div><strong>Crie o esqueleto</strong><p>Escolha um tipo de corpo e crie a estrutura inicial. Os ossos aparecerão sobre o modelo.</p><label for="rigPreset">Tipo de esqueleto</label><select id="rigPreset"><option value="feline">Felino / quadrúpede</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão / criatura alada</option></select><div class="grid"><button id="rigGuideCreate" class="primary">Criar esqueleto visual</button><button id="rigGuideAdopt">Usar esqueleto existente</button></div><small id="rigGuideRig">Aguardando criação do esqueleto.</small></div></div>
 <div class="rig-guide-step"><span class="rig-guide-number">3</span><div><strong>Edite os ossos</strong><p>Selecione um osso na lista ou diretamente na área 3D. Use Mover ou Girar para ajustar. Adicionar osso é opcional.</p><div class="grid"><button id="rigGuideAddBone">＋ Adicionar osso</button><button id="rigGuideMoveBone">Mover osso</button><button id="rigGuideRotateBone">Girar osso</button></div><small id="rigGuideBones">Nenhum esqueleto criado.</small></div></div>
 <div class="rig-guide-step"><span class="rig-guide-number">4</span><div><strong>Salve o esqueleto</strong><p>Isso baixa um arquivo JSON com a hierarquia e a posição dos ossos. Guarde-o para poder importar essa estrutura depois.</p><button id="rigGuideSave" class="wide">Salvar esqueleto (.JSON)</button><small id="rigGuideSaveStatus">Crie o esqueleto antes de salvar.</small></div></div>
 <div class="rig-guide-step"><span class="rig-guide-number">5</span><div><strong>Crie as poses da animação</strong><p>Abra a timeline, mova os ossos para a primeira pose e toque em “Salvar pose”. Repita para a próxima pose.</p><button id="rigGuideOpenAnimation" class="wide primary">Abrir timeline de animação</button><small id="rigGuideFrames">Nenhuma pose salva ainda.</small></div></div>
@@ -219,13 +224,15 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <button id="frameDelete" disabled>Excluir</button>
 <button id="framePlay" class="primary">▶ Reproduzir</button>
 <button id="frameStop" type="button">■ Parar</button>
+<details class="frame-advanced"><summary>Opções avançadas</summary><div class="frame-advanced-content">
 <label class="frame-setting">FPS<select id="frameFPS"><option value="6">6</option><option value="8">8</option><option value="12" selected>12</option><option value="15">15</option><option value="18">18</option><option value="24">24</option><option value="30">30</option></select></label>
-<label class="frame-setting">Interpolação<select id="frameEasing"><option value="linear">Linear</option><option value="ease-in-out" selected>Ease-in-out</option><option value="catmull-rom">Catmull-Rom</option></select></label>
-<label class="frame-loop"><input id="frameLoop" type="checkbox" checked> Loop</label>
-<label class="frame-loop"><input id="framePingPong" type="checkbox"> Ping-pong</label>
+<label class="frame-setting">Suavização<select id="frameEasing"><option value="linear">Linear</option><option value="ease-in-out" selected>Suave</option><option value="catmull-rom">Catmull-Rom</option></select></label>
+<label class="frame-loop"><input id="frameLoop" type="checkbox" checked> Repetir</label>
+<label class="frame-loop"><input id="framePingPong" type="checkbox"> Ida e volta</label>
 <button id="frameImport" type="button">Importar poses</button>
 <button id="frameExport" type="button">Exportar poses</button>
 <input id="frameImportFile" type="file" accept=".json,application/json" hidden>
+</div></details>
 </div>
 <div class="frame-timeline-title"><strong>POSES POR FRAME</strong><span id="timelineTime">00:00.00</span></div>
 <div class="timeline-scroll"><div id="timelineCanvas" class="timeline-canvas">
@@ -2054,6 +2061,7 @@ $("rigGuideCreate")?.addEventListener("click",()=>{
  $("rigCreatePreset").click();refreshRigGuide();
 });
 $("rigGuideAddBone")?.addEventListener("click",()=>{$("rigAddBone").click();frameManager.refresh();refreshRigGuide();});
+$("rigGuideAdopt")?.addEventListener("click",()=>{$("rigAdoptSkeleton").click();requestAnimationFrame(refreshRigGuide);});
 $("rigGuideMoveBone")?.addEventListener("click",()=>{$("rigMoveMode").click();refreshRigGuide();});
 $("rigGuideRotateBone")?.addEventListener("click",()=>{$("rigRotateMode").click();refreshRigGuide();});
 $("rigGuideSave")?.addEventListener("click",()=>{$("rigSaveJson").click();refreshRigGuide();});
