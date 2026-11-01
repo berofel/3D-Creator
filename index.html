@@ -1170,108 +1170,182 @@ function updateImportedJaguarRigs(){
  }
  }
 }
+function collectGLBResources(root){
+ const resources={objects:new Set(),geometries:new Set(),materials:new Set(),textures:new Set()};
+ if(!root)return resources;
+ const addTexture=value=>{if(value?.isTexture)resources.textures.add(value);else if(Array.isArray(value))value.forEach(addTexture);};
+ root.traverse?.(object=>{
+  resources.objects.add(object);
+  if(object.geometry)resources.geometries.add(object.geometry);
+  for(const material of (Array.isArray(object.material)?object.material:[object.material])){
+   if(!material)continue;
+   resources.materials.add(material);
+   for(const value of Object.values(material))addTexture(value);
+   if(material.uniforms)for(const uniform of Object.values(material.uniforms))addTexture(uniform?.value);
+  }
+ });
+ return resources;
+}
+function disposeGLBRootsSafely(roots){
+ const old={objects:new Set(),geometries:new Set(),materials:new Set(),textures:new Set()};
+ for(const root of roots||[]){const found=collectGLBResources(root);for(const key of Object.keys(old))for(const value of found[key])old[key].add(value);}
+ const alive={geometries:new Set(),materials:new Set(),textures:new Set()};
+ scene.traverse(object=>{
+  if(old.objects.has(object))return;
+  if(object.geometry)alive.geometries.add(object.geometry);
+  for(const material of (Array.isArray(object.material)?object.material:[object.material])){
+   if(!material)continue;alive.materials.add(material);
+   for(const value of Object.values(material)){if(value?.isTexture)alive.textures.add(value);else if(Array.isArray(value))for(const item of value)if(item?.isTexture)alive.textures.add(item);}
+   if(material.uniforms)for(const uniform of Object.values(material.uniforms)){const value=uniform?.value;if(value?.isTexture)alive.textures.add(value);else if(Array.isArray(value))for(const item of value)if(item?.isTexture)alive.textures.add(item);}
+  }
+ });
+ for(const geometry of old.geometries)if(!alive.geometries.has(geometry))try{geometry.dispose()}catch{}
+ for(const material of old.materials)if(!alive.materials.has(material))try{material.dispose()}catch{}
+ for(const texture of old.textures)if(!alive.textures.has(texture))try{texture.dispose()}catch{}
+}
 let jaguarGLBImportBusy=false;
 async function importJaguarGLB(file){
  if(!file)return;
  if(jaguarGLBImportBusy){say("Já existe uma importação em andamento. Aguarde ela terminar.");return;}
+ if(!Number.isFinite(file.size)||file.size<=0){say("Arquivo vazio ou inválido. Escolha um GLB válido.");return;}
  jaguarGLBImportBusy=true;
- let wrapper=null,importedRig=null;
- say("Importando modelo original da onça…");
+ let wrapper=null,model=null,importedRig=null,rigChanged=false,sceneAttached=false;
+ const isJaguarPreset=/nc_a[.]glb$/i.test(file.name);
+ const previousRoots=elementRoots.filter(root=>root.userData?.importedGlbRoot||/(onça-pintada|onça original)/i.test(root.userData?.elementLabel||root.name||""));
+ const previousRig={...rigStudio.getState()};
+ const previousFrames=frameManager.exportData();
+ const previousRigList=(window.__berofelImportedJaguarRigs||[]).slice();
+ const previousSelected=selected,previousParts=parts.slice(),previousElementRoots=elementRoots.slice(),previousName=$("name").value;
+ const previousCamera={position:camera.position.clone(),up:camera.up.clone(),target:orbit.target.clone(),near:camera.near,far:camera.far};
+ const warnings=[];
+ const restorePreviousRig=()=>{
+  try{rigStudio.clear()}catch{}
+  if(previousRig.root?.isBone&&previousRig.target)rigStudio.adoptExternalRig({root:previousRig.root,bones:previousRig.bones||[],target:previousRig.target});
+  window.__berofelImportedJaguarRigs=previousRigList.slice();
+  try{frameManager.importData(previousFrames)}catch(restoreError){console.error("Não foi possível restaurar a timeline anterior.",restoreError)}
+ };
+ say("Lendo arquivo GLB…");
  try{
+  if(file.size>256*1024*1024)warnings.push("Arquivo grande: a importação pode consumir bastante memória.");
   const buffer=await file.arrayBuffer();
+  if(!buffer.byteLength)throw new Error("O arquivo não contém dados.");
+  say("Validando geometria, materiais e texturas…");
   const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,"",resolve,reject));
-  const model=gltf.scene;
+  model=gltf?.scene;
   if(!model)throw new Error("O arquivo GLB não contém uma cena 3D.");
   const bounds=new THREE.Box3().setFromObject(model);
   if(bounds.isEmpty())throw new Error("Não foram encontradas malhas 3D no arquivo.");
-  const size=bounds.getSize(new THREE.Vector3());
-  const center=bounds.getCenter(new THREE.Vector3());
+  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  if(![size.x,size.y,size.z,center.x,center.y,center.z].every(Number.isFinite))throw new Error("A geometria contém dimensões inválidas ou valores não numéricos.");
   const uniformScale=size.y>0.0001?3/size.y:1;
   model.position.set(-center.x,-bounds.min.y,-center.z);
   wrapper=new THREE.Group();
   wrapper.name="Modelo GLB — "+file.name;
-  wrapper.userData.berofelElementRoot=true;
-  wrapper.userData.elementLabel="Modelo GLB";
-  wrapper.userData.importedGlbRoot=true;
-  wrapper.userData.sourceFileName=file.name;
+  wrapper.userData.berofelElementRoot=true;wrapper.userData.elementLabel="Modelo GLB";
+  wrapper.userData.importedGlbRoot=true;wrapper.userData.sourceFileName=file.name;
   wrapper.userData.importedJaguar=true;
-  wrapper.userData.gltfAnimations=gltf.animations||[];
-  wrapper.scale.setScalar(uniformScale);
-  wrapper.add(model);
-  let meshCount=0;
+  wrapper.userData.gltfAnimations=Array.isArray(gltf.animations)?gltf.animations:[];
+  wrapper.scale.setScalar(uniformScale);wrapper.add(model);
+  let meshCount=0,vertexCount=0,triangleCount=0,materialCount=0,skinnedMeshCount=0;
+  const seenMaterials=new Set(),seenTextures=new Set(),seenBones=new Set();
   model.traverse(object=>{
    if(!object.isMesh)return;
    meshCount++;
+   const position=object.geometry?.attributes?.position;
+   if(!position||position.count<1)throw new Error("A malha "+(object.name||meshCount)+" não possui vértices válidos.");
+   for(let i=0;i<position.count;i++)if(!Number.isFinite(position.getX(i))||!Number.isFinite(position.getY(i))||!Number.isFinite(position.getZ(i)))throw new Error("A malha "+(object.name||meshCount)+" contém vértices inválidos.");
+   vertexCount+=position.count;
+   if(object.geometry.index){
+    if(object.geometry.index.count%3!==0)throw new Error("A malha "+(object.name||meshCount)+" possui índices incompatíveis com triângulos.");
+    for(let i=0;i<object.geometry.index.count;i++)if(object.geometry.index.getX(i)>=position.count)throw new Error("A malha "+(object.name||meshCount)+" possui índice de vértice fora dos limites.");
+    triangleCount+=object.geometry.index.count/3;
+   }else triangleCount+=Math.max(0,position.count/3);
+   if(object.isSkinnedMesh){
+    skinnedMeshCount++;
+    const bones=object.skeleton?.bones||[],skinIndex=object.geometry.attributes.skinIndex,skinWeight=object.geometry.attributes.skinWeight;
+    if(!bones.length)throw new Error("A malha esquelética "+(object.name||meshCount)+" não possui ossos válidos.");
+    if(!skinIndex||!skinWeight||skinIndex.count!==position.count||skinWeight.count!==position.count)throw new Error("Os dados de skinning da malha "+(object.name||meshCount)+" estão incompletos.");
+    for(const bone of bones)seenBones.add(bone);
+    for(let v=0;v<position.count;v++)for(let k=0;k<4;k++){
+     const boneIndex=skinIndex.getComponent(v,k),weight=skinWeight.getComponent(v,k);
+     if(!Number.isFinite(boneIndex)||boneIndex<0||boneIndex>=bones.length||!Number.isFinite(weight)||weight<0)throw new Error("A malha "+(object.name||meshCount)+" possui influência de osso inválida.");
+    }
+   }
    object.castShadow=true;object.receiveShadow=true;
-   object.userData={...object.userData,id:++counter,type:"imported_glb_mesh",name:object.name||("Malha da onça "+meshCount)};
+   object.userData={...object.userData,id:++counter,type:"imported_glb_mesh",name:object.name||("Malha importada "+meshCount)};
+   if(!object.material){object.material=new THREE.MeshStandardMaterial({color:0xffffff});warnings.push("Uma malha sem material recebeu um material neutro de recuperação.");}
    const materials=Array.isArray(object.material)?object.material:[object.material];
-   for(const material of materials){
-    if(material?.map){material.map.colorSpace=THREE.SRGBColorSpace;material.map.needsUpdate=true}
+   for(let i=0;i<materials.length;i++){
+    if(!materials[i]){materials[i]=new THREE.MeshStandardMaterial({color:0xffffff});warnings.push("Uma superfície sem material recebeu um material neutro de recuperação.");}
+    const material=materials[i];
+    if(material&&!seenMaterials.has(material)){seenMaterials.add(material);materialCount++;}
+    if(material?.map){material.map.colorSpace=THREE.SRGBColorSpace;material.map.needsUpdate=true;}
+    if(material)for(const value of Object.values(material))if(value?.isTexture)seenTextures.add(value);
     if(material)material.needsUpdate=true;
    }
+   if(Array.isArray(object.material))object.material=materials;
   });
   if(!meshCount)throw new Error("O GLB não contém objetos de malha compatíveis.");
-  const previous=elementRoots.filter(root=>root.userData?.importedGlbRoot||/(onça-pintada|onça original)/i.test(root.userData?.elementLabel||root.name||""));
-  for(const oldRoot of previous){
-   const descendants=[];oldRoot.traverse(object=>{if(object.isMesh)descendants.push(object)});
-   if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
-   window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>rig.wrapper!==oldRoot);
-   parts=parts.filter(part=>!descendants.includes(part));
-   oldRoot.traverse(object=>{
-    if(!object.isMesh)return;
-    object.geometry?.dispose();
-    for(const material of (Array.isArray(object.material)?object.material:[object.material]))material?.dispose();
-   });
-   elementRoots=elementRoots.filter(root=>root!==oldRoot);
+  for(const texture of seenTextures){
+   const image=texture.image||texture.source?.data,width=image?.width||image?.naturalWidth||0,height=image?.height||image?.naturalHeight||0;
+   if(width>8192||height>8192||width*height>64*1024*1024)warnings.push("Textura de resolução muito alta detectada ("+width+"×"+height+").");
   }
-  scene.add(wrapper);
-  importedRig=/nc_a[.]glb$/i.test(file.name)?createImportedJaguarRig(wrapper,model):null;
+  const previousRigBelongsToOldModel=previousRoots.some(root=>root===previousRig.target||root===previousRig.root||root===previousRig.root?.parent);
+  const needsRigSwap=isJaguarPreset||previousRigBelongsToOldModel;
+  if(needsRigSwap&&previousRig.root&&!previousRig.root.isBone)throw new Error("Há um rig manual ativo que não pode ser substituído automaticamente com segurança. Desconecte esse rig antes de importar outro GLB.");
+  if(isJaguarPreset){say("Preparando rig e poses sem remover o modelo atual…");importedRig=createImportedJaguarRig(wrapper,model);}
+  scene.add(wrapper);sceneAttached=true;
   if(importedRig){
-   window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];window.__berofelImportedJaguarRigs.push(importedRig);
+   rigChanged=true;
    rigStudio.adoptExternalRig(importedRig);
+   window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];
+   window.__berofelImportedJaguarRigs.push(importedRig);
    frameManager.clearAll();
    const base=importedRig.bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone(),scale:b.scale.clone()}));
    for(let frame=0;frame<8;frame++){
     for(const item of base){item.bone.position.copy(item.position);item.bone.quaternion.copy(item.quaternion);item.bone.scale.copy(item.scale);}
     const phase=frame/8*Math.PI*2;
     for(const leg of importedRig.legs){const p=phase+leg.phase+(leg.front?0:Math.PI*.18),swing=Math.sin(p),lift=Math.max(0,Math.sin(p+Math.PI*.15));leg.pivot.rotation.z+=swing*.30;leg.knee.rotation.z+=lift*.48;leg.ankle.rotation.z-=lift*.18;leg.paw.rotation.z-=swing*.18+lift*.30;}
-    importedRig.spine.rotation.z+=Math.sin(phase*2)*.018;importedRig.chest.rotation.z+=Math.sin(phase*2+.3)*.012;importedRig.neck.rotation.z+=Math.sin(phase+.7)*.025;importedRig.head.rotation.z+=Math.sin(phase+.9)*.018;importedRig.tail.rotation.y+=Math.sin(phase-.5)*.11;
+    importedRig.spine.rotation.z+=Math.sin(phase*2)*.018;importedRig.chest.rotation.z+=Math.sin(phase*2+.3)*.012;
+    importedRig.neck.rotation.z+=Math.sin(phase+.7)*.025;importedRig.head.rotation.z+=Math.sin(phase+.9)*.018;importedRig.tail.rotation.y+=Math.sin(phase-.5)*.11;
     frameManager.add();
    }
    frameManager.seek(0);importedRig.manualPoseActive=true;
-   const frameStatus=document.getElementById("frameStatus");if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
-   if(!document.body.classList.contains("animation-open"))document.getElementById("toggleAnimationWorkspace")?.click();
+   const frameStatus=document.getElementById("frameStatus");
+   if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
+  }else if(previousRigBelongsToOldModel){
+   rigChanged=true;rigStudio.clear();frameManager.clearAll();
   }
-  elementRoots.push(wrapper);
-  model.traverse(object=>{if(object.isMesh)parts.push(object)});
-  $("name").value=file.name.replace(/\.glb$/i,"").slice(0,48)||"Modelo importado";
   const finalBounds=new THREE.Box3().setFromObject(wrapper);
-  const target=finalBounds.getCenter(new THREE.Vector3());
-  const span=Math.max(...finalBounds.getSize(new THREE.Vector3()).toArray(),1);
-  orbit.target.copy(target);
-  camera.position.set(target.x+span*2.4,target.y+span*1.35,target.z+span*2.8);
+  if(finalBounds.isEmpty())throw new Error("O modelo preparado não possui limites espaciais válidos.");
+  const target=finalBounds.getCenter(new THREE.Vector3()),span=Math.max(...finalBounds.getSize(new THREE.Vector3()).toArray(),1);
+  orbit.target.copy(target);camera.position.set(target.x+span*2.4,target.y+span*1.35,target.z+span*2.8);
   camera.near=Math.max(.01,span/100);camera.far=Math.max(1000,span*30);
   camera.lookAt(target);camera.updateProjectionMatrix();orbit.update();
+  elementRoots.push(wrapper);model.traverse(object=>{if(object.isMesh)parts.push(object)});
+  $("name").value=file.name.replace(/\.glb$/i,"").slice(0,48)||"Modelo importado";
   select(wrapper);renderParts();
-  const animationNote=importedRig?" Rig de movimento de quatro patas preparado e ligado aos controles Caminhar/Correr.":" Não foi possível identificar quatro grupos de patas para preparar o rig automaticamente.";
-  say("Modelo GLB importado: "+meshCount+" malha(s). Geometria e materiais preservados."+animationNote);
+  for(const oldRoot of previousRoots)if(oldRoot.parent)oldRoot.parent.remove(oldRoot);
+  const oldMeshes=new Set();for(const oldRoot of previousRoots)oldRoot.traverse(object=>{if(object.isMesh)oldMeshes.add(object)});
+  parts=parts.filter(part=>!oldMeshes.has(part));elementRoots=elementRoots.filter(root=>!previousRoots.includes(root));
+  window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>!previousRoots.includes(rig.wrapper));
+  disposeGLBRootsSafely(previousRoots);
+  if(importedRig&&!document.body.classList.contains("animation-open"))document.getElementById("toggleAnimationWorkspace")?.click();
+  const animationNote=importedRig?" Rig de movimento preparado e conectado à timeline.":" Modelo carregado sem alterar o rig de outro elemento.";
+  say("Modelo GLB importado: "+meshCount+" malha(s), "+vertexCount+" vértices, "+Math.round(triangleCount)+" triângulos, "+materialCount+" materiais, "+skinnedMeshCount+" malha(s) esquelética(s), "+seenBones.size+" osso(s) e "+(gltf.animations?.length||0)+" animação(ões). Geometria original preservada."+animationNote+(warnings.length?" Avisos: "+warnings.join(" "):""));
   const packageStatus=$("rigPackageStatus");if(packageStatus)packageStatus.textContent="Modelo carregado: "+file.name+" • "+meshCount+" malha(s). Pronto para salvar o pacote de Rig.";
  }catch(error){
   console.error("Falha ao importar modelo GLB",error);
-  if(importedRig){
-   window.__berofelImportedJaguarRigs=(window.__berofelImportedJaguarRigs||[]).filter(rig=>rig!==importedRig);
-   if(rigStudio.getState().root===importedRig.root)rigStudio.clear();
-  }
-  if(wrapper){
-   if(wrapper.parent)wrapper.parent.remove(wrapper);
-   elementRoots=elementRoots.filter(root=>root!==wrapper);
-   const failedMeshes=[];wrapper.traverse(object=>{if(object.isMesh){failedMeshes.push(object);object.geometry?.dispose();for(const material of (Array.isArray(object.material)?object.material:[object.material]))material?.dispose();}});
-   parts=parts.filter(part=>!failedMeshes.includes(part));
-  }
-  say("Importação interrompida com segurança. O editor foi preservado; tente outro modelo. Detalhe: "+String(error?.message||error).slice(0,180));
- }finally{
-  jaguarGLBImportBusy=false;
- }
+  if(rigChanged){try{restorePreviousRig()}catch(restoreError){console.error("Falha ao restaurar o rig anterior.",restoreError);say("A importação falhou. O modelo anterior foi mantido, mas o painel de rig precisa ser reaberto.");}}
+  else window.__berofelImportedJaguarRigs=previousRigList.slice();
+  if(wrapper){if(wrapper.parent)wrapper.parent.remove(wrapper);elementRoots=previousElementRoots;parts=previousParts;disposeGLBRootsSafely([wrapper]);}
+  else if(model)disposeGLBRootsSafely([model]);
+  camera.position.copy(previousCamera.position);camera.up.copy(previousCamera.up);orbit.target.copy(previousCamera.target);
+  camera.near=previousCamera.near;camera.far=previousCamera.far;camera.lookAt(orbit.target);camera.updateProjectionMatrix();orbit.update();
+  $("name").value=previousName;
+  try{select(previousSelected&&previousSelected.parent?previousSelected:null)}catch{transform.detach();}
+  say("Importação cancelada sem substituir o modelo anterior. "+String(error?.message||error).slice(0,180));
+ }finally{jaguarGLBImportBusy=false;}
 }
 
 $("importAnyGLB").onclick=()=> $("anyModelFile").click();
