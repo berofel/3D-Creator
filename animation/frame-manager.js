@@ -49,7 +49,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
   function capture(label){
     ensureBasePose();
     const bones=getBones?.()||[];
-    if(!bones.length)throw new Error("Crie ou conecte um esqueleto antes de salvar um frame.");
+    if(!bones.length)throw new Error("Ainda não há esqueleto. Use o assistente “Criar animação — passo a passo” para criar ou conectar um esqueleto antes de salvar esta pose.");
     const skeletonId=getActiveSkeletonId();
     if(frames.length&&frames.some(frame=>frame.skeletonId&&skeletonId&&frame.skeletonId!==skeletonId))
       throw new Error("A timeline pertence a outro esqueleto. Exporte as poses antes de trocar de rig.");
@@ -191,7 +191,7 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     const bones=getBones?.()||[];
     if(!frames.length){
       const empty=document.createElement("div");empty.className="timeline-empty";
-      empty.textContent=bones.length?"Salve o primeiro frame para registrar as poses dos ossos.":"Adicione ou conecte um rig para começar.";
+      empty.textContent=bones.length?"Salve o primeiro frame para registrar as poses dos ossos.":"Primeiro crie ou conecte um esqueleto no assistente à direita. Depois ajuste os ossos e salve a primeira pose.";
       tracks.append(empty);canvas.style.width="100%";renderTimelineCursor();return;
     }
     const widths=frames.map(frame=>Math.max(104,getFrameDuration(frame)*110));
