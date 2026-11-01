@@ -1951,6 +1951,7 @@ renderer.domElement.addEventListener("pointerup",finishPaintGesture);
 renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
 const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Poses na timeline. Exporte o arquivo para guardar uma cópia.":"Crie um rig e salve a primeira pose.";}});
+$("frameStop")?.addEventListener("click",()=>{animMode="stop";});
 $("timelineAddBone")?.addEventListener("click",()=>{
  try{
   if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
