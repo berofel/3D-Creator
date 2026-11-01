@@ -121,6 +121,21 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 .timeline-help{margin:8px 0 0;font-size:10px}
 @media(max-width:760px){.timeline-panel{padding:8px}.timeline-scroll{max-height:220px}.timeline-ruler,.timeline-track{grid-template-columns:112px auto}.timeline-playhead{left:112px}.timeline-label,.timeline-track-label{padding:4px 6px}}
 
+
+/* Assistente de rig: fluxo inicial claro e responsivo. */
+.rig-guide{padding:13px;border:1px solid #3b6570;border-radius:13px;background:linear-gradient(145deg,#1b3042,#142437)}
+.rig-guide>h2{color:#d9fff5;font-size:13px;letter-spacing:.04em}
+.rig-guide-step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:9px;padding:11px 0;border-top:1px solid #344b60}
+.rig-guide-number{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#28584f;color:#baffed;font-weight:800}
+.rig-guide-step strong{font-size:13px;color:#f2f7ff}
+.rig-guide-step p{margin:4px 0 7px;color:#b8c9da;font-size:12px;line-height:1.45}
+.rig-guide-step small{display:block;margin-top:6px;color:#83d9c6;font-size:11px;line-height:1.4}
+.rig-guide-step button{padding:8px;font-size:12px}
+.rig-guide-step label{margin-top:6px}
+.rig-guide-note{margin:10px 0 0;padding:9px;border-radius:8px;background:#0e1b2b;color:#bdcddd}
+#rigGuide .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+#rigGuide button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:760px){.rig-guide{padding:11px}.rig-guide-step{padding:9px 0}#rigGuide .grid{grid-template-columns:1fr 1fr}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script>
@@ -178,18 +193,28 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 
 <div class="section"><h2>HIERARQUIA</h2><div id="parts" class="part-list"></div><button id="remove" class="wide">Remover selecionada</button></div>
 <div class="section"><h2>TRANSFORMAR PEÇA</h2><label>Posição X / Y / Z</label><div class="grid"><input id="px" type="number" step=".1" value="0"><input id="py" type="number" step=".1" value="0"><input id="pz" type="number" step=".1" value="0"></div><label>Escala X / Y / Z</label><div class="grid"><input id="sx" type="number" step=".1" min=".1" value="1"><input id="sy" type="number" step=".1" min=".1" value="1"><input id="sz" type="number" step=".1" min=".1" value="1"></div><label>Cor</label><input id="color" type="color" value="#65a8a1"><button id="apply" class="wide primary">Aplicar alterações</button></div>
-<div class="section"><h2>RIG STUDIO — EDITOR DE ESQUELETO</h2>
-<p class="hint">Conecte um esqueleto nativo de modelos com skinning ou crie um rig visual independente. A conexão nativa reutiliza os ossos existentes sem alterar pesos, geometria, materiais ou texturas.</p>
+<div class="section rig-guide" id="rigGuide">
+<h2>CRIAR ANIMAÇÃO — PASSO A PASSO</h2>
+<p class="hint">Siga esta sequência. O editor mostra o que falta e não exige que você conheça os termos técnicos.</p>
+<div class="rig-guide-step"><span class="rig-guide-number">1</span><div><strong>Selecione o animal ou objeto</strong><p>Clique no modelo na área 3D. Ele precisa ficar selecionado antes de criar o esqueleto.</p><small id="rigGuideSelection">Nenhum modelo selecionado.</small></div></div>
+<div class="rig-guide-step"><span class="rig-guide-number">2</span><div><strong>Crie o esqueleto</strong><p>Escolha um tipo de corpo e crie a estrutura inicial. Os ossos aparecerão sobre o modelo.</p><label for="rigPreset">Tipo de esqueleto</label><select id="rigPreset"><option value="feline">Felino / quadrúpede</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão / criatura alada</option></select><button id="rigGuideCreate" class="wide primary">Criar esqueleto inicial</button><small id="rigGuideRig">Aguardando criação do esqueleto.</small></div></div>
+<div class="rig-guide-step"><span class="rig-guide-number">3</span><div><strong>Edite os ossos</strong><p>Selecione um osso na lista ou diretamente na área 3D. Use Mover ou Girar para ajustar. Adicionar osso é opcional.</p><div class="grid"><button id="rigGuideAddBone">＋ Adicionar osso</button><button id="rigGuideMoveBone">Mover osso</button><button id="rigGuideRotateBone">Girar osso</button></div><small id="rigGuideBones">Nenhum esqueleto criado.</small></div></div>
+<div class="rig-guide-step"><span class="rig-guide-number">4</span><div><strong>Salve o esqueleto</strong><p>Isso baixa um arquivo JSON com a hierarquia e a posição dos ossos. Guarde-o para poder importar essa estrutura depois.</p><button id="rigGuideSave" class="wide">Salvar esqueleto (.JSON)</button><small id="rigGuideSaveStatus">Crie o esqueleto antes de salvar.</small></div></div>
+<div class="rig-guide-step"><span class="rig-guide-number">5</span><div><strong>Crie as poses da animação</strong><p>Abra a timeline, mova os ossos para a primeira pose e toque em “Salvar pose”. Repita para a próxima pose.</p><button id="rigGuideOpenAnimation" class="wide primary">Abrir timeline de animação</button><small id="rigGuideFrames">Nenhuma pose salva ainda.</small></div></div>
+<div class="hint rig-guide-note"><strong>Importante:</strong> o esqueleto visual é uma estrutura de articulação para criar poses. Ele não deforma automaticamente uma malha que ainda não tenha skinning associado. Conectar um esqueleto nativo preserva o skinning existente.</div>
+</div>
+<div class="section"><h2>FERRAMENTAS AVANÇADAS DO ESQUELETO</h2>
+<p class="hint">Use estas ferramentas quando precisar personalizar a hierarquia. Para começar, prefira o assistente acima.</p>
 <label for="rigPreset">Preset inicial</label><select id="rigPreset"><option value="feline">Felino / quadrúpede</option><option value="biped">Bípede</option><option value="bird">Ave</option><option value="dragon">Dragão / criatura alada</option></select>
-<div class="grid"><button id="rigCreatePreset" class="primary">Criar preset visual</button><button id="rigAdoptSkeleton">Conectar esqueleto nativo</button><button id="rigAddBone">＋ Adicionar osso</button><button id="rigPlaceBone">＋ Posicionar osso no modelo</button><button id="rigMirrorBone">Espelhar osso</button><button id="rigDeleteBone">Excluir osso</button></div>
+<div class="grid"><button id="rigCreatePreset" class="primary">Criar esqueleto inicial</button><button id="rigAdoptSkeleton">Usar esqueleto do modelo</button><button id="rigAddBone">＋ Adicionar osso</button><button id="rigPlaceBone">＋ Posicionar osso no modelo</button><button id="rigMirrorBone">Espelhar osso</button><button id="rigDeleteBone">Excluir osso</button></div>
 <label for="rigBoneName">Nome do osso selecionado</label><input id="rigBoneName" placeholder="Ex.: Femur_D">
 <div class="grid"><button id="rigRenameBone">Renomear</button><button id="rigRotateMode">Girar osso</button><button id="rigMoveMode">Mover osso</button><button id="rigClear">Remover rig</button><button id="rigToggleVisual" class="wide">Ocultar silhueta</button></div>
 <div class="hint" id="rigBoneCount">0 ossos</div><div id="rigBoneList" class="part-list"></div>
-<button id="rigSaveJson" class="wide">Exportar hierarquia (.JSON)</button><button id="rigImportJson" class="wide">Importar hierarquia (.JSON)</button><input id="rigImportFile" type="file" accept=".json,application/json" hidden><div id="rigStudioStatus" class="status">Rig Studio pronto.</div><div id="rigBindingStatus" class="hint">Selecione um modelo para inspecionar suas malhas e esqueletos existentes.</div><div class="section"><h2>DIAGNÓSTICO DE SKINNING</h2><p class="hint">Analisa os pesos existentes por osso, sem alterar vértices, geometria ou animações.</p><button id="rigInspectWeights" class="wide">Analisar influências dos ossos</button><div id="rigWeightStatus" class="hint">Conecte um esqueleto nativo para inspecionar as influências existentes.</div><label for="rigWeightBoneSelect">Osso para visualizar / pintar</label><select id="rigWeightBoneSelect"></select><button id="rigWeightViewToggle" class="wide">Mostrar influência na malha</button><div id="rigWeightViewStatus" class="hint">Selecione um osso e ative a visualização por cores.</div><div class="section"><h3>PINTURA MANUAL DE PESOS</h3><p class="hint">Edite em sessão temporária. Clique na superfície da malha para pintar; confirme para manter ou cancele para restaurar os pesos originais.</p><label for="rigWeightPaintMode">Ferramenta</label><select id="rigWeightPaintMode"><option value="add">Pincel — adicionar influência</option><option value="erase">Borracha — remover influência</option></select><label for="rigWeightBrushSize">Raio do pincel</label><input id="rigWeightBrushSize" type="range" min="0.02" max="1.5" step="0.01" value="0.22"><label for="rigWeightBrushStrength">Intensidade</label><input id="rigWeightBrushStrength" type="range" min="0.01" max="0.95" step="0.01" value="0.25"><div class="grid"><button id="rigWeightPaintStart" class="primary">Iniciar pintura</button><button id="rigWeightPaintCancel">Cancelar / restaurar</button><button id="rigWeightPaintUndo">Desfazer</button><button id="rigWeightPaintRedo">Refazer</button></div><div id="rigWeightPaintStatus" class="hint">A pintura não altera nada até iniciar uma sessão.</div></div></div>
+<button id="rigSaveJson" class="wide">Salvar esqueleto (.JSON)</button><button id="rigImportJson" class="wide">Importar hierarquia (.JSON)</button><input id="rigImportFile" type="file" accept=".json,application/json" hidden><div id="rigStudioStatus" class="status">Rig Studio pronto.</div><div id="rigBindingStatus" class="hint">Selecione um modelo para inspecionar suas malhas e esqueletos existentes.</div><div class="section"><h2>DIAGNÓSTICO DE SKINNING</h2><p class="hint">Analisa os pesos existentes por osso, sem alterar vértices, geometria ou animações.</p><button id="rigInspectWeights" class="wide">Analisar influências dos ossos</button><div id="rigWeightStatus" class="hint">Conecte um esqueleto nativo para inspecionar as influências existentes.</div><label for="rigWeightBoneSelect">Osso para visualizar / pintar</label><select id="rigWeightBoneSelect"></select><button id="rigWeightViewToggle" class="wide">Mostrar influência na malha</button><div id="rigWeightViewStatus" class="hint">Selecione um osso e ative a visualização por cores.</div><div class="section"><h3>PINTURA MANUAL DE PESOS</h3><p class="hint">Edite em sessão temporária. Clique na superfície da malha para pintar; confirme para manter ou cancele para restaurar os pesos originais.</p><label for="rigWeightPaintMode">Ferramenta</label><select id="rigWeightPaintMode"><option value="add">Pincel — adicionar influência</option><option value="erase">Borracha — remover influência</option></select><label for="rigWeightBrushSize">Raio do pincel</label><input id="rigWeightBrushSize" type="range" min="0.02" max="1.5" step="0.01" value="0.22"><label for="rigWeightBrushStrength">Intensidade</label><input id="rigWeightBrushStrength" type="range" min="0.01" max="0.95" step="0.01" value="0.25"><div class="grid"><button id="rigWeightPaintStart" class="primary">Iniciar pintura</button><button id="rigWeightPaintCancel">Cancelar / restaurar</button><button id="rigWeightPaintUndo">Desfazer</button><button id="rigWeightPaintRedo">Refazer</button></div><div id="rigWeightPaintStatus" class="hint">A pintura não altera nada até iniciar uma sessão.</div></div></div>
 <div class="section" id="frameEditor" aria-label="Editor de frames e timeline">
 <div class="frame-dock-head"><div><strong>ANIMAÇÃO</strong><span id="frameCount">0 frames</span></div><button id="closeAnimationWorkspace" type="button" title="Fechar timeline">✕</button></div>
 <div class="frame-dock-actions">
-<button id="frameAdd" class="primary">＋ Salvar frame</button>
+<button id="frameAdd" class="primary">＋ Salvar pose (frame)</button>
 <button id="frameUpdate">Atualizar</button>
 <button id="frameDuplicate">Duplicar</button>
 <button id="frameDelete" disabled>Excluir</button>
@@ -203,7 +228,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 <button id="frameExport" type="button">Exportar poses</button>
 <input id="frameImportFile" type="file" accept=".json,application/json" hidden>
 </div>
-<div class="frame-timeline-title"><strong>OSSOS / FRAMES</strong><button id="timelineAddBone" type="button">＋ Adicionar osso</button><span id="timelineTime">00:00.00</span></div>
+<div class="frame-timeline-title"><strong>POSES POR FRAME</strong><span id="timelineTime">00:00.00</span></div>
 <div class="timeline-scroll"><div id="timelineCanvas" class="timeline-canvas">
 <div class="timeline-ruler"><div class="timeline-label">Tempo</div><div id="timelineRulerCells" class="timeline-ruler-cells"></div></div>
 <div id="timelineTracks" class="timeline-tracks"></div><div id="timelinePlayhead" class="timeline-playhead"></div>
@@ -2014,13 +2039,32 @@ renderer.domElement.addEventListener("pointercancel",finishPaintGesture);
 
 const frameManager=createFrameManager({getBones:()=>rigStudio.getState().bones,getSkeletonId:()=>rigStudio.getState().root?.userData.berofelSkeletonId||null,onPoseApplied:()=>{rigStudio.update();},onBoneSelected:bone=>rigStudio.selectBone(bone),onChange:frames=>{const el=$("frameStatus");if(el)el.textContent=frames.length?"Poses na timeline. Exporte o arquivo para guardar uma cópia.":"Crie um rig e salve a primeira pose.";}});
 $("frameStop")?.addEventListener("click",()=>{animMode="stop";});
-$("timelineAddBone")?.addEventListener("click",()=>{
- try{
-  if(!rigStudio.getState().root){$("frameStatus").textContent="Crie ou conecte um rig antes de adicionar ossos.";return;}
-  const bone=rigStudio.addBone();frameManager.refresh();
-  $("frameStatus").textContent="Osso "+(bone?.name||"novo")+" adicionado à timeline.";
- }catch(error){$("frameStatus").textContent=error.message||"Não foi possível adicionar o osso.";}
+
+function refreshRigGuide(){
+ const state=rigStudio.getState(),hasRig=!!state.root,bones=state.bones?.length||0,frames=frameManager.getFrames().length;
+ const selection=$("rigGuideSelection");if(selection)selection.textContent=selected?"Modelo selecionado: "+(selected.userData?.name||selected.name||"Objeto 3D")+".":"Nenhum modelo selecionado — clique no animal/objeto na área 3D.";
+ const rig=$("rigGuideRig");if(rig)rig.textContent=hasRig?"Esqueleto pronto: "+bones+" ossos.":"Aguardando criação do esqueleto.";
+ const boneStatus=$("rigGuideBones");if(boneStatus)boneStatus.textContent=hasRig?bones+" ossos na hierarquia. Selecione um osso para mover ou girar.":"Crie o esqueleto para liberar a edição dos ossos.";
+ const save=$("rigGuideSaveStatus");if(save)save.textContent=hasRig?"Esqueleto pronto para salvar.":"Crie o esqueleto antes de salvar.";
+ const frame=$("rigGuideFrames");if(frame)frame.textContent=frames?frames+" pose(s) salva(s).":"Nenhuma pose salva ainda.";
+ const add=$("rigGuideAddBone"),move=$("rigGuideMoveBone"),rotate=$("rigGuideRotateBone"),saveButton=$("rigGuideSave");
+ [add,move,rotate,saveButton].forEach(button=>{if(button)button.disabled=!hasRig;});
+}
+$("rigGuideCreate")?.addEventListener("click",()=>{
+ if(!selected){$("rigGuideSelection").textContent="Primeiro clique no animal/objeto na área 3D para selecioná-lo.";return;}
+ $("rigCreatePreset").click();refreshRigGuide();
 });
+$("rigGuideAddBone")?.addEventListener("click",()=>{$("rigAddBone").click();frameManager.refresh();refreshRigGuide();});
+$("rigGuideMoveBone")?.addEventListener("click",()=>{$("rigMoveMode").click();refreshRigGuide();});
+$("rigGuideRotateBone")?.addEventListener("click",()=>{$("rigRotateMode").click();refreshRigGuide();});
+$("rigGuideSave")?.addEventListener("click",()=>{$("rigSaveJson").click();refreshRigGuide();});
+$("rigGuideOpenAnimation")?.addEventListener("click",()=>{$("toggleAnimationWorkspace")?.click();$("frameStatus").textContent=rigStudio.getState().root?"Mova os ossos para a primeira pose e toque em “Salvar pose (frame)”.":"Crie o esqueleto primeiro no assistente acima.";refreshRigGuide();});
+["rigCreatePreset","rigAdoptSkeleton","rigAddBone","rigSaveJson","frameAdd","frameExport"].forEach(id=>$(id)?.addEventListener("click",()=>requestAnimationFrame(refreshRigGuide)));
+$("rigBoneList")?.addEventListener("click",()=>requestAnimationFrame(refreshRigGuide));
+$("viewport")?.addEventListener("pointerup",()=>requestAnimationFrame(refreshRigGuide));
+refreshRigGuide();
+
+
 
 const runtimeTaskFaults=new Set();
 function runProtectedRuntimeTask(key,label,task,onFailure=()=>{}){
