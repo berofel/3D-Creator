@@ -1581,20 +1581,27 @@ function validateProjectJson(data){
  for(const part of data.parts){
   if(!part||typeof part!=="object")throw new Error("O projeto contém uma peça inválida.");
   for(const key of ["position","scale"])if(part[key]!==undefined&&(!Array.isArray(part[key])||part[key].length!==3||!part[key].every(Number.isFinite)))throw new Error("Transformação inválida em "+(part.name||"peça")+".");
-  if(part.rotation!==undefined&&(!Array.isArray(part.rotation)||part.rotation.length!==4&&part.rotation.length!==3&&part.rotation.length!==4&&part.rotation.length!==4||!part.rotation.every(Number.isFinite)))throw new Error("Rotação inválida em "+(part.name||"peça")+".");
+  if(part.rotation!==undefined&&(!Array.isArray(part.rotation)||part.rotation.length<3||part.rotation.length>4||!part.rotation.slice(0,3).every(Number.isFinite)||(part.rotation.length===4&&typeof part.rotation[3]!=="string")))throw new Error("Rotação inválida em "+(part.name||"peça")+".");
   if(part.color!==undefined&&typeof part.color!=="string")throw new Error("Cor inválida em "+(part.name||"peça")+".");
  }
  if(data.rig){
   if(data.version!=="0.4"&&Number(data.version)!==0.4)throw new Error("Rigs exigem um projeto versão 0.4.");
   if(data.rig.format!=="BerofelRigStudio"||!Array.isArray(data.rig.bones)||!data.rig.bones.length||!data.parts.length)throw new Error("O projeto contém um rig sem hierarquia ou sem modelo associado.");
-  const ids=new Set(),known=new Set();
+  if(data.rig.skeletonId!==undefined&&data.rig.skeletonId!==null&&typeof data.rig.skeletonId!=="string")throw new Error("ID do esqueleto inválido.");
+  const ids=new Set(),known=new Set(),parents=new Map();
   for(const bone of data.rig.bones){
    if(!bone||typeof bone.name!=="string"||!bone.name.trim())throw new Error("O rig contém um osso sem nome.");
+   if(bone.id!==undefined&&typeof bone.id!=="string")throw new Error("ID de osso inválido.");
    const key=bone.id||bone.name;if(ids.has(key))throw new Error("O rig contém IDs de osso repetidos.");ids.add(key);known.add(key);
    for(const field of ["position","scale"])if(bone[field]!==undefined&&(!Array.isArray(bone[field])||bone[field].length!==3||!bone[field].every(Number.isFinite)))throw new Error("Transformação inválida no osso "+bone.name+".");
    if(bone.quaternion!==undefined&&(!Array.isArray(bone.quaternion)||bone.quaternion.length!==4||!bone.quaternion.every(Number.isFinite)||Math.hypot(...bone.quaternion)<1e-8))throw new Error("Quaternion inválido no osso "+bone.name+".");
+   parents.set(key,bone.parentId||bone.parent||null);
   }
-  for(const bone of data.rig.bones){const parent=bone.parentId||bone.parent;if(parent&&!known.has(parent))throw new Error("O osso "+bone.name+" aponta para um pai inexistente.");}
+  for(const [key,parent] of parents)if(parent&&!known.has(parent))throw new Error("O osso "+key+" aponta para um pai inexistente.");
+  for(const key of parents.keys()){
+   const visited=new Set();let cursor=key;
+   while(cursor){if(visited.has(cursor))throw new Error("A hierarquia do rig contém um ciclo.");visited.add(cursor);cursor=parents.get(cursor)||null;}
+  }
  }
  let motion=null;
  if(data.motionFrames){
