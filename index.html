@@ -205,6 +205,14 @@ body.workspace-mode-paint.paint-open #paintPanel:not([hidden]){display:block!imp
  .timeline-bone-actions button{padding:5px;font-size:10px}.frame-dock-actions{gap:4px}.frame-dock-actions button{padding:5px 6px;font-size:10px}
 }
 @media(max-width:380px){.brand{font-size:11px}.app-header .topbuttons button{padding:6px 5px;font-size:9px}#workspaceDock{flex-basis:245px}}
+
+/* Override the legacy floating-window rules for the fixed dock. */
+body.workspace-mode-paint.paint-open #paintPanel:not([hidden]),
+body.workspace-mode-animation.animation-open #frameEditor{
+ position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+ z-index:auto!important;width:100%!important;max-width:none!important;max-height:none!important;height:auto!important;
+ overflow:visible!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script>
