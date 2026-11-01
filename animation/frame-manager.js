@@ -287,8 +287,16 @@ export function createFrameManager({getBones,getSkeletonId,onPoseApplied=()=>{},
     if(!["linear","ease-in-out","catmull-rom"].includes(value))return;
     easing=value;persist();setStatus("Interpolação: "+({linear:"Linear","ease-in-out":"Ease-in-out","catmull-rom":"Catmull-Rom"}[easing])+".");
   }
-  function setLoop(value){loopPlayback=!!value;if(loopPlayback&&pingPongPlayback){}persist();}
-  function setPingPong(value){pingPongPlayback=!!value;if(pingPongPlayback)loopPlayback=true;persist();render();}
+  function setLoop(value){
+    loopPlayback=!!value;
+    if(!loopPlayback&&pingPongPlayback){pingPongPlayback=false;const ping=$("framePingPong");if(ping)ping.checked=false;}
+    persist();render();
+  }
+  function setPingPong(value){
+    pingPongPlayback=!!value;
+    if(pingPongPlayback){loopPlayback=true;const loop=$("frameLoop");if(loop)loop.checked=true;}
+    persist();render();
+  }
   function play(){
     if(frames.length<2){setStatus("Salve pelo menos dois frames para reproduzir a animação.");return;}
     if(playing){pause();return;}
