@@ -1290,29 +1290,59 @@ async function importJaguarGLB(file){
    const image=texture.image||texture.source?.data,width=image?.width||image?.naturalWidth||0,height=image?.height||image?.naturalHeight||0;
    if(width>8192||height>8192||width*height>64*1024*1024)warnings.push("Textura de resolução muito alta detectada ("+width+"×"+height+").");
   }
+  const jaguarMeshHierarchy=[];
+  if(isJaguarPreset)model.traverse(object=>{if(object.isMesh)jaguarMeshHierarchy.push({mesh:object,parent:object.parent,position:object.position.clone(),quaternion:object.quaternion.clone(),scale:object.scale.clone()});});
+  const restoreJaguarMeshHierarchy=()=>{
+   for(const item of jaguarMeshHierarchy){
+    if(item.parent)item.parent.add(item.mesh);
+    item.mesh.position.copy(item.position);item.mesh.quaternion.copy(item.quaternion);item.mesh.scale.copy(item.scale);
+    item.mesh.updateMatrix();item.mesh.updateMatrixWorld(true);
+   }
+   for(const child of [...wrapper.children])if(child.isBone)wrapper.remove(child);
+   wrapper.updateMatrixWorld(true);
+  };
   const previousRigBelongsToOldModel=previousRoots.some(root=>root===previousRig.target||root===previousRig.root||root===previousRig.root?.parent);
   const needsRigSwap=isJaguarPreset||previousRigBelongsToOldModel;
   if(needsRigSwap&&previousRig.root&&!previousRig.root.isBone)throw new Error("Há um rig manual ativo que não pode ser substituído automaticamente com segurança. Desconecte esse rig antes de importar outro GLB.");
-  if(isJaguarPreset){say("Preparando rig e poses sem remover o modelo atual…");importedRig=createImportedJaguarRig(wrapper,model);}
+  if(isJaguarPreset){
+   say("Preparando a onça; a exibição do modelo não dependerá do rig…");
+   try{importedRig=createImportedJaguarRig(wrapper,model);}
+   catch(rigBuildError){
+    restoreJaguarMeshHierarchy();importedRig=null;
+    warnings.push("O modelo foi preservado, mas a preparação automática do rig falhou: "+String(rigBuildError?.message||rigBuildError).slice(0,150));
+    console.error("Rig da onça não preparado; mantendo o GLB visível.",rigBuildError);
+   }
+  }
   scene.add(wrapper);sceneAttached=true;
   if(importedRig){
-   rigChanged=true;
-   rigStudio.adoptExternalRig(importedRig);
-   window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];
-   window.__berofelImportedJaguarRigs.push(importedRig);
-   frameManager.clearAll();
-   const base=importedRig.bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone(),scale:b.scale.clone()}));
-   for(let frame=0;frame<8;frame++){
-    for(const item of base){item.bone.position.copy(item.position);item.bone.quaternion.copy(item.quaternion);item.bone.scale.copy(item.scale);}
-    const phase=frame/8*Math.PI*2;
-    for(const leg of importedRig.legs){const p=phase+leg.phase+(leg.front?0:Math.PI*.18),swing=Math.sin(p),lift=Math.max(0,Math.sin(p+Math.PI*.15));leg.pivot.rotation.z+=swing*.30;leg.knee.rotation.z+=lift*.48;leg.ankle.rotation.z-=lift*.18;leg.paw.rotation.z-=swing*.18+lift*.30;}
-    importedRig.spine.rotation.z+=Math.sin(phase*2)*.018;importedRig.chest.rotation.z+=Math.sin(phase*2+.3)*.012;
-    importedRig.neck.rotation.z+=Math.sin(phase+.7)*.025;importedRig.head.rotation.z+=Math.sin(phase+.9)*.018;importedRig.tail.rotation.y+=Math.sin(phase-.5)*.11;
-    frameManager.add();
+   try{
+    rigChanged=true;
+    rigStudio.adoptExternalRig(importedRig);
+    window.__berofelImportedJaguarRigs=window.__berofelImportedJaguarRigs||[];
+    window.__berofelImportedJaguarRigs.push(importedRig);
+    frameManager.clearAll();
+    const base=importedRig.bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone(),scale:b.scale.clone()}));
+    for(let frame=0;frame<8;frame++){
+     for(const item of base){item.bone.position.copy(item.position);item.bone.quaternion.copy(item.quaternion);item.bone.scale.copy(item.scale);}
+     const phase=frame/8*Math.PI*2;
+     for(const leg of importedRig.legs){const p=phase+leg.phase+(leg.front?0:Math.PI*.18),swing=Math.sin(p),lift=Math.max(0,Math.sin(p+Math.PI*.15));leg.pivot.rotation.z+=swing*.30;leg.knee.rotation.z+=lift*.48;leg.ankle.rotation.z-=lift*.18;leg.paw.rotation.z-=swing*.18+lift*.30;}
+     importedRig.spine.rotation.z+=Math.sin(phase*2)*.018;importedRig.chest.rotation.z+=Math.sin(phase*2+.3)*.012;
+     importedRig.neck.rotation.z+=Math.sin(phase+.7)*.025;importedRig.head.rotation.z+=Math.sin(phase+.9)*.018;importedRig.tail.rotation.y+=Math.sin(phase-.5)*.11;
+     frameManager.add();
+    }
+    frameManager.seek(0);importedRig.manualPoseActive=true;
+    const frameStatus=document.getElementById("frameStatus");
+    if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
+   }catch(rigSetupError){
+    console.error("Falha ao conectar o rig da onça; mantendo o modelo visível.",rigSetupError);
+    if(previousRigBelongsToOldModel){try{rigStudio.clear();frameManager.clearAll()}catch(restoreError){console.error("Falha ao limpar o rig do modelo anterior.",restoreError);}}
+    else try{restorePreviousRig()}catch(restoreError){console.error("Falha ao restaurar o rig anterior.",restoreError);}
+    restoreJaguarMeshHierarchy();
+    if(importedRig.root?.parent)importedRig.root.parent.remove(importedRig.root);
+    window.__berofelImportedJaguarRigs=previousRigList.slice();
+    importedRig=null;rigChanged=false;
+    warnings.push("A onça foi importada, mas o rig automático não foi conectado: "+String(rigSetupError?.message||rigSetupError).slice(0,150));
    }
-   frameManager.seek(0);importedRig.manualPoseActive=true;
-   const frameStatus=document.getElementById("frameStatus");
-   if(frameStatus)frameStatus.textContent="Rig deduzido: "+importedRig.bones.length+" ossos e 8 frames gerados. Selecione um osso e ajuste cada pose.";
   }else if(previousRigBelongsToOldModel){
    rigChanged=true;rigStudio.clear();frameManager.clearAll();
   }
@@ -1924,7 +1954,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=281",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=283",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
