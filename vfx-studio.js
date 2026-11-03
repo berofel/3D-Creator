@@ -5,7 +5,7 @@ const EFFECTS = [
   ["Combate", "melee/claw-swipe", "Garras"],
   ["Combate", "melee/sword-slash", "Corte de espada"],
   ["Combate", "melee/double-slash", "Corte duplo"],
-  ["Combate", "impacts/critical-hit", "Impacto crítico"],
+  ["Combate", "impacts/crit-hit", "Impacto crítico"],
   ["Combate", "impacts/ground-slam", "Impacto no chão"],
   ["Combate", "moves/dash-strike", "Investida"],
   ["Combate", "moves/earth-stomp", "Pisada"],
@@ -22,7 +22,7 @@ const EFFECTS = [
   ["Gelo", "ice/ice-lance", "Lança de gelo"],
   ["Energia", "lightning/lightning-strike", "Raio"],
   ["Energia", "lightning/chain-lightning", "Raio encadeado"],
-  ["Energia", "sci-fi/force-field", "Campo de força"],
+  ["Energia", "scifi/force-field", "Campo de força"],
   ["Magia", "arcane/arcane-orb", "Orbe arcano"],
   ["Magia", "arcane/magic-circle-cast", "Círculo mágico"],
   ["Magia", "holy/heal", "Cura"],
@@ -32,8 +32,8 @@ const EFFECTS = [
   ["Criaturas", "critters/butterfly", "Borboleta"],
   ["Criaturas", "critters/bird", "Pássaro"],
   ["Interface", "pickups/gem-spin", "Cristal"],
-  ["Interface", "pickups/coin-collect", "Coletar moeda"],
-  ["Interface", "spawn-death/poof", "Desaparecer"]
+  ["Interface", "ui/coin-collect", "Coletar moeda"],
+  ["Interface", "spawn/poof", "Desaparecer"]
 ];
 const CDN = "https://esm.sh/gh/patch-gg/pixelfx@main/src/fx/";
 const $ = (id) => document.getElementById(id);
