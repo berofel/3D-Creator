@@ -39,7 +39,7 @@ const CDN = "https://esm.sh/gh/patch-gg/pixelfx@main/src/fx/";
 const $ = (id) => document.getElementById(id);
 
 export function createVfxStudio({ THREE, scene, getSelected, onStatus = () => {} }) {
-  let corePromise = null, activeModule = null, activeFx = null, frame = null;
+  let corePromise = null, apiRef = null, activeModule = null, activeFx = null, frame = null;
   let canvas = null, ctx = null, imageData = null, texture = null, sprite = null;
   let lastTime = 0, activeId = "", closed = true;
   const panel = document.createElement("section");
@@ -84,7 +84,7 @@ export function createVfxStudio({ THREE, scene, getSelected, onStatus = () => {}
     status.textContent = "Carregando " + id + "…";
     try {
       const [api, mod] = await Promise.all([core(), import(CDN + id + ".js")]);
-      activeModule = mod; activeId = id;
+      apiRef = api; activeModule = mod; activeId = id;
       const [w,h] = mod.meta?.size || [128,96];
       frame = api.createFrame(w,h,...(mod.meta?.origin || [0,0]));
       imageData = new ImageData(w,h);
@@ -107,8 +107,8 @@ export function createVfxStudio({ THREE, scene, getSelected, onStatus = () => {}
     if (texture) texture.needsUpdate = true;
   }
   function restart() {
-    if (!activeModule || !frame) return;
-    core().then(api => { const [w,h]=activeModule.meta?.size||[128,96]; activeFx=api.createFx(activeModule,{x:w/2,y:h/2}); lastTime=0; renderFrame(api); });
+    if (!activeModule || !frame || !apiRef) return;
+    const [w,h]=activeModule.meta?.size||[128,96]; activeFx=apiRef.createFx(activeModule,{x:w/2,y:h/2}); lastTime=0; renderFrame(apiRef);
   }
   function addToModel() {
     if (!activeModule || !frame) { status.textContent = "Escolha um efeito primeiro."; return; }
@@ -145,15 +145,11 @@ export function createVfxStudio({ THREE, scene, getSelected, onStatus = () => {}
   return {
     open, close, toggle(){closed?open():close();},
     update(dt) {
-      if (!activeFx || !frame || !ctx || closed) return;
-      const apiPromise = core();
-      apiPromise.then(async api => {
-        if (!activeFx || closed) return;
-        const step = Math.min(.05, Math.max(0, dt || 0));
-        activeFx.update(step);
-        await renderFrame(api);
-        if (sprite && texture) texture.needsUpdate = true;
-      }).catch(error=>{status.textContent="Erro na reprodução: "+String(error?.message||error).slice(0,150)});
+      if (!activeFx || !frame || !ctx || !apiRef || (closed && !sprite)) return;
+      const step = Math.min(.05, Math.max(0, dt || 0));
+      activeFx.update(step);
+      renderFrame(apiRef);
+      if (sprite && texture) texture.needsUpdate = true;
     },
     dispose(){clearSprite();panel.remove();style.remove();}
   };
