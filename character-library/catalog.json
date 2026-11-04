@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "library": "Berofel Character Library",
+  "styleTarget": "stylized-anime-chibi",
+  "notes": [
+    "Catalog entries describe upstream sources; binary assets are not copied into the repository in this foundation step.",
+    "Prefer CC0 assets for bundled character components.",
+    "Check the exact downloaded pack edition and preserve its license file before adding any asset."
+  ],
+  "sources": [
+    {
+      "id": "quaternius-universal-base-characters",
+      "name": "Quaternius Universal Base Characters",
+      "role": [
+        "humanoid-base",
+        "body-proportions",
+        "head",
+        "hair"
+      ],
+      "url": "https://quaternius.com/packs/universalbasecharacters.html",
+      "downloadUrl": "https://quaternius.itch.io/universal-base-characters",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "formats": [
+        "glTF",
+        "GLB",
+        "FBX",
+        "OBJ",
+        "Blend"
+      ],
+      "assets": [
+        "6 humanoid bases: teen, regular and superhero proportions; male and female",
+        "20 interchangeable hairstyles"
+      ],
+      "compatibility": "Humanoid rig; animation-friendly topology; intended for retargeting",
+      "status": "approved-source-for-prototype",
+      "restrictions": "The free Standard edition is sufficient for initial testing; verify the downloaded archive's included license."
+    },
+    {
+      "id": "quaternius-modular-character-outfits-fantasy",
+      "name": "Quaternius Modular Character Outfits - Fantasy",
+      "role": [
+        "clothing",
+        "modular-outfits",
+        "armor"
+      ],
+      "url": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+      "downloadUrl": "https://quaternius.itch.io/",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "formats": [
+        "glTF",
+        "FBX",
+        "OBJ",
+        "Blend"
+      ],
+      "assets": [
+        "12 outfits",
+        "62 modular parts",
+        "3 texture variations per outfit"
+      ],
+      "compatibility": "Designed to fit Universal Base Characters; humanoid rig",
+      "status": "approved-source-for-prototype",
+      "restrictions": "Keep the outfit pack's source license and compatibility notes with imported assets."
+    },
+    {
+      "id": "quaternius-universal-animation-library",
+      "name": "Quaternius Universal Animation Library",
+      "role": [
+        "humanoid-animation"
+      ],
+      "url": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "formats": [
+        "GLB",
+        "FBX",
+        "Blend"
+      ],
+      "assets": [
+        "120+ humanoid animations"
+      ],
+      "compatibility": "Universal humanoid rig; retargeting for Godot, Unity and Unreal",
+      "status": "approved-source-for-prototype"
+    },
+    {
+      "id": "sprite-sheet-maker",
+      "name": "Sprite Sheet Maker",
+      "role": [
+        "3d-to-2d",
+        "sprite-export"
+      ],
+      "url": "https://github.com/ManasMakde/SpriteSheetMaker",
+      "license": "GPL-3.0-or-later",
+      "licenseUrl": "https://github.com/ManasMakde/SpriteSheetMaker/blob/main/LICENSE",
+      "formats": [
+        "PNG sprite sheets",
+        "PNG strips",
+        "individual images"
+      ],
+      "assets": [
+        "Blender add-on; pixelation; orthographic and perspective camera; reusable modules"
+      ],
+      "compatibility": "Blender add-on; can be used as a separate Blender-side conversion tool",
+      "status": "study-and-adapt-only",
+      "restrictions": "Do not copy GPL code into the editor unless the repository's distribution/licensing strategy is intentionally made GPL-compatible. Prefer running it as a separate tool or implement a clean adapter."
+    },
+    {
+      "id": "mpfb",
+      "name": "MPFB / MakeHuman",
+      "role": [
+        "humanoid-generator",
+        "morphology",
+        "rigging",
+        "asset-library"
+      ],
+      "url": "https://github.com/makehumancommunity/mpfb2",
+      "license": "GPL-3.0-or-later-code; bundled assets have separate licenses",
+      "licenseUrl": "https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.md",
+      "formats": [
+        "Blend",
+        "GLB/glTF via Blender export"
+      ],
+      "assets": [
+        "Parametric humanoid generation",
+        "body morphs",
+        "automatic rigging",
+        "clothing and body-part asset library"
+      ],
+      "compatibility": "Blender extension; build-time pipeline rather than browser runtime",
+      "status": "study-and-adapt-only",
+      "restrictions": "Audit each asset license separately. The generator code is GPL-3.0-or-later."
+    },
+    {
+      "id": "charactercreator-kblood",
+      "name": "CharacterCreator (kblood)",
+      "role": [
+        "reference-architecture",
+        "humanoid-pipeline",
+        "threejs-viewer"
+      ],
+      "url": "https://github.com/kblood/CharacterCreator",
+      "license": "GPL-3.0-or-later (repository license changed from MIT on 2026-10-03; check LICENSE-NOTES.md)",
+      "licenseUrl": "https://github.com/kblood/CharacterCreator/blob/master/LICENSE",
+      "formats": [
+        "GLB",
+        "JSON sidecars"
+      ],
+      "assets": [
+        "Blender/MPFB build pipeline",
+        "Three.js viewer",
+        "morph targets",
+        "modular hair and clothing",
+        "humanoid skeleton and animation"
+      ],
+      "compatibility": "Very close architectural reference for a Blender-to-GLB-to-Three.js bridge",
+      "status": "reference-only-no-code-copy",
+      "restrictions": "Generated output assets have separately documented CC0 provenance; do not copy project source code without reviewing GPL obligations."
+    },
+    {
+      "id": "charmorph",
+      "name": "CharMorph",
+      "role": [
+        "morphology",
+        "modular-character-creation"
+      ],
+      "url": "https://blendercharacterproject.org/docs/html/",
+      "license": "Must be verified from upstream license files before integration",
+      "formats": [
+        "Blend"
+      ],
+      "assets": [
+        "Modular character creation designed for humanoids, animals and other morphologies"
+      ],
+      "compatibility": "Blender add-on",
+      "status": "research-pending",
+      "restrictions": "No code or assets should be copied until the exact source and asset licenses are audited."
+    }
+  ]
+}
