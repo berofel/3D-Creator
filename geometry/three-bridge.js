@@ -16,6 +16,9 @@ import { createDepthProfile } from "./depth-engine.js";
 import { mirrorReferenceMask } from "./symmetry-engine.js";
 import { processReferenceImage } from "./sculpt-pipeline.js";
 import { extractReferenceParts } from "./reference-parts.js";
+import { cubicBezier, catmullRom, sampleCurve } from "./parametric-curves.js";
+import { sampleParametricSurface, parametricSphere, parametricTorus } from "./parametric-surfaces.js";
+import { identityMatrix4, multiplyMatrix4, composeTransform, transformPoint3, transformPositions } from "./geometry-transform.js";
 
 export function createThreeGeometryBridge(THREE) {
   if (!THREE?.BufferGeometry || !THREE?.Float32BufferAttribute) {
