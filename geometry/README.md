@@ -41,3 +41,11 @@ const geometry = engine.voxelGeometry(result.voxelField);
 ```
 
 Para fontes HTMLImageElement, ImageBitmap ou canvas, use primeiro `await engine.readReferenceImage(source)`. A etapa de criação de objeto Three.js e inclusão na cena permanece explícita e sob controle do chamador.
+
+
+## Parametric geometry core
+
+- `parametric-curves.js`: cubic Bézier, Catmull-Rom and deterministic curve sampling.
+- `parametric-surfaces.js`: generic UV surface sampling plus sphere and torus presets; outputs positions, normals, UVs and triangle indices.
+- `geometry-transform.js`: column-major 4×4 matrix composition, multiplication and point/vertex transforms.
+- The Three.js bridge exposes these helpers and converts sampled surfaces through `parametricGeometry(data)`. No helper inserts objects into the scene automatically.
