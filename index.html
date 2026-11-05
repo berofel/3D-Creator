@@ -2130,7 +2130,7 @@ async function processReferenceForSculpt(){
  const max=128,scale=Math.min(max/img.naturalWidth,max/img.naturalHeight,1),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
  const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
  const imageData=ctx.getImageData(0,0,w,h);
- const result=geometryEngine.processReferenceImage(imageData,{mask:{mode:"auto",tolerance:Number($("referenceTolerance").value),keepLargest:true,minComponentArea:Math.max(2,Math.floor(w*h*.0005)),morphology:[{op:"close",radius:1}]},symmetry:{enabled:$("referenceSymmetry").checked,axis:"vertical"},depth:{depth:Number($("referenceDepth").value)*.1,cellSize:.1,axis:"z",centered:true},color:"#8fa8a4"});
+ const result=geometryEngine.processReferenceImage(imageData,{mask:{mode:"auto",tolerance:Number($("referenceTolerance").value),keepLargest:true,minComponentArea:Math.max(2,Math.floor(w*h*.0005)),morphology:[{op:"close",radius:1}]},symmetry:{enabled:$("referenceSymmetry").checked,axis:"x"},depth:{depth:Number($("referenceDepth").value)*.1,cellSize:.1,axis:"z",centered:true},color:"#8fa8a4"});
  referenceSculptState.processed=result;return result;
 }
 $("referenceShowContour")?.addEventListener("click",async()=>{
