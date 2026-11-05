@@ -92,5 +92,6 @@ test("full reference pipeline creates contours, voxels and SDF without scene mut
   const image=rgba(3,3,(x,y)=>x===0&&y===1?[255,0,0,255]:[0,0,0,0]);
   const result=processReferenceImage(image,{depth:{depth:2,cellSize:1},symmetry:{enabled:true}});
   assert.equal(result.stats.foregroundPixels,2);assert.equal(result.stats.voxelCount,4);
-  assert.equal(result.stats.contourCount,2);assert.ok(result.sdf([.5,1.5,.5])<0);
+  assert.equal(result.stats.contourCount,2);assert.equal(result.stats.depthCells,2);
+  assert.equal(result.voxelField.origin[2],-1);assert.ok(result.sdf([.5,1.5,.5])<0);
 });
