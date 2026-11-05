@@ -207,7 +207,7 @@ body.viewport-focus .side{display:none}body.viewport-focus .layout{grid-template
 </aside></div>
 <script type="module">
 import * as THREE from "three";
-import {createThreeGeometryBridge} from "./geometry/three-bridge.js?v=3";
+import {createThreeGeometryBridge} from "./geometry/three-bridge.js?v=4";
 import {createRigStudio} from "./rig-studio.js?v=5";
 import {createFrameManager} from "./animation/frame-manager.js?v=6";
 import {createPaintStudio} from "./paint-studio.js?v=2";
@@ -2018,7 +2018,7 @@ function loop(){requestAnimationFrame(loop);if(renderFault)return;try{const pain
 if(new URLSearchParams(location.search).get("model")==="jaguar"){
  requestAnimationFrame(()=>loadGitHubModel("Animais","nc_a.glb"));
 }
-if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=283",{updateViaCache:"none"}).catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js?v=287",{updateViaCache:"none"}).catch(()=>{});
 // A biblioteca é carregada automaticamente ao abrir o editor.
 requestAnimationFrame(()=>refreshGitHubLibrary());
 // Ações da nova barra superior: reutilizam os fluxos existentes sem duplicar o motor.
