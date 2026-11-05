@@ -111,9 +111,10 @@ export function extractReferenceMask(image, options={}) {
   const filtered=componentFilter(mask,width,height,Math.max(1,Math.floor(options.minComponentArea??1)),!!options.keepLargest);
   const metrics=measure(filtered.mask,width,height);
   return {
-    mask:filtered.mask,width,height,bounds:metrics.bounds,area:metrics.area,
+    mask:filtered.mask,width,height,bounds:metrics.bounds,area:metrics.area,components:filtered.components,
     stats:{totalPixels:total,foregroundPixels:metrics.area,foregroundRatio:metrics.area/total,
-      components:filtered.components,keptComponents:filtered.kept},
+      components:filtered.components.map(({pixelIndices,...component})=>component),
+      detectedComponents:filtered.components.length,keptComponents:filtered.kept,discardedComponents:filtered.discarded},
     method:selectedMode,parameters:{alphaThreshold,tolerance:options.tolerance??24,
       backgroundColor:background,threshold:options.threshold??127,invert:!!options.invert,
       minComponentArea:options.minComponentArea??1,keepLargest:!!options.keepLargest,
