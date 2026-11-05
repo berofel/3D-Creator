@@ -19,9 +19,12 @@ export function processReferenceImage(image,options={}) {
     : extracted.mask;
   const contours=extractMaskContours(mask,normalized.width,normalized.height);
   const depth=createDepthProfile(options.depth??{});
+  const depthCells=Math.max(1,Math.round(depth.depth/depth.cellSize));
+  const voxelOrigin=[...depth.origin];
+  if(depth.centered){const axisIndex={x:0,y:1,z:2}[depth.axis];voxelOrigin[axisIndex]-=depthCells*depth.cellSize/2;}
   const voxelField=voxelFieldFromMask(mask,normalized.width,normalized.height,{
-    depth:Math.max(1,Math.round(depth.depth/depth.cellSize)),
-    cellSize:depth.cellSize,origin:depth.origin,depthAxis:depth.axis,
+    depth:depthCells,
+    cellSize:depth.cellSize,origin:voxelOrigin,depthAxis:depth.axis,
     mirrorX:false,color:options.color??"#a0a0a0"
   });
   const sdf=sdfFromVoxelField(voxelField);
@@ -29,6 +32,6 @@ export function processReferenceImage(image,options={}) {
     image:{width:normalized.width,height:normalized.height},
     mask:{...extracted,mask},
     contours,depth,voxelField,sdf,
-    stats:{foregroundPixels:mask.reduce((n,v)=>n+(v?1:0),0),contourCount:contours.count,voxelCount:voxelField.size}
+    stats:{foregroundPixels:mask.reduce((n,v)=>n+(v?1:0),0),contourCount:contours.count,voxelCount:voxelField.size,depthCells}
   };
 }
