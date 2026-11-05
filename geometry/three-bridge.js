@@ -9,6 +9,12 @@ import {
   sdfFromVoxelField, extractSdfSurface
 } from "./sdf-field.js";
 import { createVoxelSilhouette, createSdfFromVoxelSilhouette, joinOrganicParts } from "./reference-sculpt.js";
+import { normalizeReferenceImage, readReferenceImage } from "./reference-image.js";
+import { extractReferenceMask } from "./reference-mask.js";
+import { extractMaskContours } from "./contour-engine.js";
+import { createDepthProfile } from "./depth-engine.js";
+import { mirrorReferenceMask } from "./symmetry-engine.js";
+import { processReferenceImage } from "./sculpt-pipeline.js";
 
 export function createThreeGeometryBridge(THREE) {
   if (!THREE?.BufferGeometry || !THREE?.Float32BufferAttribute) {
@@ -50,6 +56,8 @@ export function createThreeGeometryBridge(THREE) {
     voxelFieldFromMask,
     createVoxelSilhouette,
     createSdfFromVoxelSilhouette,
+    normalizeReferenceImage, readReferenceImage, extractReferenceMask,
+    extractMaskContours, createDepthProfile, mirrorReferenceMask, processReferenceImage,
     sdfSphere, sdfBox, sdfCapsule, sdfCylinderY,
     sdfUnion, sdfSubtract, sdfIntersect, sdfSmoothUnion, sdfSmoothSubtract,
     sdfFromVoxelField,
