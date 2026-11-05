@@ -2146,7 +2146,7 @@ $("referenceBuildVoxel")?.addEventListener("click",async()=>{
   const geometry=geometryEngine.voxelGeometry(result.voxelField);
   const material=new THREE.MeshStandardMaterial({color:"#8fa8a4",roughness:.82,metalness:.04});
   const mesh=new THREE.Mesh(geometry,material);mesh.name="Escultura_Referencia_Voxel";mesh.userData.berofelElementRoot=true;mesh.userData.referenceSculpt=true;
-  const maxDim=Math.max(result.image.width,result.image.height),scale=6/maxDim;mesh.scale.set(scale,scale,scale);mesh.position.set(0,0,0);
+  mesh.scale.setScalar(.45);mesh.position.set(0,0,0);
   scene.add(mesh);elementRoots.push(mesh);parts.push(mesh);
   if(referenceSculptState.mesh){scene.remove(referenceSculptState.mesh);elementRoots=elementRoots.filter(x=>x!==referenceSculptState.mesh);parts=parts.filter(x=>x!==referenceSculptState.mesh);referenceSculptState.mesh.geometry.dispose();referenceSculptState.mesh.material.dispose();}
   referenceSculptState.mesh=mesh;renderParts();fit();
