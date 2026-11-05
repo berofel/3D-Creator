@@ -70,10 +70,10 @@ test("luminance mode and component filtering remove isolated noise",()=>{
   const result=extractReferenceMask(image,{mode:"luminance",threshold:100,minComponentArea:2});
   assert.equal(result.area,3);assert.equal(result.mask[7],0);
 });
-test("mask morphology can close a one-pixel gap",()=>{
-  const image=rgba(3,1,(x)=>x===0||x===2?[0,0,0,255]:[255,255,255,255]);
-  const result=extractReferenceMask(image,{mode:"luminance",threshold:100,morphology:[{op:"close",radius:1}]});
-  assert.equal(result.area,3);
+test("mask morphology dilation expands a subject deterministically",()=>{
+  const image=rgba(5,5,(x,y)=>x===2&&y===2?[0,0,0,255]:[255,255,255,255]);
+  const result=extractReferenceMask(image,{mode:"luminance",threshold:100,morphology:[{op:"dilate",radius:1}]});
+  assert.equal(result.area,5);
 });
 test("contour engine returns closed boundary loops",()=>{
   const result=extractMaskContours(new Uint8Array([1]),1,1);
@@ -89,8 +89,8 @@ test("symmetry mirrors pixels around the center line",()=>{
   assert.deepEqual([...mirrorReferenceMask(new Uint8Array([1,0,0,0]),4,1)],[1,0,0,1]);
 });
 test("full reference pipeline creates contours, voxels and SDF without scene mutation",()=>{
-  const image=rgba(3,3,(x,y)=>x===1&&y===1?[255,0,0,255]:[0,0,0,0]);
+  const image=rgba(3,3,(x,y)=>x===0&&y===1?[255,0,0,255]:[0,0,0,0]);
   const result=processReferenceImage(image,{depth:{depth:2,cellSize:1},symmetry:{enabled:true}});
   assert.equal(result.stats.foregroundPixels,2);assert.equal(result.stats.voxelCount,4);
-  assert.equal(result.stats.contourCount,1);assert.ok(result.sdf([1.5,1.5,.5])<0);
+  assert.equal(result.stats.contourCount,2);assert.ok(result.sdf([.5,1.5,.5])<0);
 });
