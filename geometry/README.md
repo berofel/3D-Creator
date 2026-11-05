@@ -21,3 +21,22 @@ These modules deliberately do not import Three.js or modify the editor UI. A lat
 - `sculpt-pipeline.js`: coordinates image → mask → contour → symmetry/depth → voxel field → SDF.
 
 The initial depth is an explicit modeling parameter: a single side-view image cannot uniquely reveal true body width or hidden anatomy. The pipeline returns geometry data only and does not add objects to the editor scene.
+
+## Uso programático
+
+O editor expõe o motor em `window.__berofelGeometryEngine`. Com uma fonte já convertida para `ImageData`:
+
+```js
+const engine = window.__berofelGeometryEngine;
+const result = engine.processReferenceImage(imageData, {
+  mask: { mode: "auto", minComponentArea: 8 },
+  symmetry: { enabled: true, axis: "x" },
+  depth: { depth: 12, cellSize: 1, axis: "z", centered: true },
+  color: "#9b8b72"
+});
+
+// Dados prontos para inspeção ou conversão; nada é adicionado à cena.
+const geometry = engine.voxelGeometry(result.voxelField);
+```
+
+Para fontes HTMLImageElement, ImageBitmap ou canvas, use primeiro `await engine.readReferenceImage(source)`. A etapa de criação de objeto Three.js e inclusão na cena permanece explícita e sob controle do chamador.
