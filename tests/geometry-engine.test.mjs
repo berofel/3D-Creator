@@ -122,3 +122,41 @@ test("modular reconstruction preserves small parts as independent voxel and SDF 
   assert.equal(typeof result.parts[0].sdf,"function");
   assert.equal(result.parts[0].local.contours.count,1);
 });
+
+
+import { cubicBezier, catmullRom, sampleCurve } from "../geometry/parametric-curves.js";
+import { sampleParametricSurface, parametricSphere, parametricTorus } from "../geometry/parametric-surfaces.js";
+import { identityMatrix4, composeTransform, transformPoint3, transformPositions } from "../geometry/geometry-transform.js";
+
+test("cubic Bézier interpolates endpoints and midpoint",()=>{
+  const p=[[0,0,0],[1,0,0],[2,1,0],[3,1,0]];
+  assert.deepEqual(cubicBezier(p,0),p[0]);assert.deepEqual(cubicBezier(p,1),p[3]);
+  const mid=cubicBezier(p,.5);assert.ok(Math.abs(mid[0]-1.5)<1e-9);assert.ok(Math.abs(mid[1]-.5)<1e-9);
+});
+test("Catmull-Rom passes through endpoints and samples a smooth path",()=>{
+  const p=[[0,0,0],[1,1,0],[2,0,0]];
+  assert.deepEqual(catmullRom(p,0),p[0]);assert.deepEqual(catmullRom(p,1),p[2]);
+  assert.ok(catmullRom(p,.5)[1]>.4);
+});
+test("curve sampler returns finite XYZ vertices",()=>{
+  const data=sampleCurve(t=>[t,t*t,0],8);assert.equal(data.length,27);assert.ok([...data].every(Number.isFinite));
+});
+test("parametric surface sampler creates indexed grid and finite normals",()=>{
+  const m=sampleParametricSurface((u,v)=>[u,v,0],{uSegments:4,vSegments:3,uRange:[0,1],vRange:[0,1]});
+  assert.equal(m.vertexCount,20);assert.equal(m.triangleCount,24);assert.equal(m.indices.length,72);
+  assert.ok([...m.positions,...m.normals,...m.uvs].every(Number.isFinite));
+});
+test("parametric sphere and torus generate valid meshes",()=>{
+  const sphere=parametricSphere({radius:2,uSegments:12,vSegments:8}),torus=parametricTorus({majorRadius:2,minorRadius:.5,uSegments:12,vSegments:8});
+  assert.equal(sphere.vertexCount,13*9);assert.equal(torus.triangleCount,12*8*2);
+  assert.ok([...sphere.positions,...torus.positions].every(Number.isFinite));
+});
+test("transform composition applies scale and translation",()=>{
+  const matrix=composeTransform({translation:[3,4,5],scale:[2,2,2]});
+  assert.deepEqual(transformPoint3([1,1,1],matrix),[5,6,7]);
+  assert.deepEqual(transformPoint3([2,3,4],identityMatrix4()),[2,3,4]);
+});
+test("position transform returns a new typed array",()=>{
+  const source=new Float32Array([0,0,0,1,1,1]),out=transformPositions(source,composeTransform({translation:[1,0,0]}));
+  assert.deepEqual([...out],[1,0,0,2,1,1]);assert.deepEqual([...source],[0,0,0,1,1,1]);
+});
