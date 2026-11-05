@@ -36,3 +36,61 @@ test("reference helpers expose voxel and SDF representations",()=>{
   const r=createSdfFromVoxelSilhouette(new Uint8Array([1]),1,1,{depth:2});
   assert.equal(r.voxelField.size,2);assert.ok(r.sdf([.5,.5,.5])<0);assert.deepEqual(sidePixelToModel(0,0,3,3),[-1,1,0]);
 });
+
+import { normalizeReferenceImage } from "../geometry/reference-image.js";
+import { extractReferenceMask } from "../geometry/reference-mask.js";
+import { extractMaskContours } from "../geometry/contour-engine.js";
+import { createDepthProfile } from "../geometry/depth-engine.js";
+import { mirrorReferenceMask } from "../geometry/symmetry-engine.js";
+import { processReferenceImage } from "../geometry/sculpt-pipeline.js";
+
+function rgba(width,height,paint) {
+  const data=new Uint8ClampedArray(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    const p=paint(x,y),i=(y*width+x)*4;data.set(p,i);
+  }
+  return {width,height,data};
+}
+test("reference image normalization copies RGBA data",()=>{
+  const source=rgba(1,1,()=>[10,20,30,255]),normalized=normalizeReferenceImage(source);
+  source.data[0]=99;assert.equal(normalized.data[0],10);assert.equal(normalized.width,1);
+});
+test("alpha mask detects transparent background",()=>{
+  const image=rgba(3,3,(x,y)=>x===1&&y===1?[255,0,0,255]:[0,0,0,0]);
+  const result=extractReferenceMask(image);
+  assert.equal(result.method,"alpha");assert.equal(result.area,1);assert.equal(result.mask[4],1);
+});
+test("uniform background flood fill isolates enclosed subject",()=>{
+  const image=rgba(5,5,(x,y)=>x>=1&&x<=3&&y>=1&&y<=3?[220,40,30,255]:[255,255,255,255]);
+  const result=extractReferenceMask(image,{mode:"background",tolerance:5});
+  assert.equal(result.area,9);assert.deepEqual(result.bounds,{minX:1,minY:1,maxX:3,maxY:3,width:3,height:3});
+});
+test("luminance mode and component filtering remove isolated noise",()=>{
+  const image=rgba(4,2,(x,y)=>x===0&&y===0||x===1&&y===0||x===2&&y===0?[0,0,0,255]:[255,255,255,255]);
+  const result=extractReferenceMask(image,{mode:"luminance",threshold:100,minComponentArea:2});
+  assert.equal(result.area,3);assert.equal(result.mask[7],0);
+});
+test("mask morphology can close a one-pixel gap",()=>{
+  const image=rgba(3,1,(x)=>x===0||x===2?[0,0,0,255]:[255,255,255,255]);
+  const result=extractReferenceMask(image,{mode:"luminance",threshold:100,morphology:[{op:"close",radius:1}]});
+  assert.equal(result.area,3);
+});
+test("contour engine returns closed boundary loops",()=>{
+  const result=extractMaskContours(new Uint8Array([1]),1,1);
+  assert.equal(result.count,1);assert.equal(result.contours[0].closed,true);
+  assert.equal(result.contours[0].points.length,5);
+});
+test("depth profile validates and preserves axis parameters",()=>{
+  assert.deepEqual(createDepthProfile({depth:4,cellSize:.5,axis:"x"}),{
+    depth:4,cellSize:.5,axis:"x",centered:true,origin:[0,0,0],source:"single-view-estimated-depth"
+  });
+});
+test("symmetry mirrors pixels around the center line",()=>{
+  assert.deepEqual([...mirrorReferenceMask(new Uint8Array([1,0,0,0]),4,1)],[1,0,0,1]);
+});
+test("full reference pipeline creates contours, voxels and SDF without scene mutation",()=>{
+  const image=rgba(3,3,(x,y)=>x===1&&y===1?[255,0,0,255]:[0,0,0,0]);
+  const result=processReferenceImage(image,{depth:{depth:2,cellSize:1},symmetry:{enabled:true}});
+  assert.equal(result.stats.foregroundPixels,2);assert.equal(result.stats.voxelCount,4);
+  assert.equal(result.stats.contourCount,1);assert.ok(result.sdf([1.5,1.5,.5])<0);
+});
