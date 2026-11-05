@@ -16,7 +16,7 @@ export function sampleParametricSurface(evaluate,{uSegments=32,vSegments=16,uRan
     if(length<1e-10)n=[0,1,0];else n=n.map(x=>x/length);
     const id=j*cols+i;positions.set(p,id*3);normals.set(n,id*3);uvs.set([i/uSegments,j/vSegments],id*2);
   }
-  let k=0;for(let j=0;j<vSegments;j++)for(let i=0;i<uSegments;i++){const a=j*cols+i,b=a+1,c=a+cols,d=c+1;indices.set([a,c,b,b,c,d],k);k+=6;}
+  let k=0;for(let j=0;j<vSegments;j++)for(let i=0;i<uSegments;i++){const a=j*cols+i,b=a+1,c=a+cols,d=c+1;indices.set([a,b,c,b,d,c],k);k+=6;}
   return {positions,normals,uvs,indices,vertexCount:cols*rows,triangleCount:indices.length/3,parameters:{uSegments,vSegments,uRange:ur,vRange:vr,closedU,closedV}};
 }
 export function parametricSphere({radius=1,center=[0,0,0],uSegments=32,vSegments=20}={}){
