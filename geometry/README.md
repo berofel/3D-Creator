@@ -14,7 +14,8 @@ These modules deliberately do not import Three.js or modify the editor UI. A lat
 ## Reference shape engine
 
 - `reference-image.js`: normalizes RGBA input and can read browser image/canvas sources.
-- `reference-mask.js`: deterministic alpha, flat-background flood-fill and luminance extraction, connected-component filtering, and optional morphology.
+- `reference-mask.js`: deterministic alpha, flat-background flood-fill and luminance extraction, stable connected-component IDs, per-component bounds/centroids/pixel indices, and optional morphology.
+- `reference-parts.js`: keeps disconnected regions independent and builds a local mask, contours, voxel volume and SDF for each region. Small regions are retained unless the caller explicitly sets a minimum component area.
 - `contour-engine.js`: extracts closed pixel-boundary loops, including holes.
 - `depth-engine.js`: describes the initial single-view depth extrusion.
 - `symmetry-engine.js`: mirrors a binary mask around its vertical center.
