@@ -27,10 +27,10 @@ export function extractReferenceParts(image, options = {}) {
       const depthCells = Math.max(1, Math.round((depth.depth ?? 1) / (depth.cellSize ?? 1)));
       const axis = depth.axis ?? "z";
       const origin = [...(depth.origin ?? [0, 0, 0])];
-      const offset = axis === "x" ? 2 : 0;
-      if (axis === "x") origin[2] += minX * (depth.cellSize ?? 1);
-      else origin[0] += minX * (depth.cellSize ?? 1);
-      origin[1] -= minY * (depth.cellSize ?? 1);
+      const cellSize = depth.cellSize ?? 1;
+      if (axis === "x") { origin[2] += minX * cellSize; origin[1] -= minY * cellSize; }
+      else if (axis === "y") { origin[0] += minX * cellSize; origin[2] -= minY * cellSize; }
+      else { origin[0] += minX * cellSize; origin[1] -= minY * cellSize; }
       if (depth.centered !== false) origin[{ x: 0, y: 1, z: 2 }[axis]] -= depthCells * (depth.cellSize ?? 1) / 2;
       const voxelField = voxelFieldFromMask(mask, partWidth, partHeight, {
         depth: depthCells, cellSize: depth.cellSize ?? 1, origin,
