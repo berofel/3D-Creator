@@ -1,0 +1,22 @@
+name: Geometry Core Tests
+
+on:
+  push:
+    branches:
+      - feature/voxel-sdf-reference-sculpt
+  pull_request:
+    paths:
+      - "geometry/**"
+      - "tests/geometry-engine.test.mjs"
+      - ".github/workflows/geometry-core.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run geometry engine tests
+        run: node --experimental-default-type=module --test tests/geometry-engine.test.mjs
