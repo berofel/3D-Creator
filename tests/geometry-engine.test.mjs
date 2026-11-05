@@ -95,3 +95,30 @@ test("full reference pipeline creates contours, voxels and SDF without scene mut
   assert.equal(result.stats.contourCount,2);assert.equal(result.stats.depthCells,2);
   assert.equal(result.voxelField.origin[2],-1);assert.ok(result.sdf([.5,1.5,.5])<0);
 });
+
+import { extractReferenceParts } from "../geometry/reference-parts.js";
+
+test("reference mask keeps stable metadata for every disconnected component",()=>{
+  const image=rgba(6,4,(x,y)=>(x===0&&y===0)||(x>=3&&x<=4&&y>=2&&y<=3)
+    ?[255,0,0,255]:[0,0,0,0]);
+  const result=extractReferenceMask(image);
+  assert.equal(result.stats.detectedComponents,2);
+  assert.equal(result.stats.keptComponents,2);
+  assert.deepEqual(result.components.map(c=>c.id),["part-0001","part-0002"]);
+  assert.deepEqual(result.components.map(c=>c.area),[1,4]);
+  assert.deepEqual(result.components[0].bounds,{minX:0,minY:0,maxX:0,maxY:0,width:1,height:1});
+  assert.equal(result.components[0].pixelIndices.length,1);
+});
+
+test("modular reconstruction preserves small parts as independent voxel and SDF assets",()=>{
+  const image=rgba(7,5,(x,y)=>(x===0&&y===0)||(x>=3&&x<=5&&y>=1&&y<=3)
+    ?[220,30,20,255]:[0,0,0,0]);
+  const result=extractReferenceParts(image,{depth:{depth:2,cellSize:1,axis:"z"}});
+  assert.equal(result.parts.length,2);
+  assert.equal(result.stats.detectedParts,2);
+  assert.equal(result.parts[0].source.area,1);
+  assert.equal(result.parts[0].voxelField.size,2);
+  assert.equal(result.parts[1].voxelField.size,18);
+  assert.equal(typeof result.parts[0].sdf,"function");
+  assert.equal(result.parts[0].local.contours.count,1);
+});
