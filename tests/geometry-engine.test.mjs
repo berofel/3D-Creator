@@ -144,7 +144,10 @@ test("curve sampler returns finite XYZ vertices",()=>{
 test("parametric surface sampler creates indexed grid and finite normals",()=>{
   const m=sampleParametricSurface((u,v)=>[u,v,0],{uSegments:4,vSegments:3,uRange:[0,1],vRange:[0,1]});
   assert.equal(m.vertexCount,20);assert.equal(m.triangleCount,24);assert.equal(m.indices.length,72);
-  assert.ok([...m.positions,...m.normals,...m.uvs].every(Number.isFinite));\n  const a=[...m.positions.slice(0,3)],b=[...m.positions.slice(3,6)],c=[...m.positions.slice((5+0)*3,(5+1)*3)];\n  const ab=b.map((x,i)=>x-a[i]),ac=c.map((x,i)=>x-a[i]);\n  assert.ok(ab[0]*ac[1]-ab[1]*ac[0]>0,"triangle winding agrees with +Z normals");
+  assert.ok([...m.positions,...m.normals,...m.uvs].every(Number.isFinite));
+  const a=[...m.positions.slice(0,3)],b=[...m.positions.slice(3,6)],c=[...m.positions.slice(15,18)];
+  const ab=b.map((x,i)=>x-a[i]),ac=c.map((x,i)=>x-a[i]);
+  assert.ok(ab[0]*ac[1]-ab[1]*ac[0]>0,"triangle winding agrees with +Z normals");
 });
 test("parametric sphere and torus generate valid meshes",()=>{
   const sphere=parametricSphere({radius:2,uSegments:12,vSegments:8}),torus=parametricTorus({majorRadius:2,minorRadius:.5,uSegments:12,vSegments:8});
