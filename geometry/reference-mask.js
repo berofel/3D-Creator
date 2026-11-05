@@ -30,7 +30,7 @@ function floodBackground(data,width,height,color,tolerance) {
   return background;
 }
 function componentFilter(mask,width,height,minArea,keepLargest) {
-  const total=mask.length,seen=new Uint8Array(total),queue=new Int32Array(total),components=[];
+  const total=mask.length,seen=new Uint8Array(total),queue=new Int32Array(total),raw=[];
   for(let start=0;start<total;start++){
     if(!mask[start]||seen[start])continue;
     let head=0,tail=0;queue[tail++]=start;seen[start]=1;
@@ -40,12 +40,18 @@ function componentFilter(mask,width,height,minArea,keepLargest) {
       if(x>0)visit(i-1);if(x+1<width)visit(i+1);
       if(y>0)visit(i-width);if(y+1<height)visit(i+width);
     }
-    components.push({pixels:Array.from(queue.subarray(0,tail)),area:tail});
+    const pixels=Array.from(queue.subarray(0,tail));
+    let minX=width,minY=height,maxX=-1,maxY=-1,sumX=0,sumY=0;
+    for(const i of pixels){const x=i%width,y=(i/width)|0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);sumX+=x;sumY+=y;}
+    raw.push({pixels,area:tail,bounds:{minX,minY,maxX,maxY,width:maxX-minX+1,height:maxY-minY+1},centroid:{x:sumX/tail,y:sumY/tail}});
   }
-  components.sort((a,b)=>b.area-a.area);
-  const out=new Uint8Array(total),limit=keepLargest?1:components.length;
-  for(let c=0;c<limit;c++)if(components[c].area>=minArea)for(const i of components[c].pixels)out[i]=1;
-  return {mask:out,components:components.map(c=>({area:c.area})),kept:components.slice(0,limit).filter(c=>c.area>=minArea).length};
+  raw.sort((a,b)=>a.bounds.minY-b.bounds.minY||a.bounds.minX-b.bounds.minX||b.area-a.area);
+  const largest=raw.reduce((best,c,i)=>c.area>(raw[best]?.area??-1)?i:best,-1);
+  const components=raw.map((c,index)=>({id:`part-${String(index+1).padStart(4,"0")}`,index,area:c.area,
+    bounds:c.bounds,centroid:c.centroid,kept:c.area>=minArea&&(!keepLargest||index===largest),pixelIndices:c.pixels}));
+  const out=new Uint8Array(total);
+  for(const c of components)if(c.kept)for(const i of c.pixelIndices)out[i]=1;
+  return {mask:out,components,kept:components.filter(c=>c.kept).length,discarded:components.filter(c=>!c.kept).length};
 }
 function morphologyPass(mask,width,height,radius,operation) {
   const out=new Uint8Array(mask.length),r=Math.max(1,Math.floor(radius));
