@@ -8,12 +8,12 @@ export function cubicBezier(points,t){
   const a=mix(points[0],points[1],t),b=mix(points[1],points[2],t),c=mix(points[2],points[3],t);
   return mix(mix(a,b,t),mix(b,c,t),t);
 }
-export function catmullRom(points,t,{tension=.5,clamp:true}={}){
+export function catmullRom(points,t,{tension=.5,clamp:clampOutput=true}={}){
   if(!Array.isArray(points)||points.length<2)throw new TypeError("Catmull-Rom requires at least two points.");
   points.forEach((p,i)=>vec3(p,"points["+i+"]"));
   if(!Number.isFinite(tension)||tension<0||tension>1)throw new RangeError("tension must be between 0 and 1.");
   if(!Number.isFinite(t))throw new TypeError("t must be finite.");
-  t=clamp?validateT(t):t;
+  t=clampOutput?validateT(t):t;
   const scaled=t*(points.length-1),i=Math.min(points.length-2,Math.floor(scaled)),u=scaled-i;
   const p0=points[Math.max(0,i-1)],p1=points[i],p2=points[i+1],p3=points[Math.min(points.length-1,i+2)];
   const s=(1-tension)*.5,u2=u*u,u3=u2*u;
